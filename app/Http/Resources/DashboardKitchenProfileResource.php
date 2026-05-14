@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class DashboardKitchenProfileResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id ,
+            'name' => $this->name,
+            'phone' => $this->phone,
+            'whatsapp' => $this->whatsapp,
+            'facebook' => $this->facebook,
+            'location' => $this->location,
+            'statue' => $this->statue,
+            'rejected_note' => $this->rejected_note,
+            'working_time_start' => $this->working_time_start,
+            'working_time_end' => $this->working_time_end,
+            'have_delivery' => $this->have_delivery,
+            'logo' => $this->logo ? config('app.url') . '/storage/' . $this->logo : null,
+            'cover' => $this->cover ? config('app.url') . '/storage/' . $this->cover : null,
+            'work_days' => new WorkDayResource($this->work_day) ,
+            'meals' => MealResource::collection($this->meals) ,
+            'government' => $this->government['name'] ?? null,
+            'area' => $this->area['name'] ?? null,
+            'open_status' => $this->open_status,
+            'have_star' => boolval($this->have_star),
+            'chef_name' => $this->user->name ,
+            'orders' => OrderResource::collection($this->orders) ,
+            'wallet' => $this->user->wallet
+        ];
+    }
+}
