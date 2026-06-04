@@ -8,15 +8,14 @@ use Illuminate\Http\Request;
 class GovernmentController extends Controller
 {
     public function index()
-    {
+{
+    $governments = Government::latest()->get();
 
-        $government = Government::get();
-        $government->load('areas');
-
-        return response()->json([
-            'governments' => $government
-        ], 201);
-    }
+    return view(
+        'admin.governments.index',
+        compact('governments')
+    );
+}
 
 
     public function store(Request $request)

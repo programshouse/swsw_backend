@@ -18,8 +18,12 @@ use App\Http\Controllers\client\CaruselController;
 use App\Http\Controllers\rate\RateController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\DashboardInsightsController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\EnsureGovernrateArea;
+use App\Http\Controllers\Admin\LevelController;
 
 Route::get('/test', function () {
     return view('welcome');
@@ -115,7 +119,7 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     Route::post('/admin/workdays/{workday}/delete', [WorkingDayController::class, 'destroy'])
         ->name('admin.workdays.delete');
 
-     Route::get('/admin/sliders', [CaruselController::class, 'GetAll'])
+    Route::get('/admin/sliders', [CaruselController::class, 'GetAll'])
         ->name('admin.sliders.index');
 
     Route::post('/admin/sliders', [CaruselController::class, 'store'])
@@ -150,4 +154,46 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     // meals
     // Route::post('/approve-meal/{meal}', [MealController::class, 'approveMeal']);
     // Route::get('/all-meals', [MealController::class, 'allMeals']);
+
+
+    Route::get('/governments', [GovernmentController::class, 'index'])
+        ->name('admin.governments.index');
+
+    Route::delete(
+        '/governments/{government}',
+        [GovernmentController::class, 'destroy']
+    )->name('admin.governments.destroy');
+
+    Route::post('/governments', [GovernmentController::class, 'store'])
+        ->name('admin.governments.store');
+
+
+    Route::get('/areas', [AreaController::class, 'index'])
+        ->name('admin.areas.index');
+
+    Route::get('/shifts', [ShiftController::class, 'index'])
+        ->name('admin.shifts.index');
+
+    Route::post('/shifts/store', [ShiftController::class, 'store'])
+        ->name('admin.shifts.store');
+
+    Route::post('/shifts/delete/{id}', [ShiftController::class, 'delete'])
+        ->name('admin.shifts.delete');
+
+    Route::get('/admin/delivery', [DeliveryController::class, 'pending'])->name('admin.delivery.pending');
+    Route::post('/{id}/accept', [DeliveryController::class, 'accept']);
+    Route::post('/{id}/reject', [DeliveryController::class, 'reject']);
+
+
+    Route::prefix('admin/settings')->group(function () {
+        Route::get('/', [SettingsController::class, 'index'])->name('admin.settings.index');
+        Route::post('/update', [SettingsController::class, 'update'])->name('admin.settings.update');
+
+        Route::prefix('admin')
+            ->name('admin.')
+            ->group(function () {
+
+                Route::resource('levels', LevelController::class);
+            });
+    });
 });

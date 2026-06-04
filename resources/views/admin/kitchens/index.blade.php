@@ -4,34 +4,6 @@
 
 @push('styles')
 <style>
-    .page-title{
-        font-size:28px;
-        font-weight:800;
-        color:#0f172a;
-        margin-bottom:20px
-    }
-
-    .table-card{
-        background:#fff;
-        border-radius:18px;
-        box-shadow:0 10px 24px rgba(15,23,42,.06);
-        border:1px solid #eef2f7;
-        overflow:hidden
-    }
-
-    .table-header{
-        padding:20px 24px;
-        border-bottom:1px solid #eef2f7;
-        display:flex;
-        justify-content:space-between;
-        align-items:center
-    }
-
-    .table-title{
-        font-size:20px;
-        font-weight:800;
-        color:#0f172a
-    }
 
     .search-input{
         width:100%;
@@ -39,91 +11,34 @@
         border:1px solid #dbe2ea;
         border-radius:10px;
         padding:0 14px;
-        margin:16px 0
-    }
-
-    .table-wrapper{
-        overflow-x:auto
-    }
-
-    table{
-        width:100%;
-        border-collapse:collapse;
-        min-width:1250px
-    }
-
-    th{
-        background:#f8fafc;
-        color:#334155;
-        padding:16px;
-        text-align:right;
-        border-bottom:1px solid #eef2f7;
-        font-size:14px;
-        white-space:nowrap
-    }
-
-    td{
-        padding:16px;
-        color:#475569;
-        border-bottom:1px solid #eef2f7;
-        font-size:14px;
-        white-space:nowrap
-    }
-
-    tr:hover{
-        background:#f8fafc
-    }
-
-    .btn{
-        display:inline-block;
-        text-decoration:none;
-        border:none;
-        border-radius:10px;
-        padding:8px 12px;
-        font-weight:700;
-        cursor:pointer;
-        font-size:13px
-    }
-
-    .btn-view{
-        background:#eef2ff;
-        color:#3730a3
+        margin:16px 0;
     }
 
     .btn-code{
         background:#f59e0b;
-        color:#fff
+        color:#fff;
     }
 
     .btn-copy{
         background:#0ea5e9;
-        color:#fff
+        color:#fff;
     }
 
     .btn-active{
         background:#16a34a;
-        color:#fff
+        color:#fff;
     }
 
     .btn-inactive{
         background:#dc2626;
-        color:#fff
+        color:#fff;
     }
 
     .actions{
         display:flex;
         gap:8px;
         flex-wrap:wrap;
-        align-items:center
-    }
-
-    .success-alert{
-        background:#dcfce7;
-        color:#166534;
-        padding:14px 18px;
-        border-radius:12px;
-        margin-bottom:16px;
-        font-weight:700
+        align-items:center;
     }
 
     .badge{
@@ -131,23 +46,23 @@
         border-radius:999px;
         font-size:13px;
         font-weight:800;
-        display:inline-block
+        display:inline-block;
     }
 
     .badge-active{
         background:#dcfce7;
-        color:#166534
+        color:#166534;
     }
 
     .badge-inactive{
         background:#fee2e2;
-        color:#991b1b
+        color:#991b1b;
     }
 
     .code-box{
         display:flex;
         gap:8px;
-        align-items:center
+        align-items:center;
     }
 
     .code-value{
@@ -155,8 +70,9 @@
         color:#92400e;
         padding:7px 12px;
         border-radius:10px;
-        font-weight:900
+        font-weight:900;
     }
+
 </style>
 @endpush
 
@@ -175,6 +91,7 @@
 <div class="table-card">
 
     <div class="table-header">
+
         <div class="table-title">
             المطابخ
         </div>
@@ -182,15 +99,18 @@
         <a href="{{ route('admin.kitchens.index') }}" class="btn btn-view">
             تحديث البيانات
         </a>
+
     </div>
 
     <div style="padding:0 24px">
+
         <input
             type="text"
             id="kitchenSearch"
             class="search-input"
             placeholder="بحث في المطابخ"
         >
+
     </div>
 
     <div class="table-wrapper">
@@ -221,26 +141,17 @@
                 <tr>
 
                     <td>{{ $kitchenUser->id }}</td>
-
                     <td>{{ $kitchenUser->name ?? '-' }}</td>
-
                     <td>{{ $kitchenUser->email ?? '-' }}</td>
-
                     <td>{{ $kitchenUser->phone ?? '-' }}</td>
-
                     <td>{{ $kitchenUser->profile->government->name ?? '-' }}</td>
-
                     <td>{{ $kitchenUser->profile->area->name ?? '-' }}</td>
 
                     <td>
                         @if($kitchenUser->status === 'active')
-                            <span class="badge badge-active">
-                                نشط
-                            </span>
+                            <span class="badge badge-active">نشط</span>
                         @else
-                            <span class="badge badge-inactive">
-                                غير نشط
-                            </span>
+                            <span class="badge badge-inactive">غير نشط</span>
                         @endif
                     </td>
 
@@ -260,10 +171,7 @@
 
                         @if(session('generated_code_user_id') == $kitchenUser->id)
 
-                            <div
-                                class="code-box"
-                                id="code-box-{{ $kitchenUser->id }}"
-                            >
+                            <div class="code-box" id="code-box-{{ $kitchenUser->id }}">
 
                                 <span
                                     class="code-value"
@@ -296,7 +204,7 @@
                         <div class="actions">
 
                             <a
-                                href="{{ route('admin.kitchens.show', $kitchenUser->id) }}"
+                                href="{{ route('admin.kitchens.show',$kitchenUser->id) }}"
                                 class="btn btn-view"
                             >
                                 عرض التفاصيل
@@ -304,7 +212,7 @@
 
                             <form
                                 method="POST"
-                                action="{{ route('admin.kitchens.generate-code', $kitchenUser->id) }}"
+                                action="{{ route('admin.kitchens.generate-code',$kitchenUser->id) }}"
                             >
                                 @csrf
 
@@ -314,11 +222,12 @@
                                 >
                                     تغيير الباسورد
                                 </button>
+
                             </form>
 
                             <form
                                 method="POST"
-                                action="{{ route('admin.kitchens.active', $kitchenUser->id) }}"
+                                action="{{ route('admin.kitchens.active',$kitchenUser->id) }}"
                             >
                                 @csrf
 
@@ -354,54 +263,3 @@
 </div>
 
 @endsection
-
-@push('scripts')
-<script>
-
-    document.getElementById('kitchenSearch').addEventListener('keyup', function () {
-
-        let value = this.value.toLowerCase();
-
-        document.querySelectorAll('#kitchensTable tbody tr').forEach(function (row) {
-
-            row.style.display =
-                row.innerText.toLowerCase().includes(value)
-                ? ''
-                : 'none';
-
-        });
-
-    });
-
-    function copyAndHideCode(codeId, boxId) {
-
-        const code =
-            document.getElementById(codeId)
-            .innerText
-            .trim();
-
-        navigator.clipboard.writeText(code).then(function () {
-
-            const box = document.getElementById(boxId);
-
-            box.innerHTML = `
-                <span style="
-                    color:#16a34a;
-                    font-weight:800;
-                ">
-                    تم نسخ الكود
-                </span>
-            `;
-
-            setTimeout(() => {
-
-                box.innerHTML = '-';
-
-            }, 1200);
-
-        });
-
-    }
-
-</script>
-@endpush

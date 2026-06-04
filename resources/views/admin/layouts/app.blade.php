@@ -7,6 +7,10 @@
     <title>
         @yield('title', 'لوحة التحكم')
     </title>
+     <link rel="stylesheet"
+          href="{{ asset('admin/css/dashboard.css') }}">
+
+    @stack('styles')
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -211,12 +215,33 @@
 
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="{{ route('admin.governments.index') }}"
+                class="nav-link {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
 
                 <span class="nav-icon">📍</span>
 
                 <span>
                     المناطق
+                </span>
+
+            </a>
+
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}"
+                    href="{{ route('admin.delivery.pending') }}">
+
+                    <i class="fas fa-motorcycle"></i>
+                    <span>Pending Delivery</span>
+                </a>
+            </li>
+
+            <a href="{{ route('admin.shifts.index') }}" class="nav-link"
+                {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
+
+                <span class="nav-icon">📍</span>
+
+                <span>
+                    الشيفتات
                 </span>
 
             </a>
@@ -244,15 +269,15 @@
             </a>
 
             <a href="{{ route('admin.sliders.index') }}"
-   class="nav-link {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
+                class="nav-link {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
 
-    <span class="nav-icon">🖼️</span>
+                <span class="nav-icon">🖼️</span>
 
-    <span>
-        السلايدر
-    </span>
+                <span>
+                    السلايدر
+                </span>
 
-</a>
+            </a>
 
             <a href="{{ route('admin.workdays.index') }}"
                 class="nav-link {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
@@ -273,9 +298,17 @@
 
             </a>
 
+            <a href="{{ route('admin.levels.index') }}" class="nav-link">
 
+                <span class="nav-icon">🏆</span>
 
-            <a href="#" class="nav-link">
+                <span>
+                    المستويات
+                </span>
+
+            </a>
+
+            <a href="{{ route('admin.settings.index') }}" class="nav-link">
 
                 <span class="nav-icon">⚙️</span>
 
