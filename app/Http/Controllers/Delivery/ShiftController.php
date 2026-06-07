@@ -3,12 +3,23 @@
 namespace App\Http\Controllers\Delivery;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ShiftResource;
 use Illuminate\Http\Request;
 use App\Models\DeliveryShiftLog;
+use App\Models\Shift;
 
 class ShiftController extends Controller
 {
-        public function startShift(Request $request)
+    public function index()
+    {
+        $all_shifts = Shift::all();
+
+        return response()->json([
+            'data' => ShiftResource::collection($all_shifts)
+        ]);
+    }
+
+    public function startShift(Request $request)
     {
         $delivery = auth('delivery-api')->user();
 
@@ -45,7 +56,7 @@ class ShiftController extends Controller
     }
 
 
-        public function endShift(Request $request)
+    public function endShift(Request $request)
     {
         $delivery = auth('delivery-api')->user();
 
@@ -79,4 +90,3 @@ class ShiftController extends Controller
         ]);
     }
 }
-

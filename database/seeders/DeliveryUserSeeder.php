@@ -2,25 +2,20 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Government;
 use App\Models\Area;
-use App\Models\WorkDay;
+use App\Models\DeliveryUser;
+use App\Models\Government;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class AdminUserSeeder extends Seeder
+class DeliveryUserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-
-        // create work time
-        WorkDay::firstOrCreate(['value' => 'all days']);
-
-        // Create or get a default government
         $government = Government::firstOrCreate(
             [
                 'name_en' => 'Cairo',
@@ -45,20 +40,18 @@ class AdminUserSeeder extends Seeder
                 'government_id' => $government->id
             ]
         );
-
-        // Create admin user if it doesn't exist
-        User::firstOrCreate(
-            ['email' => 'admin@swswapp.com'],
-            [
-                'name' => 'Admin User',
-                'email' => 'admin@swswapp.com',
+        DeliveryUser::create([           
+                'level_id' => '1',
+                'shift_id' => '1',
+                'name' => 'delivery User',
+                'email' => 'delivery@gmail.com',
                 'phone' => '0000000000',
+                'type' => 'company',
+                'birthdate' => '1998-3-3',
                 'government_id' => $government->id,
                 'area_id' => $area->id,
-                'role' => 'admin',
-                'status' => 'active',
+                'status' => 'pending',
                 'password' => Hash::make('123456789'),
-            ]
-        );
+        ]);
     }
 }

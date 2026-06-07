@@ -18,20 +18,27 @@ class AuthController extends Controller
             'email' => 'required|email|unique:delivery_users,email',
             'phone' => 'required|unique:delivery_users,phone',
             'birthdate' => 'required|date',
-
             'password' => 'required|min:6|confirmed',
 
-            'government_id' => 'required|string',
+            'government_id' => 'required|string|exists:governments,id',
+
+            'level_id' => 'required|string|exists:levels,id',
 
             'area_id' => 'required|exists:areas,id',
+
             'shift_id' => 'required|exists:shifts,id',
 
             'type' => 'required|in:company,freelance',
 
             'has_vehicle' => 'required|boolean',
-            'vehicle_type' => 'nullable|string',
+            'vehicle_id' => 'nullable|string|exists:vehicles,id',
+            'vehicle_type' => 'nullable|in:car,motorcycle,bicycle',
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
+            // 'status' => 'required|in:pending,approved,rejected',
+
+
         ]);
 
         $imagePath = null;
@@ -46,19 +53,16 @@ class AuthController extends Controller
             'phone' => $request->phone,
             'birthdate' => $request->birthdate,
             'password' => bcrypt($request->password),
-
             'government_id' => $request->government_id,
+            'level_id' => $request->level_id,
             'area_id' => $request->area_id,
             'shift_id' => $request->shift_id,
-
             'type' => $request->type,
-
             'has_vehicle' => $request->has_vehicle,
+            'vehicle_id' => $request->vehicle_id,
             'vehicle_type' => $request->vehicle_type,
-
             'image' => $imagePath,
-
-            // status = pending by default
+            'status' =>'pending'
         ]);
 
         return response()->json([
@@ -107,7 +111,6 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $user = $request->user();
-
         if ($user) {
             $user->currentAccessToken()->delete();
         }

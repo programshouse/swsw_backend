@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class DeliveryUser extends Model
+class DeliveryUser extends Authenticatable
 {
+    use HasApiTokens;
+
     protected $fillable = [
         'name',
         'email',
@@ -13,10 +17,12 @@ class DeliveryUser extends Model
         'birthdate',
         'password',
         'government_id',
+        'level_id',
         'area_id',
         'shift_id',
         'type',
         'has_vehicle',
+        'vehicle_id',
         'vehicle_type',
         'image',
         'status',

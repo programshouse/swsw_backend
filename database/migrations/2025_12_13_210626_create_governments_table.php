@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('governments', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name_en');
+            $table->string('name_ar');
+            $table->boolean('status')->default(true);
             $table->timestamps();
         });
     }

@@ -149,14 +149,4 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
-Route::prefix('delivery')->group(function () {
-  Route::post('/register', [AuthController::class, 'register']);
-  Route::post('/start', [ShiftController::class, 'startShift']);
-  Route::post('/end', [ShiftController::class, 'endShift']);
-  Route::post('/login', [AuthController::class, 'login']);
-  Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/delivery/profile', [AuthController::class, 'profile']);
-    Route::post('/profile/update', [AuthController::class, 'updateProfile']);
-  });
-});
+
