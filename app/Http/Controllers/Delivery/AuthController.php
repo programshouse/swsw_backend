@@ -3,14 +3,35 @@
 namespace App\Http\Controllers\Delivery;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AreaResource;
+use App\Http\Resources\GovernmentResource;
 use Illuminate\Http\Request;
 use App\Models\DeliveryUser;
 use App\Models\DeliveryShiftLog;
+use App\Models\Government;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function get_all_governments()
+    {
+        $all_governments =  Government::where('status', true)->get();
+
+        return response()->json([
+            'data' => GovernmentResource::collection($all_governments)
+        ]);
+    }
+
+    public function get_government_areas(Government $government)
+    {
+        $government_areas = $government->areas()->where('status', true)->get();
+
+        return response()->json([
+            'data' => AreaResource::collection($government_areas)
+        ]);
+    }
+    
     public function register(Request $request)
     {
         $request->validate([
