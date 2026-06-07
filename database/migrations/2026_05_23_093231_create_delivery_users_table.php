@@ -35,13 +35,16 @@ return new class extends Migration
 
             // transport info
             $table->boolean('has_vehicle')->default(false);
-            
+
             $table->foreignId('vehicle_id')
                 ->nullable()
                 ->constrained('vehicles')
                 ->nullOnDelete();
             // image
             $table->string('image')->nullable();
+
+            // vehicle type : car motorcycle bicycle 
+            $table->enum('vehicle_type', ['car', 'motorcycle' ,'bicycle']);
 
             // status approval
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');

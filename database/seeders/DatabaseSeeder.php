@@ -23,6 +23,10 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         // Seed admin user
-        $this->call(AdminUserSeeder::class);
+        $this->call([
+            AdminUserSeeder::class,
+            ShiftSeeder::class,
+            DeliveryUserSeeder::class
+        ]);
     }
 }
