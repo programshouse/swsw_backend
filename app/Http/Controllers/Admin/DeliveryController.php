@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DeliveryUser;
-
+use App\Models\Level;
 
 class DeliveryController extends Controller
 {
@@ -20,7 +20,6 @@ class DeliveryController extends Controller
             compact('deliveries')
         );
     }
-
 
     public function accept($id)
     {
@@ -44,7 +43,6 @@ class DeliveryController extends Controller
         ]);
     }
 
-
     public function reject($id)
     {
         $delivery = DeliveryUser::findOrFail($id);
@@ -65,5 +63,31 @@ class DeliveryController extends Controller
             'message' => 'Delivery rejected successfully',
             'data' => $delivery
         ]);
+    }
+
+    public function approved()
+    {
+        $deliveries = DeliveryUser::with('level')->where('status', 'approved')
+            ->latest()
+            ->get();
+
+        $levels = Level::all();
+        return view(
+            'admin.delivery.approved',
+            compact('deliveries', 'levels')
+        );
+    }
+
+    public function promotion(Request $request, string $id)
+    {
+        $delivery = DeliveryUser::findOrFail($id);
+
+        $delivery_new_level = $delivery->update([
+            'level_id' => $request->level_id
+        ]);
+
+        return redirect()
+            ->route('admin.delivery.approved')
+            ->with('success', 'Delivery Promoted Successfully');
     }
 }

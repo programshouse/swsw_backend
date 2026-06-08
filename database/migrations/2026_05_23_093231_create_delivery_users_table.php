@@ -25,7 +25,7 @@ return new class extends Migration
             $table->foreignId('level_id')
                 ->nullable()
                 ->constrained('levels')
-                ->nullOnDelete();
+                ->nullOnDelete()->default(1);
 
             $table->foreignId('area_id')->constrained()->cascadeOnDelete();
             $table->foreignId('shift_id')->constrained()->cascadeOnDelete();
