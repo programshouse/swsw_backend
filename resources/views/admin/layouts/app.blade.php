@@ -7,8 +7,8 @@
     <title>
         @yield('title', 'لوحة التحكم')
     </title>
-     <link rel="stylesheet"
-          href="{{ asset('admin/css/dashboard.css') }}">
+
+    <link rel="stylesheet" href="{{ asset('admin/css/dashboard.css') }}">
 
     @stack('styles')
 
@@ -160,7 +160,6 @@
             .admin-layout {
                 flex-direction: column;
             }
-
         }
     </style>
 
@@ -226,14 +225,33 @@
 
             </a>
 
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}"
-                    href="{{ route('admin.delivery.pending') }}">
+            @php
+                $deliveryOpen = request()->routeIs('admin.delivery.*');
+            @endphp
 
-                    <i class="fas fa-motorcycle"></i>
-                    <span>Pending Delivery</span>
-                </a>
-            </li>
+            <div class="nav-group {{ $deliveryOpen ? 'open' : '' }}">
+
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <i class="fas fa-motorcycle nav-icon"></i>
+                    <span>Delivery</span>
+                    <span class="arrow">⌄</span>
+                </div>
+
+                <div class="submenu">
+
+                    <a href="{{ route('admin.delivery.pending') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
+                        Pending Delivery
+                    </a>
+
+                    <a href="{{ route('admin.delivery.approved') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
+                        Approved Delivery
+                    </a>
+
+                </div>
+
+            </div>
 
             <a href="{{ route('admin.shifts.index') }}" class="nav-link"
                 {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
@@ -358,7 +376,13 @@
 
     </div>
 
+
     @stack('scripts')
+    <script>
+        function toggleMenu(el) {
+            el.parentElement.classList.toggle('open');
+        }
+    </script>
 
 </body>
 

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\DeliveryUser;
 use App\Models\DeliveryShiftLog;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -62,7 +63,7 @@ class AuthController extends Controller
             'vehicle_id' => $request->vehicle_id,
             'vehicle_type' => $request->vehicle_type,
             'image' => $imagePath,
-            'status' =>'pending'
+            'status' => 'pending'
         ]);
 
         return response()->json([
@@ -108,7 +109,7 @@ class AuthController extends Controller
     }
 
 
-    public function logout(Request $request)
+    public function imageut(Request $request)
     {
         $user = $request->user();
         if ($user) {
@@ -168,6 +169,40 @@ class AuthController extends Controller
             'vehicle_type' => 'nullable|string',
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+
+        // image update
+        if ($request->hasFile('image')) {
+
+            // delete old image 
+            if ($delivery->image) {
+                Storage::disk('public')->delete($delivery->image);
+            }
+            $image_path = $request->file('image')->store('deliverys', 'public');
+        } else {
+            $image_path = $delivery->image;
+        }
+
+        $delivery->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'birthdate' => $request->birthdate,
+            'government_id' => $request->government_id,
+            'area_id' => $request->area_id,
+            'shift_id' => $request->shift_id,
+            'type' => $request->type,
+            'has_vehicle' => $request->has_vehicle,
+            'vehicle_id' => $request->vehicle_id,
+            'vehicle_type' => $request->vehicle_type,
+            'image' => $image_path,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Profile Updated Successfully.',
+            'data' => $delivery
         ]);
     }
 }

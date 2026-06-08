@@ -180,10 +180,15 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     Route::post('/shifts/delete/{id}', [ShiftController::class, 'delete'])
         ->name('admin.shifts.delete');
 
-    Route::get('/admin/delivery', [DeliveryController::class, 'pending'])->name('admin.delivery.pending');
-    Route::post('/{id}/accept', [DeliveryController::class, 'accept']);
-    Route::post('/{id}/reject', [DeliveryController::class, 'reject']);
+    Route::prefix('admin/delivery')->group(function () {
+        
+        Route::get('/pending', [DeliveryController::class, 'pending'])->name('admin.delivery.pending');
+        Route::post('/{id}/accept', [DeliveryController::class, 'accept']);
+        Route::post('/{id}/reject', [DeliveryController::class, 'reject']);
 
+        Route::get('/approved', [DeliveryController::class, 'approved'])->name('admin.delivery.approved');
+        Route::post('/{id}/promotion', [DeliveryController::class, 'promotion'])->name('admin.delivery.promotion');
+    });
 
     Route::prefix('admin/settings')->group(function () {
         Route::get('/', [SettingsController::class, 'index'])->name('admin.settings.index');
