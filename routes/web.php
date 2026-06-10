@@ -21,9 +21,11 @@ use App\Http\Controllers\DashboardInsightsController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Admin\DeliveryController;
+use App\Http\Controllers\Admin\PendingDeliveryController;
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\EnsureGovernrateArea;
 use App\Http\Controllers\Admin\LevelController;
+use App\Http\Controllers\TicketController;
 
 Route::get('/test', function () {
     return view('welcome');
@@ -171,6 +173,20 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     Route::get('/areas', [AreaController::class, 'index'])
         ->name('admin.areas.index');
 
+    Route::post('/areas/store', [AreaController::class, 'store'])
+        ->name('admin.areas.store');
+
+    Route::post('/admin/areas/{area}/delete', [AreaController::class, 'destroy'])
+        ->name('admin.areas.destroy');
+
+
+    Route::get('/tickets', [TicketController::class, 'index'])
+        ->name('admin.tickets.index');
+
+    Route::delete('/admin/tickets/{ticket}/delete', [TicketController::class, 'destroy'])
+        ->name('admin.tickets.destroy');
+
+
     Route::get('/shifts', [ShiftController::class, 'index'])
         ->name('admin.shifts.index');
 
@@ -181,10 +197,17 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
         ->name('admin.shifts.delete');
 
     Route::prefix('admin/delivery')->group(function () {
-        
+
         Route::get('/pending', [DeliveryController::class, 'pending'])->name('admin.delivery.pending');
         Route::post('/{id}/accept', [DeliveryController::class, 'accept']);
         Route::post('/{id}/reject', [DeliveryController::class, 'reject']);
+
+        Route::prefix('/profile')->group(function () {
+
+            Route::get('/pending', [PendingDeliveryController::class, 'pending'])->name('admin.delivery.profile.pending');
+            Route::post('/{id}/accept', [PendingDeliveryController::class, 'accept']);
+            Route::post('/{id}/reject', [PendingDeliveryController::class, 'reject']);
+        });
 
         Route::get('/approved', [DeliveryController::class, 'approved'])->name('admin.delivery.approved');
         Route::post('/{id}/promotion', [DeliveryController::class, 'promotion'])->name('admin.delivery.promotion');

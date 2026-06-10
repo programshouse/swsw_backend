@@ -20,7 +20,7 @@ class DeliveryController extends Controller
             compact('deliveries')
         );
     }
-
+    
     public function accept($id)
     {
         $delivery = DeliveryUser::findOrFail($id);
@@ -65,6 +65,7 @@ class DeliveryController extends Controller
         ]);
     }
 
+
     public function approved()
     {
         $deliveries = DeliveryUser::with('level')->where('status', 'approved')
@@ -82,7 +83,7 @@ class DeliveryController extends Controller
     {
         $delivery = DeliveryUser::findOrFail($id);
 
-        $delivery_new_level = $delivery->update([
+       $delivery->update([
             'level_id' => $request->level_id
         ]);
 

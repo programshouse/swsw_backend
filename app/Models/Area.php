@@ -17,4 +17,9 @@ class Area extends Model
     public function government() {
         return $this->belongsTo(Government::class);
     }
+
+       public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 }

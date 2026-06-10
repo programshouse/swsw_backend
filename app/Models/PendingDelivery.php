@@ -2,21 +2,23 @@
 
 namespace App\Models;
 
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 
-class DeliveryUser extends Authenticatable
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
+
+class PendingDelivery extends Authenticatable
 {
+
     use HasApiTokens;
 
     protected $fillable = [
+        'delivery_user_id',
         'name',
         'email',
         'phone',
         'birthdate',
-        'password',
         'government_id',
-        'level_id',
         'area_id',
         'shift_id',
         'type',
@@ -31,10 +33,10 @@ class DeliveryUser extends Authenticatable
         'password',
     ];
 
-    public function pendingDelivery()
+    public function delivery()
     {
-        return $this->hasOne(
-            PendingDelivery::class,
+        return $this->belongsTo(
+            DeliveryUser::class,
             'delivery_user_id'
         );
     }
@@ -48,18 +50,10 @@ class DeliveryUser extends Authenticatable
     {
         return $this->belongsTo(Shift::class);
     }
-    public function level()
-    {
-        return $this->belongsTo(Level::class);
-    }
 
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);
     }
 
-    public function tickets()
-    {
-        return $this->hasMany(Ticket::class);
-    }
 }

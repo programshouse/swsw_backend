@@ -217,6 +217,18 @@
             <a href="{{ route('admin.governments.index') }}"
                 class="nav-link {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
 
+                <span class="nav-icon">🏛️</span>
+
+                <span>
+                    المحافظات
+                </span>
+
+            </a>
+
+
+            <a href="{{ route('admin.areas.index') }}"
+                class="nav-link {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
+
                 <span class="nav-icon">📍</span>
 
                 <span>
@@ -225,11 +237,18 @@
 
             </a>
 
-            @php
-                $deliveryOpen = request()->routeIs('admin.delivery.*');
-            @endphp
 
-            <div class="nav-group {{ $deliveryOpen ? 'open' : '' }}">
+            <a href="{{ route('admin.tickets.index') }}"
+                class="nav-link {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
+
+                <span class="nav-icon">🎫</span>
+                <span>
+                    المشاكل
+                </span>
+
+            </a>
+
+            <div class="nav-group {{ request()->routeIs('admin.delivery.*') ? 'open' : '' }}">
 
                 <div class="nav-link parent" onclick="toggleMenu(this)">
                     <i class="fas fa-motorcycle nav-icon"></i>
@@ -239,11 +258,32 @@
 
                 <div class="submenu">
 
-                    <a href="{{ route('admin.delivery.pending') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
-                        Pending Delivery
-                    </a>
+                    <!-- Pending Dropdown -->
+                    <div
+                        class="nav-group {{ request()->routeIs('admin.delivery.pending') || request()->routeIs('admin.delivery.profile.pending') ? 'open' : '' }}">
 
+                        <div class="nav-link sub parent" onclick="toggleMenu(this)">
+                            <span>Pending</span>
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            <a href="{{ route('admin.delivery.pending') }}"
+                                class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
+                                Pending Delivery
+                            </a>
+
+                            <a href="{{ route('admin.delivery.profile.pending') }}"
+                                class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
+                                Profile Updates
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Approved -->
                     <a href="{{ route('admin.delivery.approved') }}"
                         class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
                         Approved Delivery
@@ -252,7 +292,6 @@
                 </div>
 
             </div>
-
             <a href="{{ route('admin.shifts.index') }}" class="nav-link"
                 {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
 
@@ -378,6 +417,7 @@
 
 
     @stack('scripts')
+
     <script>
         function toggleMenu(el) {
             el.parentElement.classList.toggle('open');

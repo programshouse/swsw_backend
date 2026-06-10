@@ -4,6 +4,7 @@ use App\Http\Controllers\Delivery\AreaController;
 use App\Http\Controllers\Delivery\AuthController;
 use App\Http\Controllers\Delivery\GovernmentController;
 use App\Http\Controllers\Delivery\ShiftController;
+use App\Http\Controllers\Delivery\TicketController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -24,7 +25,11 @@ Route::prefix('delivery')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::middleware('auth:api_delivery')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/delivery/profile', [AuthController::class, 'profile']);
+        Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/profile/update', [AuthController::class, 'updateProfile']);
+
+        Route::prefix('orders')->group(function () {
+            Route::post('/{order}/report', [TicketController::class, 'store']);
+        });
     });
 });

@@ -3,13 +3,7 @@
 @section('content')
     <div class="container">
 
-        <h2 class="mb-4">Accepted Delivery Users</h2>        
-
-        @if (session('success'))
-            <div class="success-alert">
-                {{ session('success') }}
-            </div>
-        @endif
+        <h2 class="mb-4">Pending Delivery Profile Updates</h2>
 
         <table class="table table-bordered text-center">
             <thead>
@@ -19,7 +13,6 @@
                     <th>Phone</th>
                     <th>Type</th>
                     <th>Vehicle</th>
-                    <th>Level</th>
                     <th>Image</th>
                     <th>Action</th>
                 </tr>
@@ -41,29 +34,21 @@
                             @endif
                         </td>
 
-
-                        <td>
-                            {{ $delivery->level->name }}
-                        </td>
-
                         <td>
                             @if ($delivery->image)
                                 <img src="{{ asset('storage/' . $delivery->image) }}" width="50" height="50"
                                     style="border-radius:50%">
                             @endif
                         </td>
+
                         <td>
-                            <form method="POST" action={{ route('admin.delivery.promotion', $delivery->id) }}>
-                                @csrf
-                                <select name="level_id" id="level_id">
-                                    @foreach ($levels as $level)
-                                        <option value="{{ $level->id }}">{{ $level->name }}</option>
-                                    @endforeach
-                                </select>
-                                <button class="btn btn-success btn-sm" type="submit">
-                                    ترقية
-                                </button>
-                            </form>
+                            <button class="btn btn-success btn-sm" onclick="updateStatus({{ $delivery->id }}, 'accept')">
+                                Accept
+                            </button>
+
+                            <button class="btn btn-danger btn-sm" onclick="updateStatus({{ $delivery->id }}, 'reject')">
+                                Reject
+                            </button>
                         </td>
                     </tr>
                 @endforeach
@@ -72,3 +57,29 @@
 
     </div>
 @endsection
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    function updateStatus(id, action) {
+
+        let url = '/admin/delivery/profile/' + id + '/' + action;
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.status) {
+                    $('#row-' + id).remove();
+                    alert(response.message);
+                }
+            },
+            error: function() {
+                alert('Something went wrong');
+            }
+        });
+    }
+</script>

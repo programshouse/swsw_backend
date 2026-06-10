@@ -51,9 +51,10 @@
 
                             <td>{{ $area->id }}</td>
 
-                            <td>{{ $area->government->name ?? '-' }}</td>
+                            <td>{{ $area->government->name_ar ?? '-' }}</td>
 
-                            <td>{{ $area->name }}</td>
+                            <td>{{ $area->name_ar }}</td>
+
 
                             <td>
                                 {{ optional($area->created_at)->format('Y-m-d') }}
@@ -116,7 +117,7 @@
 
                         @foreach ($governments as $government)
                             <option value="{{ $government->id }}">
-                                {{ $government->name }}
+                                {{ $government->name_ar }}
                             </option>
                         @endforeach
 
@@ -130,7 +131,7 @@
                         اسم المنطقة
                     </label>
 
-                    <input type="text" name="name" class="form-input" required>
+                    <input type="text" name="name_ar" class="form-input" required>
 
                 </div>
 
