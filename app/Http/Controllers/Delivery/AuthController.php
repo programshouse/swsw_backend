@@ -6,9 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DeliveryUser;
 use App\Models\DeliveryShiftLog;
+use App\Http\Resources\DeliveryResource;
+use App\Models\PendingDelivery;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
+
 
 class AuthController extends Controller
 {
@@ -36,8 +37,6 @@ class AuthController extends Controller
             'vehicle_type' => 'nullable|in:car,motorcycle,bicycle',
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-
-            // 'status' => 'required|in:pending,approved,rejected',
 
 
         ]);
@@ -109,7 +108,7 @@ class AuthController extends Controller
     }
 
 
-    public function imageut(Request $request)
+    public function logout(Request $request)
     {
         $user = $request->user();
         if ($user) {
@@ -138,10 +137,12 @@ class AuthController extends Controller
             ->take(5)
             ->get();
 
+        $delivery_data = [new DeliveryResource($delivery)];
+
         return response()->json([
             'status' => true,
             'data' => [
-                'user' => $delivery,
+                'user' => $delivery_data,
                 'last_shifts' => $lastShifts,
             ]
         ]);
@@ -174,35 +175,53 @@ class AuthController extends Controller
 
         // image update
         if ($request->hasFile('image')) {
-
-            // delete old image 
-            if ($delivery->image) {
-                Storage::disk('public')->delete($delivery->image);
-            }
-            $image_path = $request->file('image')->store('deliverys', 'public');
+            $image_path = $request->file('image')->store('delivery_users', 'public');
         } else {
             $image_path = $delivery->image;
         }
 
-        $delivery->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'birthdate' => $request->birthdate,
-            'government_id' => $request->government_id,
-            'area_id' => $request->area_id,
-            'shift_id' => $request->shift_id,
-            'type' => $request->type,
-            'has_vehicle' => $request->has_vehicle,
-            'vehicle_id' => $request->vehicle_id,
-            'vehicle_type' => $request->vehicle_type,
-            'image' => $image_path,
-        ]);
+        $pending_delivery = PendingDelivery::where('delivery_user_id', $delivery->id)->first();
+
+        if ($pending_delivery) {
+
+            $pending_delivery->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'birthdate' => $request->birthdate,
+                'government_id' => $request->government_id,
+                'area_id' => $request->area_id,
+                'shift_id' => $request->shift_id,
+                'type' => $request->type,
+                'has_vehicle' => $request->has_vehicle,
+                'vehicle_id' => $request->vehicle_id,
+                'vehicle_type' => $request->vehicle_type,
+                'image' => $image_path,
+                'status' => 'pending'
+            ]);
+        } else {
+
+            PendingDelivery::create([
+                'delivery_user_id' => $delivery->id,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'birthdate' => $request->birthdate,
+                'government_id' => $request->government_id,
+                'area_id' => $request->area_id,
+                'shift_id' => $request->shift_id,
+                'type' => $request->type,
+                'has_vehicle' => $request->has_vehicle,
+                'vehicle_id' => $request->vehicle_id,
+                'vehicle_type' => $request->vehicle_type,
+                'image' => $image_path,
+            ]);
+        }
 
         return response()->json([
-            'status' => true,
-            'message' => 'Profile Updated Successfully.',
-            'data' => $delivery
+            'status' => 'success',
+            'message' => 'Waiting for admin approval .',
+            'data' => null
         ]);
     }
 }

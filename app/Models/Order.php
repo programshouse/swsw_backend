@@ -51,4 +51,8 @@ class Order extends Model
         return $this->hasOne(WalletTransaction::class);
     }
 
+     public function ticket()
+    {
+        return $this->hasOne(Ticket::class);
+    }
 }

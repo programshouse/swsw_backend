@@ -10,11 +10,14 @@ class AreaController extends Controller
     public function index()
     {
 
-        $area = Area::get();
-        $area->load('government') ;
-        return response()->json([
-            'areas' => $area
-        ], 201);
+        $areas = Area::get();
+        $governments = $areas->load('government');
+
+        return view('admin.areas.index', compact('areas','governments'));
+
+        // return response()->json([
+        //     'areas' => $area
+        // ], 201);
     }
 
 
@@ -27,7 +30,7 @@ class AreaController extends Controller
         ]);
 
         $area = Area::create([
-            'name' => trim($validated['name']) ,
+            'name' => trim($validated['name']),
             'government_id' => $validated['government_id']
         ]);
 

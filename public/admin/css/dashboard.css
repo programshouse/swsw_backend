@@ -898,7 +898,9 @@ tr:hover {
     color: #991b1b
 }
 
-/* delivery_dropdown */
+
+/* Delivery Dropdown */
+
 .nav-group {
     margin-bottom: 10px;
 }
@@ -906,22 +908,26 @@ tr:hover {
 .submenu {
     max-height: 0;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: max-height 0.3s ease;
     margin-right: 15px;
     display: flex;
     flex-direction: column;
 }
 
-.nav-group.open .submenu {
-    max-height: 200px;
+.nav-group.open > .submenu {
+    max-height: 500px;
+}
+
+.submenu .submenu {
+    margin-right: 20px;
 }
 
 .arrow {
-    transition: 0.3s;
+    transition: transform 0.3s ease;
 }
 
-.nav-group.open .arrow {
+.nav-group.open > .parent .arrow {
     transform: rotate(180deg);
 }
 
-/* delivery_dropdown */
+/* Delivery Dropdown */

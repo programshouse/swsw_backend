@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class GovernmentResource extends JsonResource
+class TicketResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,8 +16,12 @@ class GovernmentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            "name_en" => $this->name_en,
-            "name_ar" => $this->name_ar,
+            "area_id" => $this->area_id,
+            "order" => new OrderDetailResource($this->order),
+            "delivery" => new DeliveryResource($this->deliveryUser),
+            "type" => $this->type,
+            "order_status" => $this->order_status,
+            "details" => $this->details,
         ];
     }
 }
