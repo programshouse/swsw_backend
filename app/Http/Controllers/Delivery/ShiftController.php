@@ -21,7 +21,7 @@ class ShiftController extends Controller
 
     public function startShift(Request $request)
     {
-        $delivery = auth('delivery-api')->user();
+        $delivery=$request->user();
 
         if (!$delivery) {
             return response()->json([
@@ -58,7 +58,7 @@ class ShiftController extends Controller
 
     public function endShift(Request $request)
     {
-        $delivery = auth('delivery-api')->user();
+       $delivery=$request->user();
 
         if (!$delivery) {
             return response()->json([

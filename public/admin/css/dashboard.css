@@ -914,7 +914,7 @@ tr:hover {
     flex-direction: column;
 }
 
-.nav-group.open > .submenu {
+.nav-group.open>.submenu {
     max-height: 500px;
 }
 
@@ -926,8 +926,19 @@ tr:hover {
     transition: transform 0.3s ease;
 }
 
-.nav-group.open > .parent .arrow {
+.nav-group.open>.parent .arrow {
     transform: rotate(180deg);
 }
 
 /* Delivery Dropdown */
+
+/* Delivery working circle */
+.circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #ccc;
+    /* default off */
+    transition: 0.3s;
+}
+/* Delivery working circle */

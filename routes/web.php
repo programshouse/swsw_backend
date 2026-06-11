@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\PendingDeliveryController;
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\EnsureGovernrateArea;
 use App\Http\Controllers\Admin\LevelController;
+use App\Http\Controllers\Admin\UserRateController;
 use App\Http\Controllers\TicketController;
 
 Route::get('/test', function () {
@@ -65,6 +66,31 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
 
     Route::post('/admin/meals/{meal}/approve', [MealController::class, 'approveMeal'])
         ->name('admin.meals.approve');                                                        //////done
+
+    // admin rates
+
+    Route::prefix('admin/rates')->group(function () {
+
+        Route::get('/', [UserRateController::class, 'index'])
+            ->name('admin.rates.index');
+
+        Route::get('/create', [UserRateController::class, 'create'])
+            ->name('admin.rates.create');
+
+        Route::post('/save', [UserRateController::class, 'store'])
+            ->name('admin.rates.store');
+
+        Route::get('/{rate}/edit', [UserRateController::class, 'edit'])
+            ->name('admin.rates.edit');
+
+        Route::post('/{rate}/update', [UserRateController::class, 'update'])
+            ->name('admin.rates.update');
+
+        Route::post('/{rate}/delete', [UserRateController::class, 'destroy'])
+            ->name('admin.rates.destroy');
+    });
+
+    // admin rates
 
 
     Route::get('/admin/categories', [CategoryController::class, 'GetAll'])
@@ -202,12 +228,16 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
         Route::post('/{id}/accept', [DeliveryController::class, 'accept']);
         Route::post('/{id}/reject', [DeliveryController::class, 'reject']);
 
+        Route::post('/{id}/generate/password', [DeliveryController::class, 'generate_delivery_user_forget_password_code'])->name('admin.delivery.generate.password');
+
         Route::prefix('/profile')->group(function () {
 
             Route::get('/pending', [PendingDeliveryController::class, 'pending'])->name('admin.delivery.profile.pending');
             Route::post('/{id}/accept', [PendingDeliveryController::class, 'accept']);
             Route::post('/{id}/reject', [PendingDeliveryController::class, 'reject']);
         });
+
+        Route::post('/{id}/break', [DeliveryController::class, 'onBreak'])->name('admin.delivery.break');
 
         Route::get('/approved', [DeliveryController::class, 'approved'])->name('admin.delivery.approved');
         Route::post('/{id}/promotion', [DeliveryController::class, 'promotion'])->name('admin.delivery.promotion');

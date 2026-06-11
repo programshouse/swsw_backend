@@ -3,7 +3,7 @@
 @section('content')
     <div class="container">
 
-        <h2 class="mb-4">Accepted Delivery Users</h2>        
+        <h2 class="mb-4">Accepted Delivery Users</h2>
 
         @if (session('success'))
             <div class="success-alert">
@@ -21,6 +21,7 @@
                     <th>Vehicle</th>
                     <th>Level</th>
                     <th>Image</th>
+                    <th>Working / On Break</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -52,6 +53,11 @@
                                     style="border-radius:50%">
                             @endif
                         </td>
+
+                        <td>
+                            <div class="circle" style="background-color: {{ $delivery->is_break ? 'red' : 'green' }};">
+                            </div>
+                        </td>
                         <td>
                             <form method="POST" action={{ route('admin.delivery.promotion', $delivery->id) }}>
                                 @csrf
@@ -64,6 +70,39 @@
                                     ترقية
                                 </button>
                             </form>
+
+                            @if (session('generated_code_user_id') == $delivery->id)
+                                <div class="code-box" id="code-box-{{ $delivery->id }}">
+
+                                    <span class="code-value" id="code-{{ $delivery->id }}">
+                                        {{ session('generated_code') }}
+                                    </span>
+
+                                    <button type="button" class="btn btn-copy"
+                                        onclick="copyAndHideCode(
+                                        'code-{{ $delivery->id }}',
+                                        'code-box-{{ $delivery->id }}'
+                                    )">
+                                        نسخ
+                                    </button>
+
+                                </div>
+                            @else
+                                -
+                            @endif
+                            <form action="{{ route('admin.delivery.generate.password', $delivery->id) }}" method="post">
+                                @csrf
+                                <button type="submit" class="btn btn-warning">Generate Password</button>
+                            </form>
+
+                            <label>
+                                <form action="{{ route('admin.delivery.break', $delivery->id) }}" method="post">
+                                    @csrf
+                                    <button>
+                                        On Break
+                                    </button>
+                                </form>
+                            </label>
                         </td>
                     </tr>
                 @endforeach
@@ -72,3 +111,16 @@
 
     </div>
 @endsection
+<Script>
+    function setCircleStatus(value) {
+        const circle = document.getElementById("status-circle");
+
+        if (value == 1) {
+            circle.style.backgroundColor = "green";
+            circle.style.boxShadow = "0 0 10px green";
+        } else {
+            circle.style.backgroundColor = "#ccc";
+            circle.style.boxShadow = "none";
+        }
+    }
+</Script>
