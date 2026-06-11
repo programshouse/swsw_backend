@@ -224,4 +224,54 @@ class AuthController extends Controller
             'data' => null
         ]);
     }
+
+
+      public function forgetPassword(Request $request)
+    {
+        if ($user->role !== 'kitchen') {
+            abort(404);
+        }
+
+        $code = rand(100000, 999999);
+
+        $user->forceFill([
+            'code' => $code,
+            'code_expires_at' => now()->addMinutes(10),
+        ])->save();
+
+        return redirect()
+            ->route('admin.kitchens.index')
+            ->with('success', 'تم إنشاء كود تغيير كلمة المرور بنجاح')
+            ->with('generated_code_user_id', $user->id)
+            ->with('generated_code', $code);
+    
+    }
+
+
+      public function resetPassword(Request $request)
+    {
+        // $delivery = $request->user();
+
+        // $delivery->load([
+        //     'area',
+        //     'shift',
+        // ]);
+
+        // // آخر شفتات (لو عندك جدول shift logs)
+        // $lastShifts = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
+        //     ->latest()
+        //     ->take(5)
+        //     ->get();
+
+        // $delivery_data = [new DeliveryResource($delivery)];
+
+        // return response()->json([
+        //     'status' => true,
+        //     'data' => [
+        //         'user' => $delivery_data,
+        //         'last_shifts' => $lastShifts,
+        //     ]
+        // ]);
+    }
 }
+

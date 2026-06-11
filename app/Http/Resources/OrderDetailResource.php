@@ -16,9 +16,11 @@ class OrderDetailResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'number' => $this->number,
             'user_id' => $this->user_id,
             'kitchen_id' => $this->kitchen_id,
             'address' => $this->address,
+            'user address' => $this->user->address,
             'total' => $this->total,
             'status' => $this->status,
             'created_at' => $this->created_at,
@@ -27,7 +29,7 @@ class OrderDetailResource extends JsonResource
             'client_phone' => $this->user->phone,
             'kitchen_name' => $this->kitchen->name,
             'receive_date' => $this->receive_date,
-            'receive_time' => $this->receive_time, 
+            'receive_time' => $this->receive_time,
         ];
     }
 }

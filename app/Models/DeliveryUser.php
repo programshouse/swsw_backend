@@ -25,6 +25,10 @@ class DeliveryUser extends Authenticatable
         'vehicle_type',
         'image',
         'status',
+        'is_break',
+        'code',
+        'code_expires_at',
+        'verified_at'
     ];
 
     protected $hidden = [
@@ -61,5 +65,10 @@ class DeliveryUser extends Authenticatable
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
     }
 }

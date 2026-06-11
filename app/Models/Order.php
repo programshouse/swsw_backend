@@ -20,8 +20,15 @@ class Order extends Model
         'receive_time',
         'book_for_later',
         'cancel_date',
-        'delivered_at'
+        'delivered_at',
+        'delivery_user_id',
+        'number'
     ];
+
+    public function deliveryUser()
+    {
+        return $this->hasOne(DeliveryUser::class);
+    }
 
     public function user()
     {
@@ -43,15 +50,17 @@ class Order extends Model
         return $this->hasMany(OrderPayment::class);
     }
 
-    public function address() {
+    public function address()
+    {
         return $this->belongsTo(UserAddress::class);
     }
 
-     public function transaction() {
+    public function transaction()
+    {
         return $this->hasOne(WalletTransaction::class);
     }
 
-     public function ticket()
+    public function ticket()
     {
         return $this->hasOne(Ticket::class);
     }

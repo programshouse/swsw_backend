@@ -303,6 +303,17 @@
 
             </a>
 
+
+            <a href="{{ route('admin.rates.index') }}"
+                class="nav-link {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
+
+                <span class="nav-icon">⭐</span>
+                <span>
+                    التقييمات
+                </span>
+
+            </a>
+
             <a href="{{ route('admin.categories.index') }}"
                 class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
 
