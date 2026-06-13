@@ -24,5 +24,6 @@ class OrderItemsResource extends JsonResource
             'meal_image' => $this->meal->image ? config('app.url') . '/storage/' . $this->meal->image : null,
             'preparation_time' => $this->meal->preparation_time ?? null,
         ];
+        
     }
 }

@@ -14,7 +14,7 @@ class Order extends Model
         'user_id',
         'kitchen_id',
         'total',
-        'address_id',
+        'user_address_id',
         'status',
         'receive_date',
         'receive_time',
@@ -22,12 +22,17 @@ class Order extends Model
         'cancel_date',
         'delivered_at',
         'delivery_user_id',
-        'number'
+        'number',
+        'rejected_at'
+    ];
+
+    protected $casts = [
+        'rejected_at' => 'datetime',
     ];
 
     public function deliveryUser()
     {
-        return $this->hasOne(DeliveryUser::class);
+        return $this->belongsTo(DeliveryUser::class);
     }
 
     public function user()
@@ -40,7 +45,7 @@ class Order extends Model
         return $this->belongsTo(KitchenProfile::class, 'kitchen_id');
     }
 
-    public function items()
+    public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
     }
@@ -50,7 +55,7 @@ class Order extends Model
         return $this->hasMany(OrderPayment::class);
     }
 
-    public function address()
+    public function userAddress()
     {
         return $this->belongsTo(UserAddress::class);
     }

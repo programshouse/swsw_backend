@@ -93,7 +93,7 @@ class DeliveryController extends Controller
             ->with('success', 'Delivery Promoted Successfully');
     }
 
-    public function generate_delivery_user_forget_password_code(Request $request, $id)
+    public function generate_delivery_user_forget_password_code($id)
     {
         $delivery = DeliveryUser::findOrFail($id);
 
@@ -112,7 +112,7 @@ class DeliveryController extends Controller
             ->with('generated_code', $code);
     }
 
-    public function onBreak(string $id)
+    public function onBreak(Request $request, string $id)
     {
         $delivery = DeliveryUser::findOrFail($id);
 
@@ -121,15 +121,18 @@ class DeliveryController extends Controller
         if ($is_break == 1) {
 
             $delivery->update([
-                'is_break' => 0
+                'is_break' => 0,
             ]);
-            $message = "Delivery {$delivery->name} Is Now Working";
 
+            $message = "Delivery {$delivery->name} Is Now Working";
         } else {
-            
+
             $delivery->update([
-                'is_break' => 1
+                'is_break' => 1,
+                'break_time' => $request->break_time,
+                'break_started_at' => now()
             ]);
+
             $message = "Delivery {$delivery->name} Is Now On Break";
         }
 
