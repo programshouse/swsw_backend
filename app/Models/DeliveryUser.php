@@ -26,6 +26,8 @@ class DeliveryUser extends Authenticatable
         'image',
         'status',
         'is_break',
+        'break_time',
+        'break_started_at',
         'code',
         'code_expires_at',
         'verified_at'
@@ -34,6 +36,11 @@ class DeliveryUser extends Authenticatable
     protected $hidden = [
         'password',
     ];
+
+    protected $casts = [
+        'break_started_at' => 'datetime',
+    ];
+   
 
     public function pendingDelivery()
     {

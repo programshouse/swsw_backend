@@ -19,8 +19,7 @@ class OrderDetailResource extends JsonResource
             'number' => $this->number,
             'user_id' => $this->user_id,
             'kitchen_id' => $this->kitchen_id,
-            'address' => $this->address,
-            'user address' => $this->user->address,
+            'user_address' => $this->userAddress?->full_address,
             'total' => $this->total,
             'status' => $this->status,
             'created_at' => $this->created_at,
@@ -30,6 +29,7 @@ class OrderDetailResource extends JsonResource
             'kitchen_name' => $this->kitchen->name,
             'receive_date' => $this->receive_date,
             'receive_time' => $this->receive_time,
+            'items' => OrderItemsResource::collection($this->orderItems),
         ];
     }
 }

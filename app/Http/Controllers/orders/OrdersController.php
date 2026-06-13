@@ -25,12 +25,12 @@ class OrdersController extends Controller
         // If user is a kitchen, show their orders
         if ($user->role === 'kitchen') {
             $orders = Order::where('kitchen_id', $user->profile->id)
-                ->with(['items.meal', 'address'])
+                ->with(['items.meal', 'userAddress'])
                 ->get();
         } else {
             // If user is a client, show their orders
             $orders = Order::where('user_id', $user->id)
-                ->with(['kitchen', 'items.meal', 'address'])
+                ->with(['kitchen', 'items.meal', 'userAddress'])
                 ->get();
         }
 
@@ -42,7 +42,7 @@ class OrdersController extends Controller
     public function kitchen_orders(Request $request)
     {
         $user = $request->user()->profile;
-        $orders = Order::where('kitchen_id', $user->id)->with('items.meal', 'address')->get();
+        $orders = Order::where('kitchen_id', $user->id)->with('items.meal', 'userAddress')->get();
         return response()->json([
             'orders' => OrderResource::collection($orders)
         ]);
@@ -61,7 +61,7 @@ class OrdersController extends Controller
     {
         $validated = $request->validate([
             'kitchen_id' => 'required|exists:kitchen_profiles,id',
-            'address_id' => 'nullable|integer',
+            'user_address_id' => 'nullable|integer',
             'items' => 'required|array|min:1',
             'items.*.meal_id' => 'required|exists:meals,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -109,7 +109,7 @@ class OrdersController extends Controller
             'user_id' => $user->id,
             'kitchen_id' => $validated['kitchen_id'],
             'total' => $total,
-            'address_id' => $validated['address_id'] ?? null,
+            'user_address_id' => $validated['user_address_id'] ?? null,
             'receive_date' => $validated['receive_date'] ?? null,
             'receive_time' => $validated['receive_time'] ?? null,
             'book_for_later' => $validated['book_for_later'] ?? false,
@@ -163,7 +163,7 @@ class OrdersController extends Controller
             }
         }
 
-        $order->load(['user', 'kitchen', 'items.meal', 'address']);
+        $order->load(['user', 'kitchen', 'items.meal', 'userAddress']);
 
         return response()->json([
             'order' => new OrderResource($order)
@@ -198,7 +198,7 @@ class OrdersController extends Controller
 
         $validated = $request->validate([
             'kitchen_id' => 'sometimes|exists:kitchen_profiles,id',
-            'address_id' => 'nullable|exists:user_addresses,id',
+            'user_address_id' => 'nullable|exists:user_addresses,id',
             'items' => 'sometimes|array|min:1',
             'items.*.meal_id' => 'required_with:items|exists:meals,id',
             'items.*.quantity' => 'required_with:items|integer|min:1',
@@ -236,7 +236,7 @@ class OrdersController extends Controller
             $order->update($validated);
         });
 
-        $order->load(['user', 'kitchen', 'items.meal', 'address']);
+        $order->load(['user', 'kitchen', 'items.meal', 'userAddress']);
 
         return response()->json([
             'message' => 'Order updated successfully',

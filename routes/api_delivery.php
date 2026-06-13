@@ -4,8 +4,10 @@ use App\Http\Controllers\Delivery\AreaController;
 use App\Http\Controllers\Delivery\AuthController;
 use App\Http\Controllers\Delivery\GovernmentController;
 use App\Http\Controllers\Delivery\OrderController;
+use App\Http\Controllers\Delivery\RateStoreController;
 use App\Http\Controllers\Delivery\ShiftController;
 use App\Http\Controllers\Delivery\TicketController;
+use App\Http\Middleware\EnsureDeliveryWorking;
 use Illuminate\Support\Facades\Route;
 
 
@@ -30,26 +32,33 @@ Route::prefix('delivery')->group(function () {
     Route::get('/forget-password', [AuthController::class, 'forgetPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-
     Route::middleware('auth:api_delivery')->group(function () {
 
-        // shift
-        Route::post('/start', [ShiftController::class, 'startShift']);
-        Route::post('/end', [ShiftController::class, 'endShift']);
-
+        // logout
         Route::post('/logout', [AuthController::class, 'logout']);
+
+        // delivery profile
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/profile/update', [AuthController::class, 'updateProfile']);
 
+        // order rates
+        Route::get('/orders_rates', [RateStoreController::class, 'index']);
+
+        // start shift
+        Route::post('/start', [ShiftController::class, 'startShift'])->middleware(EnsureDeliveryWorking::class);
+        // end shift
+        Route::post('/end', [ShiftController::class, 'endShift']);
+
+        // orders 
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
 
-            Route::post('/{order}/status', [OrderController::class, 'updateStatus']);
+            Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->middleware(EnsureDeliveryWorking::class);
 
             Route::post('/{order}/report', [TicketController::class, 'store']);
 
-            Route::post('/{order}/accept', [OrderController::class, 'accept']);
-            Route::post('/{order}/reject', [OrderController::class, 'reject']);
+            Route::post('/{order}/accept', [OrderController::class, 'accept'])->middleware(EnsureDeliveryWorking::class);
+            Route::post('/{order}/reject', [OrderController::class, 'reject'])->middleware(EnsureDeliveryWorking::class);
         });
     });
 });
