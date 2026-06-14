@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('delivery_users', function (Blueprint $table) {
-            $table->integer('break_time')->nullble();
+            $table->integer('break_time')->nullable();
         });
     }
 

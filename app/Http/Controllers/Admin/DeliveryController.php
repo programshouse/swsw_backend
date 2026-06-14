@@ -122,6 +122,7 @@ class DeliveryController extends Controller
 
             $delivery->update([
                 'is_break' => 0,
+                'break_time' => 0,
             ]);
 
             $message = "Delivery {$delivery->name} Is Now Working";

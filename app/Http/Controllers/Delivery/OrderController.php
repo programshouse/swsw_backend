@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Delivery;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DeliveryOrderResource;
 use App\Http\Resources\OrderDetailResource;
+use App\Models\DeliveryOrder;
 use App\Models\Order;
 use Illuminate\Http\Request;
 
@@ -14,19 +16,20 @@ class OrderController extends Controller
     {
         $delivery = $request->user();
 
-        $orders = Order::with([
-            'user',
-            'kitchen',
-            'userAddress',
-            'orderItems.meal'
+        $orders = DeliveryOrder::with([
+            'order.user',
+            'order.kitchen',
+            'order.userAddress',
+            'order.orderItems.meal'
         ])
             ->where('delivery_user_id', $delivery->id)
+            ->where('status', '!=', 'rejected')
             ->get();
 
         return response()->json([
             'message' => 'success',
             'data' => [
-                'orders details' => OrderDetailResource::collection($orders),
+                'orders details' => DeliveryOrderResource::collection($orders),
             ]
         ]);
     }
@@ -36,27 +39,72 @@ class OrderController extends Controller
     {
         $delivery = $request->user();
 
-        if ($order->status === 'accepted') {
-            $order->update([
-                'delivery_user_id' => $delivery->id,
-                'status' => 'assigned'
+        $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
+            ->where('delivery_user_id', $delivery->id)
+            ->first();
+
+        if (!$deliveryOrder) {
+
+            $delivery->orders()->attach($order->id, [
+                'status' => 'accepted',
             ]);
-        } elseif ($order->status === 'assigned') {
+
             $order->update([
-                'status' => 'picked_up'
+                'status' => 'accepted_by_delivery',
             ]);
-        } elseif ($order->status === 'picked_up') {
-            $order->update([
-                'status' => 'delivered'
-            ]);
-        } else {
+
             return response()->json([
-                'message' => 'order already delivered',
+                'message' => 'order accepted',
+                'status' => 'accepted'
             ]);
         }
+
+        if ($deliveryOrder->status === 'accepted') {
+
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'picked_up'
+            ]);
+
+            $order->update([
+                'status' => 'received_by_delivery',
+            ]);
+
+            return response()->json([
+                'message' => 'order picked up',
+            ]);
+        }
+
+        if ($deliveryOrder->status === 'picked_up') {
+
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'on_the_way'
+            ]);
+
+            $order->update([
+                'status' => 'on_the_way',
+            ]);
+
+            return response()->json([
+                'message' => 'order on the way',
+            ]);
+        } elseif ($deliveryOrder->status === 'on_the_way') {
+
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'delivered'
+            ]);
+
+            $order->update([
+                'status' => 'delivered',
+            ]);
+
+            return response()->json([
+                'message' => 'order delivered',
+            ]);
+        }
+
         return response()->json([
-            'message' => 'order status changed successfully',
-            'status' => $order->status
+            'message' => 'order already completed',
+            'status' => $deliveryOrder->status
         ]);
     }
 
@@ -66,7 +114,9 @@ class OrderController extends Controller
     {
         $delivery = $request->user();
 
-        if ($order->status == 'accepted') {
+        $delivery_order =  DeliveryOrder::where('order_id', $order->id)->where('delivery_user_id', $delivery->id)->first();
+
+        if ($delivery_order && $delivery_order->status === 'accepted') {
             return response()->json([
                 'message' => 'you already accepted this order.',
                 'data' => [
@@ -75,10 +125,16 @@ class OrderController extends Controller
             ]);
         }
 
-        $order->update([
-            'delivery_user_id' => $delivery->id,
-            'status' => 'accepted'
-        ]);
+        if (!$delivery_order) {
+            $delivery->orders()->attach($order->id, [
+                'status' => 'accepted',
+                'rejected_at' => null
+            ]);
+
+            $order->update([
+                'status' => 'accepted_by_delivery'
+            ]);
+        }
 
         return response()->json([
             'message' => 'you accepted this order.',
@@ -92,14 +148,17 @@ class OrderController extends Controller
     {
         $delivery = $request->user();
 
-        if ($order->status == 'rejected') {
+        $delivery_order = DeliveryOrder::where('order_id', $order->id)
+            ->where('delivery_user_id', $delivery->id)
+            ->first();
+
+        if ($delivery_order && $delivery_order->status === 'rejected') {
             return response()->json([
                 'message' => 'you already rejected this order.',
             ]);
         }
 
-
-        $last_order = Order::where('delivery_user_id', $delivery->id)
+        $last_order = DeliveryOrder::where('delivery_user_id', $delivery->id)
             ->latest('id')
             ->first();
 
@@ -107,9 +166,12 @@ class OrderController extends Controller
 
         if ($last_order && $last_order->status === 'rejected') {
 
-            $diffInMinutes = $last_order->rejected_at->diffInMinutes(now());
+            $diffInMinutes = $last_order->rejected_at
+                ? $last_order->rejected_at->diffInMinutes(now())
+                : null;
 
-            if ($diffInMinutes <= 2) {
+            if ($diffInMinutes !== null && $diffInMinutes <= 2) {
+
                 $delivery->update([
                     'is_break' => 1,
                     'break_time' => 15,
@@ -120,11 +182,18 @@ class OrderController extends Controller
             }
         }
 
-        $order->update([
-            'delivery_user_id' => $delivery->id,
-            'status' => 'rejected',
-            'rejected_at' => now()
-        ]);
+        if ($delivery_order) {
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'rejected',
+                'rejected_at' => now()
+            ]);
+
+        } else {
+            $delivery->orders()->attach($order->id, [
+                'status' => 'rejected',
+                'rejected_at' => now()
+            ]);
+        }
 
         return response()->json([
             'message' => 'you rejected this order',
