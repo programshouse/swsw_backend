@@ -40,7 +40,7 @@ class DeliveryUser extends Authenticatable
     protected $casts = [
         'break_started_at' => 'datetime',
     ];
-   
+
 
     public function pendingDelivery()
     {
@@ -74,8 +74,20 @@ class DeliveryUser extends Authenticatable
         return $this->hasMany(Ticket::class);
     }
 
+
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->belongsToMany(
+            Order::class,
+            'delivery_orders'
+        );
+    }
+
+    public function deliveryOrders()
+    {
+        return $this->hasMany(
+            DeliveryOrder::class,
+            'delivery_user_id'
+        );
     }
 }

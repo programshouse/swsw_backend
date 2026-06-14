@@ -41,8 +41,10 @@ Route::prefix('delivery')->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/profile/update', [AuthController::class, 'updateProfile']);
 
-        // order rates
-        Route::get('/orders_rates', [RateStoreController::class, 'index']);
+        // delivery rates
+        Route::get('/kitchen/rates', [RateStoreController::class, 'rates_by_kitchen']);
+        Route::get('/client/rates', [RateStoreController::class, 'rates_by_client']);
+
 
         // start shift
         Route::post('/start', [ShiftController::class, 'startShift'])->middleware(EnsureDeliveryWorking::class);

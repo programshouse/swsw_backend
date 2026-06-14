@@ -21,18 +21,21 @@ class Order extends Model
         'book_for_later',
         'cancel_date',
         'delivered_at',
-        'delivery_user_id',
         'number',
-        'rejected_at'
     ];
 
-    protected $casts = [
-        'rejected_at' => 'datetime',
-    ];
 
-    public function deliveryUser()
+    public function deliveryOrders()
     {
-        return $this->belongsTo(DeliveryUser::class);
+        return $this->hasMany(DeliveryOrder::class);
+    }
+
+    public function deliveryUsers()
+    {
+        return $this->belongsToMany(
+            DeliveryUser::class,
+            'delivery_orders'
+        );
     }
 
     public function user()
