@@ -303,6 +303,22 @@
 
             </a>
 
+            <a href="{{ route('admin.points.index') }}" class="nav-link">
+
+                <span class="nav-icon">🏆</span> <span>
+                    النقاط
+                </span>
+
+            </a>
+
+
+            <a href="{{ route('admin.delivery.points.index') }}" class="nav-link">
+
+                <span class="nav-icon">🚚⭐</span> <span>
+                    نقاط الديلفري
+                </span>
+
+            </a>
 
             <a href="{{ route('admin.rates.index') }}"
                 class="nav-link {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
@@ -363,6 +379,15 @@
 
                 <span class="nav-icon">💰</span>
                 <span>محفظة المطابخ</span>
+
+            </a>
+
+            <a href="{{ route('admin.orders.index') }}" class="nav-link">
+
+                <span class="nav-icon">📦</span>
+                <span>
+                    الطلبات
+                </span>
 
             </a>
 

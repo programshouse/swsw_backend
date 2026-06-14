@@ -30,4 +30,14 @@ class RateStoreController extends Controller
         ]);
     }
 
+
+    
+    public function store_rates_by_kitchen()
+    {
+        $all_delivery_rates = RateStore::where('rated_type', 'delivery')->where('rater_type', 'client')->with('order')->get();
+
+        return response()->json([
+            'data' => ClientRateResource::collection($all_delivery_rates),
+        ]);
+    }
 }

@@ -26,7 +26,11 @@ use App\Http\Middleware\Admin;
 use App\Http\Middleware\EnsureGovernrateArea;
 use App\Http\Controllers\Admin\LevelController;
 use App\Http\Controllers\Admin\UserRateController;
-use App\Http\Controllers\TicketController;
+use App\Http\Controllers\Admin\OrderHistoryController;
+use App\Http\Controllers\Admin\TicketController;
+use App\Http\Controllers\Admin\PointController;
+use App\Http\Controllers\Admin\DeliveryPointController;
+
 
 Route::get('/test', function () {
     return view('welcome');
@@ -90,8 +94,52 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
             ->name('admin.rates.destroy');
     });
 
-    // admin rates
+    //  points
+    Route::prefix('points')->group(function () {
 
+        Route::get('/', [PointController::class, 'index'])
+            ->name('admin.points.index');
+
+        Route::get('/create', [PointController::class, 'create'])
+            ->name('admin.points.create');
+
+        Route::post('/save', [PointController::class, 'store'])
+            ->name('admin.points.store');
+
+        Route::get('/{point}/edit', [PointController::class, 'edit'])
+            ->name('admin.points.edit');
+
+        Route::post('/{point}/update', [PointController::class, 'update'])
+            ->name('admin.points.update');
+
+        Route::post('/{point}/delete', [PointController::class, 'destroy'])
+            ->name('admin.points.destroy');
+    });
+    //  points
+
+
+    // delivery points
+    Route::prefix('admin/delivery/points')->group(function () {
+
+        Route::get('/', [DeliveryPointController::class, 'index'])
+            ->name('admin.delivery.points.index');
+
+        Route::get('/create', [DeliveryPointController::class, 'create'])
+            ->name('admin.delivery.points.create');
+
+        Route::post('/save', [DeliveryPointController::class, 'store'])
+            ->name('admin.delivery.points.store');
+
+        Route::get('/{point}/edit', [DeliveryPointController::class, 'edit'])
+            ->name('admin.delivery.points.edit');
+
+        Route::post('/{point}/update', [DeliveryPointController::class, 'update'])
+            ->name('admin.delivery.points.update');
+
+        Route::post('/{point}/delete', [DeliveryPointController::class, 'destroy'])
+            ->name('admin.delivery.points.destroy');
+    });
+    // delivery points
 
     Route::get('/admin/categories', [CategoryController::class, 'GetAll'])
         ->name('admin.categories.index');                                             ///done
@@ -212,6 +260,8 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     Route::delete('/admin/tickets/{ticket}/delete', [TicketController::class, 'destroy'])
         ->name('admin.tickets.destroy');
 
+    // check order history
+    Route::get('/orders', [OrderHistoryController::class, 'index'])->name('admin.orders.index');
 
     Route::get('/shifts', [ShiftController::class, 'index'])
         ->name('admin.shifts.index');

@@ -7,6 +7,7 @@ use App\Http\Resources\DeliveryOrderResource;
 use App\Http\Resources\OrderDetailResource;
 use App\Models\DeliveryOrder;
 use App\Models\Order;
+use App\Models\OrderHistory;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -20,7 +21,7 @@ class OrderController extends Controller
             'order.user',
             'order.kitchen',
             'order.userAddress',
-            'order.orderItems.meal'
+            'order.items.meal'
         ])
             ->where('delivery_user_id', $delivery->id)
             ->where('status', '!=', 'rejected')
@@ -95,7 +96,22 @@ class OrderController extends Controller
 
             $order->update([
                 'status' => 'delivered',
+                'receive_date' => now()->toDateString(),
+                'receive_time' => now()->toTimeString(),
             ]);
+            
+            $order_history = OrderHistory::where('order_id', $order->id)->first();
+
+            if (!$order_history) {
+                OrderHistory::create([
+                    'order_id' => $order->id,
+                    'status' => 'delivered'
+                ]);
+            } else {
+                $order_history->update([
+                    'status' => 'delivered'
+                ]);
+            }
 
             return response()->json([
                 'message' => 'order delivered',
@@ -187,7 +203,6 @@ class OrderController extends Controller
                 'status' => 'rejected',
                 'rejected_at' => now()
             ]);
-
         } else {
             $delivery->orders()->attach($order->id, [
                 'status' => 'rejected',
