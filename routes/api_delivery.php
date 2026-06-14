@@ -7,6 +7,7 @@ use App\Http\Controllers\Delivery\OrderController;
 use App\Http\Controllers\Delivery\RateStoreController;
 use App\Http\Controllers\Delivery\ShiftController;
 use App\Http\Controllers\Delivery\TicketController;
+use App\Http\Controllers\orders\OrderHistoryController;
 use App\Http\Middleware\EnsureDeliveryWorking;
 use Illuminate\Support\Facades\Route;
 

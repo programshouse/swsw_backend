@@ -25,7 +25,7 @@ return new class extends Migration
                 ->constrained('delivery_users')
                 ->nullOnDelete();
 
-            $table->enum('status', ['accepted', 'picked_up', 'on_the_way', 'delivered','cancelled_by_client','rejected'])->nullable();
+            $table->enum('status', ['accepted', 'picked_up', 'on_the_way', 'delivered','rejected'])->nullable();
 
             $table->timestamp('rejected_at')->nullable();
 

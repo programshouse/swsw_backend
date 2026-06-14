@@ -48,7 +48,7 @@ class Order extends Model
         return $this->belongsTo(KitchenProfile::class, 'kitchen_id');
     }
 
-    public function orderItems()
+    public function items()
     {
         return $this->hasMany(OrderItem::class);
     }

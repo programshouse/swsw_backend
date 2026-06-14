@@ -29,7 +29,7 @@ class OrderDetailResource extends JsonResource
             'kitchen_name' => $this->kitchen->name,
             'receive_date' => $this->receive_date,
             'receive_time' => $this->receive_time,
-            'items' => OrderItemsResource::collection($this->orderItems),
+            'items' => OrderItemsResource::collection($this->items),
         ];
     }
 }
