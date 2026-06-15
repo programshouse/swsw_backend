@@ -2,21 +2,22 @@
 
 @section('content')
 
-<div class="page-title">Edit Rate</div>
+<div class="page-title">Edit Point</div>
 
 <div class="table-card">
 
     <div class="table-header">
-        <div class="table-title">Update Rate</div>
+        <div class="table-title">Edit Point</div>
     </div>
 
     <div class="table-wrapper">
 
-        <form action="{{ route('admin.rates.update', $rate->id) }}"
+        <form action="{{ route('admin.points.update', $point->id) }}"
               method="POST"
               class="form-box">
 
             @csrf
+            @method('PUT')
 
             {{-- Name --}}
             <div class="form-group">
@@ -25,51 +26,37 @@
                 <input type="text"
                        name="name"
                        class="form-input"
-                       value="{{ old('name', $rate->name) }}">
+                       value="{{ old('name', $point->name) }}">
 
                 @error('name')
                     <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Type --}}
+            {{-- Number --}}
             <div class="form-group">
-                <label class="form-label">Type</label>
+                <label class="form-label">Number</label>
 
-                <select name="type" class="form-input">
+                <input type="number"
+                       name="number"
+                       class="form-input"
+                       value="{{ old('number', $point->number) }}">
 
-                    <option value="kitchen"
-                        {{ $rate->type == 'kitchen' ? 'selected' : '' }}>
-                        Kitchen
-                    </option>
-
-                    <option value="client"
-                        {{ $rate->type == 'client' ? 'selected' : '' }}>
-                        Client
-                    </option>
-
-                    <option value="delivery"
-                        {{ $rate->type == 'delivery' ? 'selected' : '' }}>
-                        Delivery
-                    </option>
-
-                </select>
-
-                @error('type')
+                @error('number')
                     <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Max Score --}}
+            {{-- Amount --}}
             <div class="form-group">
-                <label class="form-label">Max Score</label>
+                <label class="form-label">Amount</label>
 
                 <input type="number"
-                       name="max_score"
+                       name="amount"
                        class="form-input"
-                       value="{{ old('max_score', $rate->max_score) }}">
+                       value="{{ old('amount', $point->amount) }}">
 
-                @error('max_score')
+                @error('amount')
                     <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
@@ -77,12 +64,14 @@
             {{-- Actions --}}
             <div class="form-actions">
 
-                <a href="{{ route('admin.rates.index') }}" class="cancel-btn">
+                <a href="{{ route('admin.points.index') }}"
+                   class="cancel-btn">
                     Cancel
                 </a>
 
-                <button type="submit" class="save-btn">
-                    Save Changes
+                <button type="submit"
+                        class="save-btn">
+                    Update
                 </button>
 
             </div>

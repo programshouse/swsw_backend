@@ -53,6 +53,8 @@
                         <th>Updated at</th>
                         <th>Receive Time</th>
                         <th>Receive Date</th>
+                        <th>Delivery Name</th>
+                        <th>Delivery Phone</th>
                     </tr>
                 </thead>
 
@@ -86,6 +88,16 @@
                                 {{ $history->order->receive_date }} </td>
                             <td>
                                 {{ $history->order->receive_time }} </td>
+                            <td>
+                                @foreach ($history->order->deliveryUsers as $delivery)
+                                    {{ $delivery->name }}
+                                @endforeach
+                            </td>
+                            <td>
+                                @foreach ($history->order->deliveryUsers as $delivery)
+                                    {{ $delivery->phone }}
+                                @endforeach
+                            </td>
                         </tr>
                     @endforeach
 

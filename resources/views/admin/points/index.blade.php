@@ -19,73 +19,64 @@
         <div class="table-header">
 
             <div class="table-title">
-                قائمة الطلبات
+                النقاط
             </div>
-
-            <div>
-                <form method="GET">
-
-                    <input type="text" name="order_id" value="{{ request('order_id') }}" placeholder="ابحث برقم الطلب"
-                        style="margin-bottom: 8px;">
-
-                    <br>
-
-                    <button class="btn btn-primary">بحث</button>
-
-                </form>
-
-            </div>
+            <a href="{{ route('admin.points.create') }}" class="add-btn" style="margin-top: 5px; display: inline-block;">
+                Create
+            </a>
 
         </div>
 
-        @if ($order_history->count())
+        @if ($points->count())
 
             <table>
 
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Order ID</th>
-                        <th>Status</th>
-                        <th>Client</th>
-                        <th>Kitchen</th>
-                        <th>Created at</th>
-                        <th>Updated at</th>
-                        <th>Receive Time</th>
-                        <th>Receive Date</th>
+                        <th>Name</th>
+                        <th>Number</th>
+                        <th>Amount</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
 
                 <tbody>
 
-                    @foreach ($order_history as $history)
+                    @foreach ($points as $point)
                         <tr>
 
-                            <td>{{ $history->id }}</td>
+                            <td>{{ $point->id }}</td>
 
-                            <td>{{ $history->order_id }}</td>
+                            <td>{{ $point->name }}</td>
 
                             <td>
+                                {{ $point->number }} </td>
+                            <td>
                                 <span class="badge">
-                                    {{ $history->status }}
+                                    {{ $point->amount }}
                                 </span>
                             </td>
 
-                            <td>{{ $history->order->user->name ?? '-' }}</td>
-
-                            <td>{{ $history->order->kitchen->name ?? '-' }}</td>
-
                             <td>
-                                {{ optional($history->order->created_at)->format('Y-m-d') }}
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <a href="{{ route('admin.points.edit', $point->id) }}" class="btn-small btn-success">
+                                        Edit
+                                    </a>
+
+                                    <form method="post" action="{{ route('admin.points.destroy', $point->id) }}"
+                                        onsubmit="return confirm('Are you sure?')">
+
+                                        @method('POST')
+                                        @csrf
+
+                                        <button type="submit" class="btn-small btn-danger">
+                                            Delete
+                                        </button>
+
+                                    </form>
+                                </div>
                             </td>
-                            <td>
-                                {{ optional($history->order->updated_at)->format('Y-m-d') }}
-                            </td>
-
-                            <td>
-                                {{ $history->order->receive_date }} </td>
-                            <td>
-                                {{ $history->order->receive_time }} </td>
                         </tr>
                     @endforeach
 
@@ -94,7 +85,7 @@
             </table>
         @else
             <div class="empty">
-                لا يوجد تاريخ محفوظ لهذا الطلب
+                لا توجد نقاط محفوظة
             </div>
 
         @endif

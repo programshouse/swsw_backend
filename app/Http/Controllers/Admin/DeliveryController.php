@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DeliveryUser;
 use App\Models\Level;
+use App\Models\Point;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 class DeliveryController extends Controller
@@ -74,9 +76,12 @@ class DeliveryController extends Controller
             ->get();
 
         $levels = Level::all();
+        $points = Point::get();
+        $this_month = Carbon::now()->format('F');
+
         return view(
             'admin.delivery.approved',
-            compact('deliveries', 'levels')
+            compact('deliveries', 'levels', 'points','this_month')
         );
     }
 
@@ -140,5 +145,18 @@ class DeliveryController extends Controller
         return redirect()
             ->route('admin.delivery.approved')
             ->with('success', $message);
+    }
+
+    public function addPoint(Request $request, string $id)
+    {
+        $delivery = DeliveryUser::findOrFail($id);
+
+        $delivery->points()->attach($request->point_id, [
+            'created_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('admin.delivery.approved')
+            ->with('success', 'points added successfully');
     }
 }

@@ -109,7 +109,7 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
         Route::get('/{point}/edit', [PointController::class, 'edit'])
             ->name('admin.points.edit');
 
-        Route::post('/{point}/update', [PointController::class, 'update'])
+        Route::put('/{point}/update', [PointController::class, 'update'])
             ->name('admin.points.update');
 
         Route::post('/{point}/delete', [PointController::class, 'destroy'])
@@ -119,24 +119,12 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
 
 
     // delivery points
-    Route::prefix('admin/delivery/points')->group(function () {
+    Route::prefix('admin/delivery-points')->group(function () {
 
         Route::get('/', [DeliveryPointController::class, 'index'])
             ->name('admin.delivery.points.index');
 
-        Route::get('/create', [DeliveryPointController::class, 'create'])
-            ->name('admin.delivery.points.create');
-
-        Route::post('/save', [DeliveryPointController::class, 'store'])
-            ->name('admin.delivery.points.store');
-
-        Route::get('/{point}/edit', [DeliveryPointController::class, 'edit'])
-            ->name('admin.delivery.points.edit');
-
-        Route::post('/{point}/update', [DeliveryPointController::class, 'update'])
-            ->name('admin.delivery.points.update');
-
-        Route::post('/{point}/delete', [DeliveryPointController::class, 'destroy'])
+        Route::post('/{deliveryPoint}/delete', [DeliveryPointController::class, 'destroy'])
             ->name('admin.delivery.points.destroy');
     });
     // delivery points
@@ -288,6 +276,9 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
         });
 
         Route::post('/{id}/break', [DeliveryController::class, 'onBreak'])->name('admin.delivery.break');
+
+        Route::post('{id}/add-points', [DeliveryController::class, 'addPoint'])
+            ->name('admin.delivery.add.points');
 
         Route::get('/approved', [DeliveryController::class, 'approved'])->name('admin.delivery.approved');
         Route::post('/{id}/promotion', [DeliveryController::class, 'promotion'])->name('admin.delivery.promotion');

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('delivery_orders', function (Blueprint $table) {
+        Schema::create('delivery_points', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('order_id')
+            $table->foreignId('point_id')
                 ->nullable()
-                ->constrained('orders')
+                ->constrained('points')
                 ->nullOnDelete();
 
 
@@ -24,10 +24,6 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('delivery_users')
                 ->nullOnDelete();
-
-            $table->enum('status', ['accepted', 'picked_up', 'on_the_way','cancelled_by_client','delivered','rejected'])->nullable();
-
-            $table->timestamp('rejected_at')->nullable();
 
             $table->timestamps();
         });
@@ -38,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('delivery_orders');
+        Schema::dropIfExists('delivery_points');
     }
 };

@@ -30,7 +30,7 @@ class DeliveryUser extends Authenticatable
         'break_started_at',
         'code',
         'code_expires_at',
-        'verified_at'
+        'verified_at',
     ];
 
     protected $hidden = [
@@ -41,6 +41,15 @@ class DeliveryUser extends Authenticatable
         'break_started_at' => 'datetime',
     ];
 
+    public function getMonthlyPointsAttribute()
+    {
+        return $this->points()
+            ->wherePivotBetween('created_at', [
+                now()->startOfMonth(),
+                now()->endOfMonth()
+            ])
+            ->sum('amount');
+    }
 
     public function pendingDelivery()
     {
@@ -87,6 +96,22 @@ class DeliveryUser extends Authenticatable
     {
         return $this->hasMany(
             DeliveryOrder::class,
+            'delivery_user_id'
+        );
+    }
+
+    public function points()
+    {
+        return $this->belongsToMany(
+            Point::class,
+            'delivery_points'
+        )->withTimestamps();
+    }
+
+    public function deliveryPoints()
+    {
+        return $this->hasMany(
+            DeliveryPoint::class,
             'delivery_user_id'
         );
     }

@@ -24,6 +24,9 @@ class Order extends Model
         'number',
     ];
 
+       protected $casts = [
+        'delivered_at' => 'datetime',
+    ];
 
     public function deliveryOrders()
     {
