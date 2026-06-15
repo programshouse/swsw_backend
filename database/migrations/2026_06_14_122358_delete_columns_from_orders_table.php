@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn('delivered_at');
             $table->dropForeign(['delivery_user_id']);
             $table->dropColumn('delivery_user_id');
+            $table->timestamp('delivered_at')->nullable();
         });
     }
 

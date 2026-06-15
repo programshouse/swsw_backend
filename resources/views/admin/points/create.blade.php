@@ -7,12 +7,12 @@
 <div class="table-card">
 
     <div class="table-header">
-        <div class="table-title">Add New Rate</div>
+        <div class="table-title">Add New Point</div>
     </div>
 
     <div class="table-wrapper">
 
-        <form action="{{ route('admin.rates.store') }}" method="POST" class="form-box">
+        <form action="{{ route('admin.points.store') }}" method="POST" class="form-box">
 
             @csrf
 
@@ -28,44 +28,28 @@
                 @enderror
             </div>
 
-            {{-- Type --}}
+            {{-- number --}}
             <div class="form-group">
-                <label class="form-label">Type</label>
+                <label class="form-label">Number</label>
+                <input type="number"
+                       name="number"
+                       class="form-input"
+                       value="{{ old('number') }}">
 
-                <select name="type" class="form-input">
-
-                    <option value="" disabled selected>
-                        Choose type
-                    </option>
-
-                    <option value="kitchen" {{ old('type') == 'kitchen' ? 'selected' : '' }}>
-                        Kitchen
-                    </option>
-
-                    <option value="client" {{ old('type') == 'client' ? 'selected' : '' }}>
-                        Client
-                    </option>
-
-                    <option value="delivery" {{ old('type') == 'delivery' ? 'selected' : '' }}>
-                        Delivery
-                    </option>
-
-                </select>
-
-                @error('type')
+                @error('number')
                     <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Max Score --}}
+            {{-- amount --}}
             <div class="form-group">
-                <label class="form-label">Max Score</label>
+                <label class="form-label">Amount</label>
                 <input type="number"
-                       name="max_score"
+                       name="amount"
                        class="form-input"
-                       value="{{ old('max_score') }}">
+                       value="{{ old('amount') }}">
 
-                @error('max_score')
+                @error('amount')
                     <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
@@ -73,7 +57,7 @@
             {{-- Actions --}}
             <div class="form-actions">
 
-                <a href="{{ route('admin.rates.index') }}" class="cancel-btn">
+                <a href="{{ route('admin.points.index') }}" class="cancel-btn">
                     Cancel
                 </a>
 

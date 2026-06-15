@@ -29,6 +29,7 @@
                         <th>Image</th>
                         <th>Status</th>
                         <th>Break Time</th>
+                        <th>Total Cash for {{$this_month}}</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -72,6 +73,12 @@
                                 @else
                                     currently working
                                 @endif
+                            </td>
+
+                            <td>
+                                <span class="badge">
+                                    {{ $delivery->monthly_points }}
+                                </span>
                             </td>
 
                             <td>
@@ -143,8 +150,23 @@
                                         </form>
                                     </div>
 
-                                </div>
 
+                                    {{-- Add Points --}}
+                                    <div class="action-item">
+                                        <form action="{{ route('admin.delivery.add.points', $delivery->id) }}"
+                                            method="post">
+                                            @csrf
+                                            <select name="point_id" class="action-select">
+                                                @foreach ($points as $point)
+                                                    <option value="{{ $point->id }}">{{ $point->number }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button class="btn-small btn-success" type="submit">
+                                                Add Points
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
