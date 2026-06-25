@@ -22,6 +22,7 @@ class OrderResource extends JsonResource
             'kitchen_id' => $this->kitchen_id,
             'address' => $this->userAddress,
             'total' => $this->total,
+            'number' => $this->number,
             'status' => $this->status,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

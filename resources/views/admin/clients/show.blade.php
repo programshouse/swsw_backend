@@ -2,100 +2,210 @@
 
 @section('title', 'تفاصيل المستخدم')
 
-
-
 @section('content')
 
 <div class="page-head">
-    <div class="page-title">تفاصيل المستخدم</div>
+
+    <div class="page-title">
+        تفاصيل المستخدم
+    </div>
 
     <a href="{{ route('admin.clients.index') }}" class="back-btn">
-        رجوع
+        ← رجوع للمستخدمين
     </a>
+
 </div>
 
-<div class="details-grid">
-    <div class="info-card">
-        <div class="label">ID</div>
-        <div class="value">{{ $user->id }}</div>
+<div class="user-profile-card">
+
+    <div class="avatar">
+        {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
     </div>
 
-    <div class="info-card">
-        <div class="label">الاسم</div>
-        <div class="value">{{ $user->name ?? '-' }}</div>
+    <div class="user-info">
+
+        <h2>
+            {{ $user->name }}
+        </h2>
+
+        <div class="user-meta">
+
+            <span>#{{ $user->id }}</span>
+
+            <span>{{ $user->email }}</span>
+
+            <span>{{ $user->phone }}</span>
+
+        </div>
+
     </div>
 
-    <div class="info-card">
-        <div class="label">البريد الإلكتروني</div>
-        <div class="value">{{ $user->email ?? '-' }}</div>
+</div>
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-label">عدد العناوين</div>
+        <div class="stat-value">
+            {{ $user->address?->count() ?? 0 }}
+        </div>
     </div>
 
-    <div class="info-card">
-        <div class="label">الهاتف</div>
-        <div class="value">{{ $user->phone ?? '-' }}</div>
+    <div class="stat-card">
+        <div class="stat-label">عدد الطلبات</div>
+        <div class="stat-value">
+            {{ $user->orders?->count() ?? 0 }}
+        </div>
     </div>
+
+    <div class="stat-card">
+        <div class="stat-label">تاريخ التسجيل</div>
+        <div class="stat-value">
+            {{ optional($user->created_at)->format('Y-m-d') }}
+        </div>
+    </div>
+
 </div>
 
 <div class="section-card">
-    <div class="section-title">العناوين</div>
+
+    <div class="section-header">
+        <h3>العناوين</h3>
+    </div>
 
     @if($user->address && $user->address->count())
+
         <div class="table-wrapper">
+
             <table>
+
                 <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>العنوان</th>
-                    <th>المنطقة</th>
-                    <th>المحافظة</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($user->address as $address)
                     <tr>
-                        <td>{{ $address->id }}</td>
-                        <td>{{ $address->address ?? $address->details ?? '-' }}</td>
-                        <td>{{ $address->area->name ?? '-' }}</td>
-                        <td>{{ $address->government->name ?? '-' }}</td>
+                        <th>#</th>
+                        <th>العنوان</th>
+                        <th>المنطقة</th>
+                        <th>المحافظة</th>
                     </tr>
-                @endforeach
+                </thead>
+
+                <tbody>
+
+                    @foreach($user->address as $address)
+
+                        <tr>
+
+                            <td>{{ $address->id }}</td>
+
+                            <td>
+                                {{ $address->full_address ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $address->area->name_ar ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $address->government->name_ar ?? '-' }}
+                            </td>
+
+                        </tr>
+
+                    @endforeach
+
                 </tbody>
+
             </table>
+
         </div>
+
     @else
-        <div class="empty">لا توجد عناوين</div>
+
+        <div class="empty-state">
+            لا توجد عناوين لهذا المستخدم
+        </div>
+
     @endif
+
 </div>
 
 <div class="section-card">
-    <div class="section-title">الطلبات</div>
+
+    <div class="section-header">
+        <h3>الطلبات</h3>
+    </div>
 
     @if($user->orders && $user->orders->count())
+
         <div class="table-wrapper">
+
             <table>
+
                 <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>الحالة</th>
-                    <th>الإجمالي</th>
-                    <th>تاريخ الإنشاء</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($user->orders as $order)
+
                     <tr>
-                        <td>{{ $order->id }}</td>
-                        <td>{{ $order->status ?? '-' }}</td>
-                        <td>{{ $order->total ?? 0 }}</td>
-                        <td>{{ optional($order->created_at)->format('Y-m-d H:i') }}</td>
+                        <th>#</th>
+                        <th>رقم الطلب</th>
+                        <th>الحالة</th>
+                        <th>الإجمالي</th>
+                        <th>التاريخ</th>
                     </tr>
-                @endforeach
+
+                </thead>
+
+                <tbody>
+
+                    @foreach($user->orders as $order)
+
+                        <tr>
+
+                            <td>{{ $order->id }}</td>
+
+                            <td>
+                                {{ $order->number ?? '-' }}
+                            </td>
+
+                            <td>
+
+                                <span class="status-badge">
+
+                                    {{ $order->status }}
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                {{ number_format($order->total,2) }}
+
+                            </td>
+
+                            <td>
+
+                                {{ optional($order->created_at)->format('Y-m-d H:i') }}
+
+                            </td>
+
+                        </tr>
+
+                    @endforeach
+
                 </tbody>
+
             </table>
+
         </div>
+
     @else
-        <div class="empty">لا توجد طلبات</div>
+
+        <div class="empty-state">
+            لا توجد طلبات لهذا المستخدم
+        </div>
+
     @endif
+
 </div>
 
 @endsection
+
+

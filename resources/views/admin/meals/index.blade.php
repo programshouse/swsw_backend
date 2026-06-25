@@ -166,8 +166,8 @@
     <th>هاتف المطبخ</th>
     <th>اسم الفئة</th>
     <th>معرف الفئة</th>
-    <th>الحالة</th>
-    <th>تاريخ الإنشاء</th>
+    {{-- <th>الحالة</th> --}}
+    {{-- <th>تاريخ الإنشاء</th> --}}
     <th>تاريخ التحديث</th>
     <th>الإجراءات</th>
 </tr>
@@ -218,9 +218,9 @@
             @endif
         </td>
 
-        <td>{{ optional($meal->created_at)->format('Y-m-d H:i') }}</td>
+        {{-- <td>{{ optional($meal->created_at)->format('Y-m-d H:i') }}</td> --}}
 
-        <td>{{ optional($meal->updated_at)->format('Y-m-d H:i') }}</td>
+        {{-- <td>{{ optional($meal->updated_at)->format('Y-m-d H:i') }}</td> --}}
 
         <td>
             <div class="actions">

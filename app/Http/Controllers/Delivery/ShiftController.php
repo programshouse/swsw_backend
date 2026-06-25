@@ -21,7 +21,12 @@ class ShiftController extends Controller
 
     public function startShift(Request $request)
     {
-        $delivery=$request->user();
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+        ]);
+
+        $delivery = $request->user();
 
         if (!$delivery) {
             return response()->json([
@@ -30,7 +35,6 @@ class ShiftController extends Controller
             ], 401);
         }
 
-        // check if already active shift
         $activeShift = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
             ->where('status', 'active')
             ->first();
@@ -45,6 +49,8 @@ class ShiftController extends Controller
         $shift = DeliveryShiftLog::create([
             'delivery_user_id' => $delivery->id,
             'start_time' => now(),
+            'start_lat' => $request->lat,
+            'start_lng' => $request->lng,
             'status' => 'active',
         ]);
 
@@ -58,7 +64,12 @@ class ShiftController extends Controller
 
     public function endShift(Request $request)
     {
-       $delivery=$request->user();
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+        ]);
+
+        $delivery = $request->user();
 
         if (!$delivery) {
             return response()->json([
@@ -80,13 +91,15 @@ class ShiftController extends Controller
 
         $shift->update([
             'end_time' => now(),
+            'end_lat' => $request->lat,
+            'end_lng' => $request->lng,
             'status' => 'finished'
         ]);
 
         return response()->json([
             'status' => true,
             'message' => 'Shift ended successfully',
-            'data' => $shift
+            'data' => $shift->fresh()
         ]);
     }
 }

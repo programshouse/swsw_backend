@@ -212,6 +212,7 @@
                             <th>ID</th>
                             <th>اسم المحافظة</th>
                             <th>تاريخ الإنشاء</th>
+                            <th>الحالة</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -231,18 +232,74 @@
 
                                 <td>
 
-                                    <form action="{{ route('admin.governments.destroy', $government->id) }}" method="POST"
-                                        onsubmit="return confirm('هل أنت متأكد من حذف المحافظة؟')">
-                                        @csrf
-                                        @method('DELETE')
+    @if($government->is_active)
+        <span
+            style="
+                background:#dcfce7;
+                color:#166534;
+                padding:6px 12px;
+                border-radius:999px;
+                font-weight:700;
+            "
+        >
+            نشطة
+        </span>
+    @else
+        <span
+            style="
+                background:#fee2e2;
+                color:#991b1b;
+                padding:6px 12px;
+                border-radius:999px;
+                font-weight:700;
+            "
+        >
+            معطلة
+        </span>
+    @endif
 
-                                        <button class="delete-btn">
-                                            حذف
-                                        </button>
+</td>
 
-                                    </form>
+                                <td>
 
-                                </td>
+    <div style="display:flex;gap:8px;align-items:center;">
+
+        <form
+            action="{{ route('admin.governments.toggle-status',$government->id) }}"
+            method="POST"
+        >
+            @csrf
+
+            <button
+                type="submit"
+                class="save-btn"
+                style="
+                    background:
+                    {{ $government->is_active ? '#f59e0b' : '#16a34a' }};
+                "
+            >
+                {{ $government->is_active ? 'تعطيل' : 'تفعيل' }}
+            </button>
+
+        </form>
+
+        <form
+            action="{{ route('admin.governments.destroy', $government->id) }}"
+            method="POST"
+            onsubmit="return confirm('هل أنت متأكد من حذف المحافظة؟')"
+        >
+            @csrf
+            @method('DELETE')
+
+            <button class="delete-btn">
+                حذف
+            </button>
+
+        </form>
+
+    </div>
+
+</td>
 
                             </tr>
                         @endforeach

@@ -17,7 +17,9 @@ return new class extends Migration
             $table->foreignId('kitchen_id')->constrained('kitchen_profiles')->onDelete('cascade');
             $table->decimal('total', 10, 2);
             $table->unsignedBigInteger('address_id')->nullable();
-            $table->enum('status', ['pending', 'accepted', 'rejected', 'assigned','picked_up','delivered', 'cancelled', 'ready_to_deliver', 'preparing', 'received_by_delivery'])->default('pending');
+            $table->enum('status', ['pending', 'accepted', 'rejected', 'assigned','picked_up','delivered', 'cancelled', 'ready_to_deliver', 'preparing', 
+            'received_by_delivery'])->default('pending');
+            $table->enum('payment_method', ['cash','online'])->default('cash');
             $table->timestamps();
         });
     }

@@ -9,13 +9,29 @@ use App\Models\DeliveryShiftLog;
 use App\Http\Resources\DeliveryResource;
 use App\Models\PendingDelivery;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Level;
 
 
 class AuthController extends Controller
 {
+  private function generateDeliveryCode(): string
+{
+    $lastDelivery = DeliveryUser::whereNotNull('code')
+        ->orderByDesc('id')
+        ->first();
+
+    $nextNumber = 1;
+
+    if ($lastDelivery && $lastDelivery->code) {
+        $nextNumber = ((int) preg_replace('/[^0-9]/', '', $lastDelivery->code)) + 1;
+    }
+
+    return 'DE' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+}
     public function register(Request $request)
     {
         $request->validate([
+             'code' => $this->generateDeliveryCode(),
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:delivery_users,email',
             'phone' => 'required|unique:delivery_users,phone',
@@ -24,7 +40,7 @@ class AuthController extends Controller
 
             'government_id' => 'required|string|exists:governments,id',
 
-            'level_id' => 'required|string|exists:levels,id',
+            'level_id' => 'nullable|string|exists:levels,id',
 
             'area_id' => 'required|exists:areas,id',
 
@@ -37,14 +53,46 @@ class AuthController extends Controller
             'vehicle_type' => 'nullable|in:car,motorcycle,bicycle',
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+              'referral_code' => 'nullable|string|max:50',
 
 
         ]);
 
+
+        $levelId = $request->level_id;
+
+        if (!$levelId) {
+            $defaultLevel = Level::where('is_default', true)->first();
+
+            if (!$defaultLevel) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No default level configured.'
+                ], 422);
+            }
+
+            $levelId = $defaultLevel->id;
+        }
+
         $imagePath = null;
 
+
+
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('delivery_users', 'public');
+
+            $file = $request->file('image');
+            $fileName = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
+
+            $folder = "assets/delivery/images/";
+            $path = public_path($folder);
+
+            if (!file_exists($path)) {
+                mkdir($path, 0777, true);
+            }
+
+            $file->move($path, $fileName);
+
+            $imagePath = "https://www.programshouse.com/swsw/public/" . $folder . $fileName;
         }
 
         $delivery = DeliveryUser::create([
@@ -54,7 +102,7 @@ class AuthController extends Controller
             'birthdate' => $request->birthdate,
             'password' => bcrypt($request->password),
             'government_id' => $request->government_id,
-            'level_id' => $request->level_id,
+            'level_id' => $levelId,
             'area_id' => $request->area_id,
             'shift_id' => $request->shift_id,
             'type' => $request->type,
@@ -62,7 +110,8 @@ class AuthController extends Controller
             'vehicle_id' => $request->vehicle_id,
             'vehicle_type' => $request->vehicle_type,
             'image' => $imagePath,
-            'status' => 'pending'
+            'status' => 'pending',
+             'referral_code' => $validated['referral_code'] ?? null,
         ]);
 
         return response()->json([
@@ -129,104 +178,106 @@ class AuthController extends Controller
         $delivery->load([
             'area',
             'shift',
+            'level',
         ]);
 
-        // آخر شفتات (لو عندك جدول shift logs)
-        $lastShifts = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
-            ->latest()
-            ->take(5)
-            ->get();
-
-        $delivery_data = [new DeliveryResource($delivery)];
+        $levels = Level::get()->map(function ($level) use ($delivery) {
+            return [
+                'id' => $level->id,
+                'name' => $level->name,
+                'cash_money' => $level->cash_money,
+                'km' => $level->km,
+                'vehicle_id' => $level->vehicle_id,
+                'is_default' => $level->is_default,
+                'is_current' => $delivery->level_id == $level->id,
+            ];
+        });
 
         return response()->json([
             'status' => true,
             'data' => [
-                'user' => $delivery_data,
-                'last_shifts' => $lastShifts,
+                'user' => [
+                    new DeliveryResource($delivery)
+                ],
+                'levels' => $levels,
+                'current_level_id' => $delivery->level->name,
             ]
         ]);
     }
 
 
-    public function updateProfile(Request $request)
-    {
-        $delivery = $request->user();
+   public function updateProfile(Request $request)
+{
+    $delivery = $request->user();
 
-        $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:delivery_users,email,' . $delivery->id,
-            'phone' => 'sometimes|unique:delivery_users,phone,' . $delivery->id,
-            'birthdate' => 'sometimes|date',
+    $validated = $request->validate([
+        'name' => 'nullable|string|max:255',
+        'email' => 'nullable|email|unique:delivery_users,email,' . $delivery->id,
+        'phone' => 'nullable|unique:delivery_users,phone,' . $delivery->id,
+        'birthdate' => 'nullable|date',
 
-            'government_id' => 'sometimes|string',
+        'government_id' => 'nullable|exists:governments,id',
+        'area_id' => 'nullable|exists:areas,id',
+        'shift_id' => 'nullable|exists:shifts,id',
 
-            'area_id' => 'sometimes|exists:areas,id',
-            'shift_id' => 'sometimes|exists:shifts,id',
+        'type' => 'nullable|in:company,freelance',
 
-            'type' => 'sometimes|in:company,freelance',
+        'has_vehicle' => 'nullable|boolean',
+        'vehicle_id' => 'nullable|exists:vehicles,id',
+        'vehicle_type' => 'nullable|string',
 
-            'has_vehicle' => 'sometimes|boolean',
-            'vehicle_type' => 'nullable|string',
+        'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+    ]);
 
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+    $pendingDelivery = PendingDelivery::where('delivery_user_id', $delivery->id)->first();
 
+    $data = [
+        'delivery_user_id' => $delivery->id,
+        'name' => $request->filled('name') ? $request->name : ($pendingDelivery->name ?? $delivery->name),
+        'email' => $request->filled('email') ? $request->email : ($pendingDelivery->email ?? $delivery->email),
+        'phone' => $request->filled('phone') ? $request->phone : ($pendingDelivery->phone ?? $delivery->phone),
+        'birthdate' => $request->filled('birthdate') ? $request->birthdate : ($pendingDelivery->birthdate ?? $delivery->birthdate),
+        'government_id' => $request->filled('government_id') ? $request->government_id : ($pendingDelivery->government_id ?? $delivery->government_id),
+        'area_id' => $request->filled('area_id') ? $request->area_id : ($pendingDelivery->area_id ?? $delivery->area_id),
+        'shift_id' => $request->filled('shift_id') ? $request->shift_id : ($pendingDelivery->shift_id ?? $delivery->shift_id),
+        'type' => $request->filled('type') ? $request->type : ($pendingDelivery->type ?? $delivery->type),
+        'has_vehicle' => $request->has('has_vehicle') ? $request->has_vehicle : ($pendingDelivery->has_vehicle ?? $delivery->has_vehicle),
+        'vehicle_id' => $request->filled('vehicle_id') ? $request->vehicle_id : ($pendingDelivery->vehicle_id ?? $delivery->vehicle_id),
+        'vehicle_type' => $request->filled('vehicle_type') ? $request->vehicle_type : ($pendingDelivery->vehicle_type ?? $delivery->vehicle_type),
+        'status' => 'pending',
+    ];
 
-        // image update
-        if ($request->hasFile('image')) {
-            $image_path = $request->file('image')->store('delivery_users', 'public');
-        } else {
-            $image_path = $delivery->image;
+    if ($request->hasFile('image')) {
+        $file = $request->file('image');
+        $fileName = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
+
+        $folder = "assets/delivery/images/";
+        $path = public_path($folder);
+
+        if (!file_exists($path)) {
+            mkdir($path, 0777, true);
         }
 
-        $pending_delivery = PendingDelivery::where('delivery_user_id', $delivery->id)->first();
+        $file->move($path, $fileName);
 
-        if ($pending_delivery) {
-
-            $pending_delivery->update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'birthdate' => $request->birthdate,
-                'government_id' => $request->government_id,
-                'area_id' => $request->area_id,
-                'shift_id' => $request->shift_id,
-                'type' => $request->type,
-                'has_vehicle' => $request->has_vehicle,
-                'vehicle_id' => $request->vehicle_id,
-                'vehicle_type' => $request->vehicle_type,
-                'image' => $image_path,
-                'status' => 'pending'
-            ]);
-        } else {
-
-            PendingDelivery::create([
-                'delivery_user_id' => $delivery->id,
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'birthdate' => $request->birthdate,
-                'government_id' => $request->government_id,
-                'area_id' => $request->area_id,
-                'shift_id' => $request->shift_id,
-                'type' => $request->type,
-                'has_vehicle' => $request->has_vehicle,
-                'vehicle_id' => $request->vehicle_id,
-                'vehicle_type' => $request->vehicle_type,
-                'image' => $image_path,
-            ]);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Waiting for admin approval .',
-            'data' => null
-        ]);
+        $data['image'] = "https://www.programshouse.com/swsw/public/" . $folder . $fileName;
+    } else {
+        $data['image'] = $pendingDelivery->image ?? $delivery->image;
     }
 
+    PendingDelivery::updateOrCreate(
+        ['delivery_user_id' => $delivery->id],
+        $data
+    );
 
-      public function forgetPassword(Request $request)
+    return response()->json([
+        'status' => true,
+        'message' => 'Waiting for admin approval.',
+        'data' => null
+    ]);
+}
+
+    public function forgetPassword(Request $request)
     {
         if ($user->role !== 'kitchen') {
             abort(404);
@@ -244,11 +295,10 @@ class AuthController extends Controller
             ->with('success', 'تم إنشاء كود تغيير كلمة المرور بنجاح')
             ->with('generated_code_user_id', $user->id)
             ->with('generated_code', $code);
-    
     }
 
 
-      public function resetPassword(Request $request)
+    public function resetPassword(Request $request)
     {
         // $delivery = $request->user();
 
@@ -273,5 +323,22 @@ class AuthController extends Controller
         //     ]
         // ]);
     }
-}
 
+    public function deliveryStatus($id)
+    {
+        $delivery = DeliveryUser::find($id);
+
+        if (!$delivery) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Delivery user not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'delivery_status' => $delivery->status,
+            'data' => $delivery,
+        ]);
+    }
+}

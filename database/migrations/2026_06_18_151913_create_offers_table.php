@@ -11,17 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('areas', function (Blueprint $table) {
+        Schema::create('offers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('government_id')
-                ->constrained('governments')
-                ->cascadeOnDelete();
-
-            $table->string('name_en');
             $table->string('name_ar');
-            
-            $table->boolean('status')->default(true);
+    $table->string('name_en');
 
+    $table->text('description_ar')->nullable();
+    $table->text('description_en')->nullable();
+
+        $table->integer('points')->default(0);
+        $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
@@ -31,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('areas');
+        Schema::dropIfExists('offers');
     }
 };

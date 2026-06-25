@@ -104,10 +104,17 @@ class OrdersController extends Controller
             $total += $meal->price * $item['quantity'];
         }
 
+        $lastOrder = Order::latest('id')->first();
+
+$nextId = $lastOrder ? $lastOrder->id + 1 : 1;
+
+$orderNumber = 'ORD-' . now()->format('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+
         // Create order
         $order = Order::create([
             'user_id' => $user->id,
             'kitchen_id' => $validated['kitchen_id'],
+             'number' => $orderNumber,
             'total' => $total,
             'user_address_id' => $validated['user_address_id'] ?? null,
             'receive_date' => $validated['receive_date'] ?? null,

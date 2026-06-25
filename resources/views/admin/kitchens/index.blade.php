@@ -3,263 +3,319 @@
 @section('title', 'المطابخ')
 
 @push('styles')
-<style>
+    <style>
+        .kitchens-tools {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
 
-    .search-input{
-        width:100%;
-        height:44px;
-        border:1px solid #dbe2ea;
-        border-radius:10px;
-        padding:0 14px;
-        margin:16px 0;
-    }
+        .search-input {
+            flex: 1;
+            min-width: 260px;
+            height: 46px;
+            border: 1px solid #dbe2ea;
+            border-radius: 12px;
+            padding: 0 14px;
+            font-size: 14px;
+            background: #fff;
+        }
 
-    .btn-code{
-        background:#f59e0b;
-        color:#fff;
-    }
+        .search-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
 
-    .btn-copy{
-        background:#0ea5e9;
-        color:#fff;
-    }
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
 
-    .btn-active{
-        background:#16a34a;
-        color:#fff;
-    }
+        .btn {
+            border: 0;
+            border-radius: 9px;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
 
-    .btn-inactive{
-        background:#dc2626;
-        color:#fff;
-    }
+        .btn-view {
+            background: #2563eb;
+            color: #fff;
+        }
 
-    .actions{
-        display:flex;
-        gap:8px;
-        flex-wrap:wrap;
-        align-items:center;
-    }
+        .btn-code {
+            background: #f59e0b;
+            color: #fff;
+        }
 
-    .badge{
-        padding:6px 12px;
-        border-radius:999px;
-        font-size:13px;
-        font-weight:800;
-        display:inline-block;
-    }
+        .btn-active {
+            background: #16a34a;
+            color: #fff;
+        }
 
-    .badge-active{
-        background:#dcfce7;
-        color:#166534;
-    }
+        .btn-inactive {
+            background: #dc2626;
+            color: #fff;
+        }
 
-    .badge-inactive{
-        background:#fee2e2;
-        color:#991b1b;
-    }
+        .btn-copy {
+            background: #0ea5e9;
+            color: #fff;
+        }
 
-    .code-box{
-        display:flex;
-        gap:8px;
-        align-items:center;
-    }
+        .badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 800;
+            display: inline-block;
+        }
 
-    .code-value{
-        background:#fef3c7;
-        color:#92400e;
-        padding:7px 12px;
-        border-radius:10px;
-        font-weight:900;
-    }
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
+        }
 
-</style>
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .code-box {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .code-value {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 7px 12px;
+            border-radius: 10px;
+            font-weight: 900;
+        }
+
+        #kitchensTable th,
+        #kitchensTable td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        #kitchensTable tbody tr:hover {
+            background: #f9fafb;
+        }
+    </style>
 @endpush
 
 @section('content')
 
-<div class="page-title">
-    قائمة المطابخ
-</div>
-
-@if(session('success'))
-    <div class="success-alert">
-        {{ session('success') }}
-    </div>
-@endif
-
-<div class="table-card">
-
-    <div class="table-header">
-
-        <div class="table-title">
-            المطابخ
+    <div class="page-head">
+        <div class="page-title" style="margin-bottom:0;">
+            قائمة المطابخ
         </div>
 
-        <a href="{{ route('admin.kitchens.index') }}" class="btn btn-view">
+        <a href="{{ route('admin.kitchens.index') }}" class="back-btn">
             تحديث البيانات
         </a>
-
     </div>
 
-    <div style="padding:0 24px">
+    @if (session('success'))
+        <div class="success-alert">
+            {{ session('success') }}
+        </div>
+    @endif
 
-        <input
-            type="text"
-            id="kitchenSearch"
-            class="search-input"
-            placeholder="بحث في المطابخ"
-        >
+    <div class="table-card">
 
-    </div>
+        <div class="table-header">
+            <div class="table-title">
+                المطابخ
+            </div>
+        </div>
 
-    <div class="table-wrapper">
+        <div class="kitchens-tools">
+            <input type="text" id="kitchenSearch" class="search-input" placeholder="بحث بالاسم أو البريد أو الهاتف">
+        </div>
 
-        <table id="kitchensTable">
+        <div class="table-wrapper">
+            <table id="kitchensTable">
+                <thead>
+                    <tr>
+                        {{-- <th>ID</th> --}}
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الهاتف</th>
+                        <th>الكود</th>
+                        <th>عدد التسجيلات</th>
 
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>الاسم</th>
-                <th>البريد الإلكتروني</th>
-                <th>الهاتف</th>
-                <th>المحافظة</th>
-                <th>المنطقة</th>
-                <th>حالة الحساب</th>
-                <th>حالة المطبخ</th>
-                <th>الملف</th>
-                <th>تاريخ الإنشاء</th>
-                <th>كود تغيير كلمة المرور</th>
-                <th>الإجراءات</th>
-            </tr>
-            </thead>
+                        <th>المحافظة</th>
+                        <th>المنطقة</th>
+                        <th>حالة الحساب</th>
+                        <th>حالة المطبخ</th>
+                        <th>الملف</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>كود تغيير كلمة المرور</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
 
-            <tbody>
+                <tbody>
+                    @forelse($kitchens as $kitchenUser)
+                        <tr>
+                            {{-- <td>{{ $kitchenUser->id }}</td> --}}
 
-            @foreach($kitchens as $kitchenUser)
+                            <td>
+                                <strong>{{ $kitchenUser->name ?? '-' }}</strong>
+                            </td>
 
-                <tr>
-
-                    <td>{{ $kitchenUser->id }}</td>
-                    <td>{{ $kitchenUser->name ?? '-' }}</td>
-                    <td>{{ $kitchenUser->email ?? '-' }}</td>
-                    <td>{{ $kitchenUser->phone ?? '-' }}</td>
-                    <td>{{ $kitchenUser->profile->government->name ?? '-' }}</td>
-                    <td>{{ $kitchenUser->profile->area->name ?? '-' }}</td>
-
-                    <td>
-                        @if($kitchenUser->status === 'active')
-                            <span class="badge badge-active">نشط</span>
-                        @else
-                            <span class="badge badge-inactive">غير نشط</span>
-                        @endif
-                    </td>
-
-                    <td>
-                        {{ $kitchenUser->profile->statue ?? '-' }}
-                    </td>
-
-                    <td>
-                        {{ $kitchenUser->profile ? 'موجود' : 'غير موجود' }}
-                    </td>
-
-                    <td>
-                        {{ optional($kitchenUser->created_at)->format('Y-m-d H:i') }}
-                    </td>
-
-                    <td>
-
-                        @if(session('generated_code_user_id') == $kitchenUser->id)
-
-                            <div class="code-box" id="code-box-{{ $kitchenUser->id }}">
-
-                                <span
-                                    class="code-value"
-                                    id="code-{{ $kitchenUser->id }}"
-                                >
-                                    {{ session('generated_code') }}
+                            <td>{{ $kitchenUser->email ?? '-' }}</td>
+                            <td>{{ $kitchenUser->phone ?? '-' }}</td>
+                            <td>{{ $kitchenUser->code ?? '-' }}</td>
+                            <td>
+                                <span class="referral-badge">
+                                    {{ $kitchenUser->referrals_count }}
                                 </span>
+                            </td>
+                            <td>{{ $kitchenUser->profile->government->name ?? '-' }}</td>
+                            <td>{{ $kitchenUser->profile->area->name ?? '-' }}</td>
 
-                                <button
-                                    type="button"
-                                    class="btn btn-copy"
-                                    onclick="copyAndHideCode(
-                                        'code-{{ $kitchenUser->id }}',
-                                        'code-box-{{ $kitchenUser->id }}'
-                                    )"
-                                >
-                                    نسخ
-                                </button>
+                            <td>
+                                @if ($kitchenUser->status === 'active')
+                                    <span class="badge badge-active">نشط</span>
+                                @else
+                                    <span class="badge badge-inactive">غير نشط</span>
+                                @endif
+                            </td>
 
-                            </div>
+                            <td>
+                                @if (($kitchenUser->profile->statue ?? null) === 'approved')
+                                    <span class="badge badge-active">مقبول</span>
+                                @elseif(($kitchenUser->profile->statue ?? null) === 'rejected')
+                                    <span class="badge badge-inactive">مرفوض</span>
+                                @else
+                                    <span class="badge badge-warning">
+                                        {{ $kitchenUser->profile->statue ?? '-' }}
+                                    </span>
+                                @endif
+                            </td>
 
-                        @else
-                            -
-                        @endif
+                            <td>
+                                {{ $kitchenUser->profile ? 'موجود' : 'غير موجود' }}
+                            </td>
 
-                    </td>
+                            <td>
+                                {{ optional($kitchenUser->created_at)->format('Y-m-d H:i') }}
+                            </td>
 
-                    <td>
+                            <td>
+                                @if (session('generated_code_user_id') == $kitchenUser->id)
+                                    <div class="code-box" id="code-box-{{ $kitchenUser->id }}">
+                                        <span class="code-value" id="code-{{ $kitchenUser->id }}">
+                                            {{ session('generated_code') }}
+                                        </span>
 
-                        <div class="actions">
+                                        <button type="button" class="btn btn-copy"
+                                            onclick="copyAndHideCode('code-{{ $kitchenUser->id }}','code-box-{{ $kitchenUser->id }}')">
+                                            نسخ
+                                        </button>
+                                    </div>
+                                @else
+                                    -
+                                @endif
+                            </td>
 
-                            <a
-                                href="{{ route('admin.kitchens.show',$kitchenUser->id) }}"
-                                class="btn btn-view"
-                            >
-                                عرض التفاصيل
-                            </a>
+                            <td>
+                                <div class="actions">
+                                    <a href="{{ route('admin.kitchens.show', $kitchenUser->id) }}" class="btn btn-view">
+                                        عرض التفاصيل
+                                    </a>
 
-                            <form
-                                method="POST"
-                                action="{{ route('admin.kitchens.generate-code',$kitchenUser->id) }}"
-                            >
-                                @csrf
+                                    <form method="POST"
+                                        action="{{ route('admin.kitchens.generate-code', $kitchenUser->id) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-code">
+                                            تغيير الباسورد
+                                        </button>
+                                    </form>
 
-                                <button
-                                    type="submit"
-                                    class="btn btn-code"
-                                >
-                                    تغيير الباسورد
-                                </button>
+                                    <form method="POST" action="{{ route('admin.kitchens.active', $kitchenUser->id) }}">
+                                        @csrf
 
-                            </form>
+                                        <input type="hidden" name="status"
+                                            value="{{ $kitchenUser->status === 'active' ? 'not_active' : 'active' }}">
 
-                            <form
-                                method="POST"
-                                action="{{ route('admin.kitchens.active',$kitchenUser->id) }}"
-                            >
-                                @csrf
-
-                                <input
-                                    type="hidden"
-                                    name="status"
-                                    value="{{ $kitchenUser->status === 'active' ? 'not_active' : 'active' }}"
-                                >
-
-                                <button
-                                    type="submit"
-                                    class="btn {{ $kitchenUser->status === 'active' ? 'btn-inactive' : 'btn-active' }}"
-                                >
-                                    {{ $kitchenUser->status === 'active' ? 'تعطيل الحساب' : 'تفعيل الحساب' }}
-                                </button>
-
-                            </form>
-
-                        </div>
-
-                    </td>
-
-                </tr>
-
-            @endforeach
-
-            </tbody>
-
-        </table>
+                                        <button type="submit"
+                                            class="btn {{ $kitchenUser->status === 'active' ? 'btn-inactive' : 'btn-active' }}">
+                                            {{ $kitchenUser->status === 'active' ? 'تعطيل الحساب' : 'تفعيل الحساب' }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="12" class="empty">
+                                لا توجد مطابخ
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
     </div>
-
-</div>
 
 @endsection
+
+@push('scripts')
+    <script>
+        const kitchenSearch = document.getElementById('kitchenSearch');
+        const rows = document.querySelectorAll('#kitchensTable tbody tr');
+
+        if (kitchenSearch) {
+            kitchenSearch.addEventListener('keyup', function() {
+                const value = this.value.toLowerCase();
+
+                rows.forEach(row => {
+                    row.style.display = row.innerText.toLowerCase().includes(value) ?
+                        '' :
+                        'none';
+                });
+            });
+        }
+
+        function copyAndHideCode(codeId, boxId) {
+            const code = document.getElementById(codeId);
+            const box = document.getElementById(boxId);
+
+            if (!code) return;
+
+            navigator.clipboard.writeText(code.innerText.trim());
+
+            if (box) {
+                setTimeout(() => {
+                    box.style.display = 'none';
+                }, 500);
+            }
+        }
+    </script>
+@endpush

@@ -20,20 +20,43 @@ class VehicleController extends Controller
         return view('admin.vehicles.create');
     }
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'max_km' => 'required|integer|min:0',
-            'zone' => 'nullable|string|max:255',
-        ]);
+  public function store(Request $request)
+{
+    $data = $request->validate([
+        'name_en' => 'required|string|max:255',
+        'name_ar' => 'required|string|max:255',
+        'max_km' => 'required|integer|min:0',
+        'price_distance_meters' => 'required|integer|min:0',
+        'price' => 'required|numeric|min:0',
+        'estimated_time_minutes' => 'required|integer|min:0',
+    ]);
 
-        Vehicle::create($data);
+    Vehicle::create($data);
 
-        return redirect()
-            ->route('admin.vehicles.index')
-            ->with('success', 'Vehicle created successfully');
-    }
+    return redirect()
+        ->route('admin.vehicles.index')
+        ->with('success', 'تم إنشاء الوسيلة بنجاح');
+}
+
+public function update(Request $request, $id)
+{
+    $vehicle = Vehicle::findOrFail($id);
+
+    $data = $request->validate([
+        'name_en' => 'required|string|max:255',
+        'name_ar' => 'required|string|max:255',
+        'max_km' => 'required|integer|min:0',
+        'price_distance_meters' => 'required|integer|min:0',
+        'price' => 'required|numeric|min:0',
+        'estimated_time_minutes' => 'required|integer|min:0',
+    ]);
+
+    $vehicle->update($data);
+
+    return redirect()
+        ->route('admin.vehicles.index')
+        ->with('success', 'تم تعديل الوسيلة بنجاح');
+}
 
     public function show($id)
     {
@@ -49,22 +72,7 @@ class VehicleController extends Controller
         return view('admin.vehicles.edit', compact('vehicle'));
     }
 
-    public function update(Request $request, $id)
-    {
-        $vehicle = Vehicle::findOrFail($id);
-
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'max_km' => 'required|integer|min:0',
-            'zone' => 'nullable|string|max:255',
-        ]);
-
-        $vehicle->update($data);
-
-        return redirect()
-            ->route('admin.vehicles.index')
-            ->with('success', 'Vehicle updated successfully');
-    }
+  
 
     public function destroy($id)
     {

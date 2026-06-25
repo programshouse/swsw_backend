@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -13,9 +14,19 @@ class TicketController extends Controller
     {
         $areas = Area::select('id', 'name_ar')->get();
 
-        $tickets = Ticket::when($request->area_id, function ($q) {
-            $q->where('area_id', request('area_id'));
-        })->get();
+        $tickets = Ticket::with([
+            'deliveryUser',
+            'issueType',
+            'order.user',
+            'order.kitchen',
+            'order.userAddress',
+            'area.government',
+        ])
+            ->when($request->area_id, function ($q) use ($request) {
+                $q->where('area_id', $request->area_id);
+            })
+            ->latest()
+            ->get();
 
         return view('admin.tickets.index', compact('tickets', 'areas'));
     }

@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Models\Government;
+use App\traits\HasLocalization;
 use Illuminate\Database\Eloquent\Model;
 
 class Area extends Model
-{
+{ 
+    use HasLocalization;
+    
      protected $fillable = [
         'name_en',
           'name_ar',

@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('levels', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-
+  $table->boolean('is_default')
+                ->default(false)
+                ;
             // الحد الأدنى للكاش أو المستهدف
             $table->decimal('cash_money', 10, 2)->default(0);
 

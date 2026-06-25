@@ -26,7 +26,11 @@ return new class extends Migration
                 ->constrained('orders')
                 ->nullOnDelete();
             $table->string('order_status');
-            $table->string('type');
+            $table->foreignId('issue_type_id')
+            ->nullable()
+           
+            ->constrained('issue_types')
+            ->nullOnDelete();
             $table->text('details');
             $table->string('image')->nullable();
             $table->timestamps();

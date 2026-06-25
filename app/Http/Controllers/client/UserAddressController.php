@@ -11,12 +11,10 @@ class UserAddressController extends Controller
 {
 
     // get all client address
-    public function index(Request $request)
-    {
-        return response()->json([
-            'address' => $request->user()->address,
-        ], 200);
-    }
+   public function index(Request $request)
+{
+    dd(auth('api_user')->user(), $request->bearerToken());
+}
 
 
     public function store(Request $request)

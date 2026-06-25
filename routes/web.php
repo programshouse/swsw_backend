@@ -30,26 +30,31 @@ use App\Http\Controllers\Admin\OrderHistoryController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\PointController;
 use App\Http\Controllers\Admin\DeliveryPointController;
+use App\Http\Controllers\Admin\IssueTypeController;
+use App\Http\Controllers\Admin\VehicleController;
+use App\Http\Controllers\Admin\OfferController;
 
 
-Route::get('/test', function () {
-    return view('welcome');
-});
+
+
 
 Route::get('/kitchen-realtime', function () {
     return view('kitchen');
 });
 
 
-Route::get('/', [UserController::class, 'showAdminLogin'])
+Route::get('/admin/login', [UserController::class, 'showAdminLogin'])
     ->name('admin.login');                                                  ////done
 
-Route::post('/', [UserController::class, 'adminLogin'])
+Route::post('/admin/login', [UserController::class, 'adminLogin'])
     ->name('admin.login.submit');                                         ///done
 
 
 
 Route::middleware(['auth:web', 'admin'])->group(function () {
+
+    Route::get('/admin/dashboard', [DashboardInsightsController::class, 'index'])
+        ->name('admin.dashboard');
 
     Route::post('/admin/logout', [UserController::class, 'adminLogout'])
         ->name('admin.logout');                                                        ////done
@@ -61,8 +66,28 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
         ->name('admin.clients.show');
 
 
-    Route::get('/admin/dashboard', [DashboardInsightsController::class, 'index'])
-        ->name('admin.dashboard');                                                                  ///done
+    ///done
+
+    Route::resource('admin/offers', OfferController::class)
+    ->names('admin.offers');
+
+     Route::get('admin/vehicles', [VehicleController::class, 'index'])
+            ->name('admin.vehicles.index');
+
+        Route::get('admin/vehicles/create', [VehicleController::class, 'create'])
+            ->name('admin.vehicles.create');
+
+        Route::post('admin/vehicles/store', [VehicleController::class, 'store'])
+            ->name('admin.vehicles.store');
+
+        Route::get('admin/vehicles/{id}/edit', [VehicleController::class, 'edit'])
+            ->name('admin.vehicles.edit');
+
+        Route::put('admin/vehicles/{id}', [VehicleController::class, 'update'])
+            ->name('admin.vehicles.update');
+
+        Route::delete('admin/vehicles/{id}', [VehicleController::class, 'destroy'])
+            ->name('admin.vehicles.destroy');
 
 
     Route::get('/admin/meals', [MealController::class, 'allMeals'])
@@ -71,6 +96,18 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     Route::post('/admin/meals/{meal}/approve', [MealController::class, 'approveMeal'])
         ->name('admin.meals.approve');                                                        //////done
 
+
+         Route::get('/admin/issue-types', [IssueTypeController::class, 'index'])
+        ->name('admin.issue-types.index');
+
+    Route::post('/admin/issue-types', [IssueTypeController::class, 'store'])
+        ->name('admin.issue-types.store');
+
+    Route::put('/admin/issue-types/{issueType}', [IssueTypeController::class, 'update'])
+        ->name('admin.issue-types.update');
+
+    Route::delete('/admin/issue-types/{issueType}', [IssueTypeController::class, 'destroy'])
+        ->name('admin.issue-types.destroy');
     // admin rates
 
     Route::prefix('admin/rates')->group(function () {
@@ -93,6 +130,8 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
         Route::post('/{rate}/delete', [UserRateController::class, 'destroy'])
             ->name('admin.rates.destroy');
     });
+
+   
 
     //  points
     Route::prefix('points')->group(function () {
@@ -216,12 +255,16 @@ Route::middleware(['auth:web', 'admin'])->group(function () {
     Route::patch('/active-kitchen-account/{user}', [UserController::class, 'active']);
     Route::get('/kitchen-accounts', [UserController::class, 'kitchen_users']);
     // meals
-    // Route::post('/approve-meal/{meal}', [MealController::class, 'approveMeal']);
-    // Route::get('/all-meals', [MealController::class, 'allMeals']);
-
+     Route::post('/approve-meal/{meal}', [MealController::class, 'approveMeal']);
+    Route::get('/all-meals', [MealController::class, 'allMeals']);
+    Route::delete('/meal/{meal}/delete', [MealController::class, 'destroy'])->name('admin.meals.destroy');;
 
     Route::get('/governments', [GovernmentController::class, 'index'])
         ->name('admin.governments.index');
+
+        Route::post('/governments/{government}/toggle-status',
+    [GovernmentController::class, 'toggleStatus']
+)->name('admin.governments.toggle-status');
 
     Route::delete(
         '/governments/{government}',

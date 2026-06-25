@@ -139,8 +139,8 @@ class MealController extends Controller
 
         $meal->delete();
 
-        return response()->json([
-            'message' => 'meal deleted successfully',
-        ], 200);
+         return redirect()
+        ->back()
+        ->with('success', 'تم حذف الوجبة بنجاح');
     }
 }

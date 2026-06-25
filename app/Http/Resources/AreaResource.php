@@ -17,9 +17,9 @@ class AreaResource extends JsonResource
         return [
             'id' => $this->id,
             "government" => new GovernmentResource($this->government),
-            "name_en" => $this->name_en,
-            "name_ar" => $this->name_ar,
-            "status" => $this->status,
+            "name" => $this->name,
+            
+           // "status" => $this->status,
         ];
     }
 }

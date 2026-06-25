@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\KitchenProfileResource;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
+use App\Models\DeliveryUser;
 
 class KitchenProfileController extends Controller
 {
@@ -220,15 +221,34 @@ class KitchenProfileController extends Controller
     }
 
 
-    public function kitchens(Request $request)
-    {
-        $kitchens = User::where('role', 'kitchen')
-            ->with(['profile.government', 'profile.area'])
-            ->latest()
-            ->get();
+   public function kitchens(Request $request)
+{
+    $kitchens = User::where('role', 'kitchen')
+        ->with(['profile.government', 'profile.area'])
+        ->latest()
+        ->get()
+        ->map(function ($kitchen) {
 
-        return view('admin.kitchens.index', compact('kitchens'));
-    }
+            if (empty($kitchen->code)) {
+                $kitchen->referrals_count = 0;
+                return $kitchen;
+            }
+
+            $usersCount = User::whereNotNull('referral_code')
+                ->where('referral_code', $kitchen->code)
+                ->count();
+
+            $deliveryCount = DeliveryUser::whereNotNull('referral_code')
+                ->where('referral_code', $kitchen->code)
+                ->count();
+
+            $kitchen->referrals_count = $usersCount + $deliveryCount;
+
+            return $kitchen;
+        });
+
+    return view('admin.kitchens.index', compact('kitchens'));
+}
 
     public function kitchen_show(Request $request, User $profile)
     {

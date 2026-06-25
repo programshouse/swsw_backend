@@ -21,7 +21,7 @@ class DeliveryResource extends JsonResource
             "phone" => $this->phone,
             "area" => new AreaResource($this->area),
             "birthdate" => $this->birthdate,
-            "level_id" => $this->level_id,
+             
             "shift_id" => new ShiftResource($this->shift),
             "type" => $this->type,
             "has_vehicle" => $this->has_vehicle,

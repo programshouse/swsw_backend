@@ -18,6 +18,8 @@ use App\Http\Controllers\client\CaruselController;
 use App\Http\Controllers\rate\RateController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\DashboardInsightsController;
+use App\Http\Controllers\EmailOtpPasswordController;
+use App\Http\Controllers\SettingsApiController;
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\EnsureGovernrateArea;
 use App\Http\Controllers\Delivery\AuthController;
@@ -27,39 +29,36 @@ use App\Http\Controllers\Delivery\ShiftController;
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/client-login', [UserController::class, 'client_login']);
-//Route::post('/admin-login', [UserController::class, 'adminLogin']);
+
+
+Route::post('password/send-otp', [EmailOtpPasswordController::class, 'sendOtp']);
+Route::post('password/verify-otp', [EmailOtpPasswordController::class, 'verifyOtp']);
+Route::post('password/reset', [EmailOtpPasswordController::class, 'resetPassword']);
+
+Route::get('/settings', [SettingsApiController::class, 'index']);
 
 
 
 Route::post('/verifiy-kitchen-user-forget-password', [UserController::class, 'verifiy_kitchen_user_forget_password']);
 Route::post('/kitchen-user-forget-password', [UserController::class, 'kitchen_user_forget_password']);
+Route::get('/categories', [CategoryController::class, 'index']);
+
 
 // government
 Route::get('/governments', [GovernmentController::class, 'index']);
-Route::post('/create-governments', [GovernmentController::class, 'store']);
-Route::delete('/government/{government}/delete', [GovernmentController::class, 'destroy']);
 
-
-// area
+// 
 Route::get('/areas', [AreaController::class, 'index']);
-Route::post('/create-area', [AreaController::class, 'store']);
-Route::delete('/area/{area}/delete', [AreaController::class, 'destroy']);
-
-// workday
+// 
 Route::get('/workdays', [WorkingDayController::class, 'index']);
-Route::post('/create-workday', [WorkingDayController::class, 'store']);
-Route::delete('/workday/{workday}/delete', [WorkingDayController::class, 'destroy']);
-
-
-// workday
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::post('/create-category', [CategoryController::class, 'store']);
-Route::delete('/category/{workday}/delete', [CategoryController::class, 'destroy']);
+// 
 
 
 
 
-Route::middleware('auth:sanctum')->group(function () {
+
+
+Route::middleware('auth:api_user')->group(function () {
 
   Route::patch('/update-location', [UserController::class, 'update_location']);
 

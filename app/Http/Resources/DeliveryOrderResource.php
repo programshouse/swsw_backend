@@ -16,6 +16,7 @@ class DeliveryOrderResource extends JsonResource
     {
         return [
             'order' => new OrderDetailResource($this->order),
+            "delivery_has_multiple_active_orders" => $request->attributes->get('delivery_has_multiple_active_orders'),
         ];
     }
 }

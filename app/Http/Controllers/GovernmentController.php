@@ -47,4 +47,20 @@ class GovernmentController extends Controller
             'message' => 'government deleted successfully',
         ] , 200);
     }
+
+    public function toggleStatus(Request $request, Government $government)
+{
+    $government->update([
+        'is_active' => !$government->is_active
+    ]);
+
+    return redirect()
+        ->back()
+        ->with(
+            'success',
+            $government->is_active
+                ? 'تم تفعيل المحافظة'
+                : 'تم تعطيل المحافظة'
+        );
+}
 }

@@ -7,11 +7,19 @@ use App\Http\Controllers\Delivery\OrderController;
 use App\Http\Controllers\Delivery\RateStoreController;
 use App\Http\Controllers\Delivery\ShiftController;
 use App\Http\Controllers\Delivery\TicketController;
+use App\Http\Controllers\Delivery\VehicleController;
+use App\Http\Controllers\Delivery\EmailOtpPasswordController;
+use App\Http\Controllers\Delivery\OfferController;
 use App\Http\Controllers\orders\OrderHistoryController;
 use App\Http\Middleware\EnsureDeliveryWorking;
 use Illuminate\Support\Facades\Route;
 
 
+
+
+Route::post('delivery/password/send-otp', [EmailOtpPasswordController::class, 'sendOtp']);
+Route::post('delivery/password/verify-otp', [EmailOtpPasswordController::class, 'verifyOtp']);
+Route::post('delivery/password/reset', [EmailOtpPasswordController::class, 'resetPassword']);
 
 Route::prefix('register')->group(function () {
 
@@ -19,8 +27,11 @@ Route::prefix('register')->group(function () {
     Route::get('/governments', [GovernmentController::class, 'index']);
     Route::get('/governments/{government}/areas', [AreaController::class, 'index']);
 
+    Route::get('/vehicles', [VehicleController::class, 'index']);
+
     // get all shifts
     Route::get('/shifts', [ShiftController::class, 'index']);
+    Route::get('/delivery/status/{id}', [AuthController::class, 'deliveryStatus']);
 });
 
 Route::prefix('delivery')->group(function () {
@@ -48,20 +59,28 @@ Route::prefix('delivery')->group(function () {
 
 
         // start shift
-        Route::post('/start', [ShiftController::class, 'startShift'])->middleware(EnsureDeliveryWorking::class);
+        Route::post('/start-Shift', [ShiftController::class, 'startShift'])->middleware(EnsureDeliveryWorking::class);
         // end shift
-        Route::post('/end', [ShiftController::class, 'endShift']);
+        Route::post('/end-Shift', [ShiftController::class, 'endShift']);
+        Route::get('/break-status', [OrderController::class, 'breakStatus']);
+        Route::get(
+            '/issue-types',
+            [TicketController::class, 'issueTypes']
+        );
 
+        Route::get('/offers', [OfferController::class, 'offers']);
         // orders 
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
 
             Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->middleware(EnsureDeliveryWorking::class);
-
-            Route::post('/{order}/report', [TicketController::class, 'store']);
+        
+            Route::post('/{order}/issue', [TicketController::class, 'store']);
 
             Route::post('/{order}/accept', [OrderController::class, 'accept'])->middleware(EnsureDeliveryWorking::class);
             Route::post('/{order}/reject', [OrderController::class, 'reject'])->middleware(EnsureDeliveryWorking::class);
+            Route::post('/orders/{order}/no-response', [OrderController::class, 'noResponse']);
+            Route::post('{order}/transfer', [OrderController::class, 'transfer']);
         });
     });
 });

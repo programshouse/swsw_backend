@@ -16,6 +16,8 @@ use App\Models\Carusel;
 use App\Http\Resources\CaruselResource;
 use App\Http\Resources\ClientProfileResource;
 use App\Http\Resources\DashboardClientREsource;
+use App\Models\DeliveryUser;
+
 
 class ClientController extends Controller
 {
@@ -164,11 +166,30 @@ class ClientController extends Controller
     // }
 
 
-    public function all_clients(Request $request)
+  public function all_clients(Request $request)
 {
     $clients = User::where('role', 'client')
         ->latest()
-        ->get();
+        ->get()
+        ->map(function ($client) {
+
+            if (empty($client->code)) {
+                $client->referrals_count = 0;
+                return $client;
+            }
+
+            $usersCount = User::whereNotNull('referral_code')
+                ->where('referral_code', $client->code)
+                ->count();
+
+            $deliveryCount = DeliveryUser::whereNotNull('referral_code')
+                ->where('referral_code', $client->code)
+                ->count();
+
+            $client->referrals_count = $usersCount + $deliveryCount;
+
+            return $client;
+        });
 
     return view('admin.clients.index', compact('clients'));
 }

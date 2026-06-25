@@ -13,6 +13,7 @@ class GovernmentController extends Controller
     public function index()
     {
         $all_governments =  Government::where('status', true)->get();
+       // 
 
         return response()->json([
             'data' => GovernmentResource::collection($all_governments)

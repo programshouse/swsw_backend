@@ -11,5 +11,9 @@ class DeliveryShiftLog extends Model
         'start_time',
         'end_time',
         'status',
+         'start_lat',
+        'start_lng',
+        'end_lat',
+        'end_lng',
     ];
 }

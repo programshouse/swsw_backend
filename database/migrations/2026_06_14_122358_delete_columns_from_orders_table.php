@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('orders', function (Blueprint $table) {
             $table->dropForeign(['delivery_user_id']);
             $table->dropColumn('delivery_user_id');
-            $table->timestamp('delivered_at')->nullable();
+           // $table->timestamp('delivered_at')->nullable();
         });
     }
 

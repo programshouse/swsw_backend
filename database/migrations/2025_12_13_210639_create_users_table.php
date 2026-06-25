@@ -23,6 +23,7 @@ return new class extends Migration
             $table->enum('status' , ['active' , 'not_active', 'pending'])->default('pending');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('referral_code')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

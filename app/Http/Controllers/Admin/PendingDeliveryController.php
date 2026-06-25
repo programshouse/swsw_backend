@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\DeliveryUser;
 use App\Models\PendingDelivery;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+
 
 class PendingDeliveryController extends Controller
 {
@@ -22,18 +24,30 @@ class PendingDeliveryController extends Controller
         );
     }
 
-    public function accept($id)
-    {
+  public function accept($id)
+{
+    DB::beginTransaction();
+
+    try {
         $delivery = PendingDelivery::findOrFail($id);
 
-        $delivery_user = DeliveryUser::findOrFail($delivery->delivery_user_id);
-
-        // delete old image 
-        if ($delivery_user->image) {
-            Storage::disk('public')->delete($delivery_user->image);
+        if (!$delivery->delivery_user_id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا يوجد دليفري مرتبط بهذا الطلب',
+            ], 422);
         }
 
-        $delivery_user->update([
+        $deliveryUser = DeliveryUser::find($delivery->delivery_user_id);
+
+        if (!$deliveryUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'الدليفري الأصلي غير موجود',
+            ], 404);
+        }
+
+        $updateData = [
             'name' => $delivery->name,
             'email' => $delivery->email,
             'phone' => $delivery->phone,
@@ -45,40 +59,64 @@ class PendingDeliveryController extends Controller
             'has_vehicle' => $delivery->has_vehicle,
             'vehicle_id' => $delivery->vehicle_id,
             'vehicle_type' => $delivery->vehicle_type,
-            'image' => $delivery->image
-        ]);
+        ];
+
+        if (!empty($delivery->image)) {
+            if ($deliveryUser->image && $deliveryUser->image !== $delivery->image) {
+                Storage::disk('public')->delete($deliveryUser->image);
+            }
+
+            $updateData['image'] = $delivery->image;
+        }
+
+        $deliveryUser->update($updateData);
 
         $delivery->update([
             'status' => 'approved',
         ]);
 
+        DB::commit();
 
         return response()->json([
             'status' => true,
-            'message' => 'Delivery Profile Update approved successfully',
-            'data' => $delivery
+            'message' => 'تمت الموافقة على تعديل بيانات الدليفري بنجاح',
+            'data' => $deliveryUser->fresh(),
         ]);
-    }
 
-    public function reject($id)
-    {
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        return response()->json([
+            'status' => false,
+            'message' => 'حدث خطأ أثناء الموافقة',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function reject($id)
+{
+    try {
         $delivery = PendingDelivery::findOrFail($id);
 
-        DeliveryUser::findOrFail($delivery->delivery_user_id);
-
-        // delete image 
-        if ($delivery->image) {
-            Storage::disk('public')->delete($delivery->image);
-        }
-
         $delivery->update([
-            'status' => 'rejected'
+            'status' => 'rejected',
         ]);
 
         return response()->json([
             'status' => true,
-            'message' => 'Delivery Profile Update rejected successfully',
-            'data' => null
+            'message' => 'تم رفض تعديل بيانات الدليفري بنجاح',
+            'data' => null,
         ]);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'حدث خطأ أثناء الرفض',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
+    
 }

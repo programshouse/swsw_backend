@@ -11,5 +11,9 @@ class Setting extends Model
         'facebook_link',
         'instgram_link',
         'tiktok_link',
+        'logo',
+        'user_video',
+        'kitchen_video',
+        'delivery_video'
     ];
 }

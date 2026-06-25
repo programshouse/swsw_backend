@@ -4,6 +4,7 @@ namespace App\Http\Controllers\client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Carusel;
+use App\Models\Area;
 use Illuminate\Http\Request;
 use App\Http\Resources\CaruselResource;
 use Illuminate\Support\Facades\Storage;
@@ -11,13 +12,18 @@ use Illuminate\Support\Facades\Storage;
 class CaruselController extends Controller
 {
 
-    public function index(Request $request)
-    {
-        $carusel = Carusel::all();
-        return response()->json([
-            'carusel' => CaruselResource::collection($carusel),
-        ], 200);
-    }
+  public function index(Request $request)
+{
+    $user = $request->user();
+
+    $carusels = Carusel::where('area_id', $user->area_id)
+        ->orWhereNull('area_id')
+        ->get();
+
+    return response()->json([
+        'carusel' => CaruselResource::collection($carusels),
+    ], 200);
+}
 
     // public function store(Request $request) {
     //     $validated = $request->validate([
@@ -44,21 +50,24 @@ class CaruselController extends Controller
 
     public function GetAll(Request $request)
     {
-        $carusels = Carusel::latest()->get();
+        $carusels = Carusel::with('area')->latest()->get();
+        $areas = Area::latest()->get();
 
-        return view('admin.sliders.index', compact('carusels'));
+        return view('admin.sliders.index', compact('carusels', 'areas'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+              'area_id' => 'nullable|exists:areas,id',
         ]);
 
         $imagePath = $request->file('image')->store('carusel', 'public');
 
         Carusel::create([
             'image' => $imagePath,
+             'area_id' => $request->area_id,
         ]);
 
         return redirect()

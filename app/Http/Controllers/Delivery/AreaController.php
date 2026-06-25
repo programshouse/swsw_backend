@@ -13,6 +13,7 @@ class AreaController extends Controller
     {
 
         $government_areas = $government->areas()->where('status', true)->get();
+        
 
         if ($government_areas->isEmpty()) {
             return response()->json([

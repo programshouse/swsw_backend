@@ -14,9 +14,24 @@ use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+     private function generateDeliveryCode(): string
+{
+    $lastDelivery = User::whereNotNull('code')
+        ->orderByDesc('id')
+        ->first();
+
+    $nextNumber = 1;
+
+    if ($lastDelivery && $lastDelivery->code) {
+        $nextNumber = ((int) preg_replace('/[^0-9]/', '', $lastDelivery->code)) + 1;
+    }
+
+    return 'U' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+}
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
+             'code' => $this->generateDeliveryCode(),
             'name' => 'required|string|max:255',
             'email' => 'nullable|string|email|max:255|unique:users',
             'phone' => [
@@ -31,6 +46,7 @@ class UserController extends Controller
             'area_id' => 'nullable|exists:areas,id',
             'role' => 'required|string|max:255|in:admin,client,kitchen,delivery',
             'password' => 'required|string|min:8|confirmed',
+              'referral_code' => 'nullable|string|max:50',
         ]);
 
         $user = User::create([
@@ -41,6 +57,7 @@ class UserController extends Controller
             'area_id' => $validated['area_id'] ?? null,
             'role' => $validated['role'],
             'password' => Hash::make($validated['password']),
+             'referral_code' => $validated['referral_code'] ?? null,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

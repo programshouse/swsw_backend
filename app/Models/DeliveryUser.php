@@ -31,6 +31,7 @@ class DeliveryUser extends Authenticatable
         'code',
         'code_expires_at',
         'verified_at',
+        'referral_code'
     ];
 
     protected $hidden = [

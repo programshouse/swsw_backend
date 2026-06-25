@@ -29,6 +29,10 @@ return new class extends Migration
 
             $table->timestamp('rejected_at')->nullable();
 
+              $table->boolean('cash_settled')
+            ->default(false);
+           
+
             $table->timestamps();
         });
     }

@@ -16,8 +16,8 @@ class GovernmentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            "name_en" => $this->name_en,
-            "name_ar" => $this->name_ar,
+            "name" => $this->name,
+            
         ];
     }
 }

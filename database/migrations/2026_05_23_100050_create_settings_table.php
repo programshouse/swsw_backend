@@ -17,6 +17,9 @@ return new class extends Migration
             $table->text('facebook_link')->nullable();
             $table->text('instgram_link')->nullable();
             $table->text('tiktok_link')->nullable();
+              $table->string('user_video')->nullable();
+    $table->string('kitchen_video')->nullable();
+    $table->string('delivery_video')->nullable();
           
             $table->timestamps();
         });

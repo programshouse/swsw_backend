@@ -11,12 +11,14 @@ class LevelController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        $levels = Level::latest()->paginate(10);
+   public function index()
+{
+    $levels = Level::with('vehicle')
+        ->latest()
+        ->paginate(10);
 
-        return view('admin.levels.index', compact('levels'));
-    }
+    return view('admin.levels.index', compact('levels'));
+}
 
     public function create()
     {

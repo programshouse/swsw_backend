@@ -2,173 +2,195 @@
 
 @section('title', 'وجبات المطبخ')
 
-
-
 @section('content')
 
 <div class="page-title">
     وجبات المطبخ
 </div>
 
-<div class="top-card">
+@if(session('success'))
+    <div class="success-alert">
+        {{ session('success') }}
+    </div>
+@endif
 
-    <div class="kitchen-name">
-        {{ $kitchen->name ?? '-' }}
+<div class="section-card">
+
+    <div class="section-header">
+        <h3>بيانات المطبخ</h3>
     </div>
 
-    <div class="kitchen-info">
-        الهاتف:
-        {{ $kitchen->phone ?? '-' }}
-    </div>
+   <div class="stats-grid" style="grid-template-columns: repeat(4,minmax(0,1fr));">
+        <div class="stat-card">
+            <div class="stat-label">اسم المطبخ</div>
+            <div class="stat-value">{{ $kitchen->name ?? '-' }}</div>
+        </div>
 
-    <div class="kitchen-info">
-        المحافظة:
-        {{ $kitchen->government->name ?? '-' }}
-    </div>
+        <div class="stat-card">
+            <div class="stat-label">الهاتف</div>
+            <div class="stat-value">{{ $kitchen->phone ?? '-' }}</div>
+        </div>
 
-    <div class="kitchen-info">
-        المنطقة:
-        {{ $kitchen->area->name ?? '-' }}
+        <div class="stat-card">
+            <div class="stat-label">المحافظة</div>
+            <div class="stat-value">{{ $kitchen->government->name ?? '-' }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">المنطقة</div>
+            <div class="stat-value">{{ $kitchen->area->name ?? '-' }}</div>
+        </div>
     </div>
 
 </div>
 
 <div class="table-card">
 
+    <div class="table-header">
+        <div class="table-title">قائمة الوجبات</div>
+
+        <a href="{{ route('admin.kitchens.show', $kitchen->user_id) }}" class="back-btn">
+            رجوع
+        </a>
+    </div>
+
     <div class="table-wrapper">
 
         <table>
-
             <thead>
-            <tr>
-                <th>ID</th>
-                <th>الصورة</th>
-                <th>الاسم</th>
-                <th>الوصف</th>
-                <th>السعر</th>
-                <th>الكمية</th>
-                <th>الفئة</th>
-                <th>وقت التحضير</th>
-                <th>التوصيل اليوم</th>
-                <th>التوفر</th>
-                <th>الحالة</th>
-                <th>تاريخ الإنشاء</th>
-            </tr>
+                <tr>
+                    <th>ID</th>
+                    <th>الصورة</th>
+                    <th>الاسم</th>
+                    <th>الوصف</th>
+                    <th>السعر</th>
+                    <th>الكمية</th>
+                    <th>الفئة</th>
+                    <th>وقت التحضير</th>
+                    <th>التوصيل اليوم</th>
+                    <th>التوفر</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>الإجراءات</th>
+                </tr>
             </thead>
 
             <tbody>
+                @forelse($meals as $meal)
+                    <tr>
+                        <td>{{ $meal->id }}</td>
 
-            @forelse($meals as $meal)
+                        <td>
+                            @if($meal->image)
+                                <img
+                                    src="{{ asset('storage/' . $meal->image) }}"
+                                    alt="meal"
+                                    style="width:55px;height:55px;border-radius:12px;object-fit:cover;"
+                                >
+                            @else
+                                -
+                            @endif
+                        </td>
 
-                <tr>
+                        <td>{{ $meal->name ?? '-' }}</td>
 
-                    <td>{{ $meal->id }}</td>
+                        <td style="max-width:260px;white-space:normal;line-height:1.7;">
+                            {{ $meal->description ?? '-' }}
+                        </td>
 
-                    <td>
-                        @if($meal->image)
-                            <img
-                                src="{{ asset('storage/' . $meal->image) }}"
-                                class="meal-image"
-                            >
-                        @else
-                            -
-                        @endif
-                    </td>
+                        <td>{{ $meal->price ?? 0 }} ج.م</td>
 
-                    <td>{{ $meal->name ?? '-' }}</td>
+                        <td>{{ $meal->quantity ?? 0 }}</td>
 
-                    <td style="max-width:260px;white-space:normal">
-                        {{ $meal->description ?? '-' }}
-                    </td>
+                        <td>{{ $meal->category->name ?? '-' }}</td>
 
-                    <td>
-                        {{ $meal->price ?? 0 }}
-                        ج.م
-                    </td>
+                        <td>{{ $meal->preparation_time ?? '-' }}</td>
 
-                    <td>{{ $meal->quantity ?? 0 }}</td>
+                        <td>
+                            @if($meal->available_delivery_today)
+                                <span class="status-badge">متاح</span>
+                            @else
+                                <span class="status-badge" style="background:#fee2e2;color:#991b1b;">
+                                    غير متاح
+                                </span>
+                            @endif
+                        </td>
 
-                    <td>
-                        {{ $meal->category->name ?? '-' }}
-                    </td>
+                        <td>
+                            @if($meal->availability)
+                                <span class="status-badge">متوفر</span>
+                            @else
+                                <span class="status-badge" style="background:#fee2e2;color:#991b1b;">
+                                    غير متوفر
+                                </span>
+                            @endif
+                        </td>
 
-                    <td>
-                        {{ $meal->preparation_time ?? '-' }}
-                    </td>
+                        <td>
+                            @if($meal->approved === 'approved')
+                                <span class="status-badge">مقبول</span>
+                            @elseif($meal->approved === 'rejected')
+                                <span class="status-badge" style="background:#fee2e2;color:#991b1b;">
+                                    مرفوض
+                                </span>
+                            @else
+                                <span class="status-badge" style="background:#fef3c7;color:#92400e;">
+                                    قيد الانتظار
+                                </span>
+                            @endif
+                        </td>
 
-                    <td>
-                        @if($meal->available_delivery_today)
-                            <span class="badge badge-success">
-                                متاح
-                            </span>
-                        @else
-                            <span class="badge badge-danger">
-                                غير متاح
-                            </span>
-                        @endif
-                    </td>
+                        <td>{{ optional($meal->created_at)->format('Y-m-d H:i') }}</td>
 
-                    <td>
-                        @if($meal->availability)
-                            <span class="badge badge-success">
-                                متوفر
-                            </span>
-                        @else
-                            <span class="badge badge-danger">
-                                غير متوفر
-                            </span>
-                        @endif
-                    </td>
+                        <td>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 
-                    <td>
+                                <form method="POST" action="{{ route('admin.meals.approve', $meal->id) }}">
+                                    @csrf
+                                    <input type="hidden" name="approve" value="approved">
 
-                        @if($meal->approved === 'approved')
-                            <span class="badge badge-success">
-                                مقبول
-                            </span>
+                                    <button type="submit" class="add-btn">
+                                        قبول
+                                    </button>
+                                </form>
 
-                        @elseif($meal->approved === 'rejected')
-                            <span class="badge badge-danger">
-                                مرفوض
-                            </span>
+                                <form method="POST" action="{{ route('admin.meals.approve', $meal->id) }}">
+                                    @csrf
+                                    <input type="hidden" name="approve" value="rejected">
 
-                        @else
-                            <span class="badge badge-warning">
-                                {{ $meal->approved }}
-                            </span>
-                        @endif
+                                    <button type="submit" class="delete-btn">
+                                        رفض
+                                    </button>
+                                </form>
 
-                    </td>
+                                <form
+                                    method="POST"
+                                    action="{{ route('admin.meals.destroy', $meal->id) }}"
+                                    onsubmit="return confirm('هل أنت متأكد من حذف الوجبة؟')"
+                                >
+                                    @csrf
+                                    @method('DELETE')
 
-                    <td>
-                        {{ optional($meal->created_at)->format('Y-m-d H:i') }}
-                    </td>
+                                    <button type="submit" class="delete-btn" style="background:#7f1d1d;">
+                                        حذف
+                                    </button>
+                                </form>
 
-                </tr>
-
-            @empty
-
-                <tr>
-                    <td colspan="12" style="text-align:center;padding:30px">
-                        لا توجد وجبات
-                    </td>
-                </tr>
-
-            @endforelse
-
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="13" class="empty">
+                            لا توجد وجبات
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
-
         </table>
 
     </div>
 
 </div>
-
-<a
-    href="{{ route('admin.kitchens.show', $kitchen->user_id) }}"
-    class="btn btn-back"
->
-    رجوع
-</a>
 
 @endsection

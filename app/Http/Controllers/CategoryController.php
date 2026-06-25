@@ -18,33 +18,10 @@ class CategoryController extends Controller
     }
 
 
-    // public function store(Request $request)
-    // {
-
-    //     $validated = $request->validate([
-    //         'name' => 'required|string|max:255',
-    //     ]);
-
-    //     $category = Category::create([
-    //         'name' => $validated['name']
-    //     ]);
-
-    //     return response()->json([
-    //         'message' => 'category created successfully',
-    //         'category' => $category
-    //     ], 201);
-    // }
+  
 
 
-    // public function destroy(Request $request, Category $category)
-    // {
-
-    //     $category->delete();
-
-    //     return response()->json([
-    //         'message' => 'category deleted successfully',
-    //     ], 200);
-    // }
+   
 
 
 

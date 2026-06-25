@@ -45,9 +45,13 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>order id</th>
+                        {{-- <th>order id</th> --}}
                         <th>المحافظة</th>
                         <th>المنطقة</th>
+                        <th>الدليفري</th>
+                        <th>العميل</th>
+                        <th>المطبخ</th>
+                        <th>عنوان العميل</th>
                         <th>حالة الطلب</th>
                         <th>نوع المشكلة</th>
                         <th>التفاصيل</th>
@@ -64,15 +68,30 @@
 
                             <td>{{ $ticket->id }}</td>
 
-                            <td>{{ $ticket->order_id }}</td>
+                            {{-- <td>{{ $ticket->order_id }}</td> --}}
 
                             <td>{{ $ticket->area->government->name_ar ?? '-' }}</td>
 
                             <td>{{ $ticket->area->name_ar ?? '-' }}</td>
+                            <td>
+                                {{ $ticket->deliveryUser->name ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $ticket->order->user->name ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $ticket->order->kitchen->name ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $ticket->order->userAddress->full_address ?? '-' }}
+                            </td>
 
                             <td>{{ $ticket->order_status }}</td>
 
-                            <td>{{ $ticket->type }}</td>
+                           <td>{{ $ticket->issueType->name_ar ?? '-' }}</td>
 
                             <td>{{ $ticket->details }}</td>
 

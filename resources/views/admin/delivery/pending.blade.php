@@ -1,70 +1,108 @@
 @extends('admin.layouts.app')
 
+@section('title', 'طلبات الدليفري المعلقة')
+
 @section('content')
-<div class="container">
 
-    <h2 class="mb-4">Pending Delivery Users</h2>
+<div class="page-title">
+    طلبات الدليفري المعلقة
+</div>
 
-    <table class="table table-bordered text-center">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Type</th>
-                <th>Vehicle</th>
-                <th>Image</th>
-                <th>Action</th>
-            </tr>
-        </thead>
+<div class="table-card">
 
-        <tbody>
-            @foreach($deliveries as $delivery)
-                <tr id="row-{{ $delivery->id }}">
-                    <td>{{ $delivery->name }}</td>
-                    <td>{{ $delivery->email }}</td>
-                    <td>{{ $delivery->phone }}</td>
-                    <td>{{ $delivery->type }}</td>
+    <div class="table-header">
+        <div class="table-title">
+            الدليفري قيد الانتظار
+        </div>
+    </div>
 
-                    <td>
-                        @if($delivery->has_vehicle)
-                            {{ $delivery->vehicle_type }}
-                        @else
-                            No Vehicle
-                        @endif
-                    </td>
+    @if($deliveries->count())
 
-                    <td>
-                        @if($delivery->image)
-                            <img src="{{ asset('storage/' . $delivery->image) }}"
-                                 width="50" height="50" style="border-radius:50%">
-                        @endif
-                    </td>
+        <div class="table-wrapper">
 
-                    <td>
-                        <button class="btn btn-success btn-sm"
-                                onclick="updateStatus({{ $delivery->id }}, 'accept')">
-                            Accept
-                        </button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الهاتف</th>
+                        <th>النوع</th>
+                        <th>المركبة</th>
+                        <th>الصورة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
 
-                        <button class="btn btn-danger btn-sm"
-                                onclick="updateStatus({{ $delivery->id }}, 'reject')">
-                            Reject
-                        </button>
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+                <tbody>
+                    @foreach($deliveries as $delivery)
+                        <tr id="row-{{ $delivery->id }}">
+                            <td>{{ $delivery->name }}</td>
+                            <td>{{ $delivery->email }}</td>
+                            <td>{{ $delivery->phone }}</td>
+                            <td>{{ $delivery->type }}</td>
+
+                            <td>
+                                @if($delivery->has_vehicle)
+                                    {{ $delivery->vehicle_type }}
+                                @else
+                                    لا توجد مركبة
+                                @endif
+                            </td>
+
+                            <td>
+                                @if($delivery->image)
+                                    <img
+                                        src="{{ asset('storage/' . $delivery->image) }}"
+                                        width="50"
+                                        height="50"
+                                        style="border-radius:50%; object-fit:cover;"
+                                    >
+                                @else
+                                    -
+                                @endif
+                            </td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="save-btn"
+                                    onclick="updateStatus({{ $delivery->id }}, 'accept')"
+                                >
+                                    قبول
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="delete-btn"
+                                    onclick="updateStatus({{ $delivery->id }}, 'reject')"
+                                >
+                                    رفض
+                                </button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+        </div>
+
+    @else
+
+        <div class="empty">
+            لا توجد طلبات دليفري معلقة
+        </div>
+
+    @endif
 
 </div>
+
 @endsection
 
+@push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
 function updateStatus(id, action) {
-
     let url = '/admin/delivery/' + id + '/' + action;
 
     $.ajax({
@@ -80,8 +118,9 @@ function updateStatus(id, action) {
             }
         },
         error: function() {
-            alert('Something went wrong');
+            alert('حدث خطأ، حاول مرة أخرى');
         }
     });
 }
 </script>
+@endpush
