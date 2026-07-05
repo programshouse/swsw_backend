@@ -27,34 +27,37 @@ class DeliveryController extends Controller
         );
     }
 
-   public function accept($id)
-{
-    $delivery = DeliveryUser::findOrFail($id);
+    public function accept($id)
+    {
+        $delivery = DeliveryUser::findOrFail($id);
 
-    if ($delivery->status !== 'pending') {
+        if ($delivery->status !== 'pending') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Already processed'
+            ], 400);
+        }
+
+        do {
+            $shiftCode = random_int(1000, 9999);
+            $referralCode = random_int(1000, 9999);
+        } while (
+            DeliveryUser::where('shift_code', $shiftCode)->exists() ||
+            DeliveryUser::where('referral_code', $referralCode)->exists()
+        );
+
+        $delivery->update([
+            'status' => 'approved',
+            'shift_code' => $shiftCode,
+            'referral_code' => $referralCode,
+        ]);
+
         return response()->json([
-            'status' => false,
-            'message' => 'Already processed'
-        ], 400);
+            'status' => true,
+            'message' => 'Delivery approved successfully',
+            'data' => $delivery
+        ]);
     }
-
-    do {
-        $shiftCode = random_int(1000, 9999);
-    } while (
-        DeliveryUser::where('shift_code', $shiftCode)->exists()
-    );
-
-    $delivery->update([
-        'status' => 'approved',
-        'shift_code' => $shiftCode,
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Delivery approved successfully',
-        'data' => $delivery
-    ]);
-}
 
     public function reject($id)
     {
@@ -157,57 +160,57 @@ class DeliveryController extends Controller
             ->with('success', $message);
     }
 
-   public function addPoint(Request $request, string $id)
-{
-    $data = $request->validate([
-        'points' => 'required|integer|min:1',
-        'notes' => 'nullable|string',
-    ]);
+    public function addPoint(Request $request, string $id)
+    {
+        $data = $request->validate([
+            'points' => 'required|integer|min:1',
+            'notes' => 'nullable|string',
+        ]);
 
-    $delivery = DeliveryUser::findOrFail($id);
+        $delivery = DeliveryUser::findOrFail($id);
 
-    $delivery->pointTransactions()->create([
-        'source' => 'admin_add',
-        'points' => $data['points'],
-        'notes' => $data['notes'] ?? null,
-    ]);
+        $delivery->pointTransactions()->create([
+            'source' => 'admin_add',
+            'points' => $data['points'],
+            'notes' => $data['notes'] ?? null,
+        ]);
 
-    return redirect()
-        ->route('admin.delivery.approved')
-        ->with('success', 'points added successfully');
-}
-
-
+        return redirect()
+            ->route('admin.delivery.approved')
+            ->with('success', 'points added successfully');
+    }
 
 
 
 
 
-   public function ordersIndex()
-{
-    $orders = DeliveryOrder::with([
-        'delivery',
-        'order.user',
-        'order.kitchen',
-    ])
-        ->latest()
-        ->get();
 
-    $points = Point::latest()->get();
 
-    return view('admin.delivery.orders', compact('orders', 'points'));
-}
+    public function ordersIndex()
+    {
+        $orders = DeliveryOrder::with([
+            'delivery',
+            'order.user',
+            'order.kitchen',
+        ])
+            ->latest()
+            ->get();
 
-public function addOrderPoints(Request $request)
-{
-    $validated = $request->validate([
-        'delivery_user_id' => 'required|exists:delivery_users,id',
-        'order_id' => 'required|exists:orders,id',
-        'point_id' => 'required|exists:points,id',
-    ]);
+        $points = Point::latest()->get();
 
-    DeliveryPoint::create($validated);
+        return view('admin.delivery.orders', compact('orders', 'points'));
+    }
 
-    return back()->with('success', 'تم إضافة النقاط للدليفري بنجاح');
-}
+    public function addOrderPoints(Request $request)
+    {
+        $validated = $request->validate([
+            'delivery_user_id' => 'required|exists:delivery_users,id',
+            'order_id' => 'required|exists:orders,id',
+            'point_id' => 'required|exists:points,id',
+        ]);
+
+        DeliveryPoint::create($validated);
+
+        return back()->with('success', 'تم إضافة النقاط للدليفري بنجاح');
+    }
 }
