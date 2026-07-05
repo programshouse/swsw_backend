@@ -16,7 +16,9 @@ class UserAddress extends Model
         'full_address',
         'location_link',
         'phone' ,
-        'is_default'
+        'is_default',
+        'lng',
+        'lat',
     ];
 
     protected $table = 'user_address';

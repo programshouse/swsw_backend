@@ -209,9 +209,9 @@
 
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            {{-- <th>ID</th> --}}
                             <th>اسم المحافظة</th>
-                            <th>تاريخ الإنشاء</th>
+                            {{-- <th>تاريخ الإنشاء</th> --}}
                             <th>الحالة</th>
                             <th>الإجراءات</th>
                         </tr>
@@ -222,13 +222,13 @@
                         @foreach ($governments as $government)
                             <tr>
 
-                                <td>{{ $government->id }}</td>
+                                {{-- <td>{{ $government->id }}</td> --}}
 
                                 <td>{{ $government->name }}</td>
 
-                                <td>
+                                {{-- <td>
                                     {{ optional($government->created_at)->format('Y-m-d H:i') }}
-                                </td>
+                                </td> --}}
 
                                 <td>
 

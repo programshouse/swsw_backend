@@ -8,66 +8,53 @@ use App\Models\Area;
 use Illuminate\Http\Request;
 use App\Http\Resources\CaruselResource;
 use Illuminate\Support\Facades\Storage;
+use App\Models\User;
 
 class CaruselController extends Controller
 {
 
-  public function index(Request $request)
-{
-    $user = $request->user();
-
-    $carusels = Carusel::where('area_id', $user->area_id)
-        ->orWhereNull('area_id')
-        ->get();
-
-    return response()->json([
-        'carusel' => CaruselResource::collection($carusels),
-    ], 200);
-}
-
-    // public function store(Request $request) {
-    //     $validated = $request->validate([
-    //         'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-    //     ]);
-
-    //     $logo_path = $request->file('image')->store('carusel', 'public');
-
-    //     $carusel = Carusel::create([
-    //         'image' => $logo_path,
-    //     ]);
-
-    //     return response()->json([
-    //         'message' => 'Carusel created successfully',
-    //     ], 201);
-    // }
-
-    // public function destroy(Request $request, Carusel $carusel) {
-    //     $carusel->delete();
-    //     return response()->json([
-    //         'message' => 'Carusel deleted successfully',
-    //     ], 200);
-    // }
-
-    public function GetAll(Request $request)
+    public function index(Request $request)
     {
-        $carusels = Carusel::with('area')->latest()->get();
+        $user = $request->user();
+
+        $carusels = Carusel::where('area_id', $user->area_id)
+            ->orWhereNull('area_id')
+            ->get();
+
+        return response()->json([
+            'carusel' => CaruselResource::collection($carusels),
+        ], 200);
+    }
+
+    
+
+  public function GetAll(Request $request)
+    {
+        $carusels = Carusel::with(['area', 'kitchen'])->latest()->get();
+
         $areas = Area::latest()->get();
 
-        return view('admin.sliders.index', compact('carusels', 'areas'));
+        $kitchens = User::where('role', 'kitchen')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.sliders.index', compact('carusels', 'areas', 'kitchens'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-              'area_id' => 'nullable|exists:areas,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'kitchen_id' => 'nullable|exists:users,id',
         ]);
 
         $imagePath = $request->file('image')->store('carusel', 'public');
 
         Carusel::create([
             'image' => $imagePath,
-             'area_id' => $request->area_id,
+            'area_id' => $validated['area_id'] ?? null,
+            'kitchen_id' => $validated['kitchen_id'] ?? null,
         ]);
 
         return redirect()

@@ -36,10 +36,11 @@
 
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        {{-- <th>ID</th> --}}
                         <th>المحافظة</th>
                         <th>المنطقة</th>
-                        <th>تاريخ الإنشاء</th>
+                        <th>الحالة</th>
+                        {{-- <th>تاريخ الإنشاء</th> --}}
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
@@ -49,32 +50,54 @@
                     @foreach ($areas as $area)
                         <tr>
 
-                            <td>{{ $area->id }}</td>
+                            {{-- <td>{{ $area->id }}</td> --}}
 
                             <td>{{ $area->government->name_ar ?? '-' }}</td>
 
                             <td>{{ $area->name_ar }}</td>
 
 
-                            <td>
+                            {{-- <td>
                                 {{ optional($area->created_at)->format('Y-m-d') }}
-                            </td>
+                            </td> --}}
 
                             <td>
+    @if($area->is_active)
+        <span style="background:#dcfce7;color:#166534;padding:6px 12px;border-radius:999px;font-weight:700;">
+            نشطة
+        </span>
+    @else
+        <span style="background:#fee2e2;color:#991b1b;padding:6px 12px;border-radius:999px;font-weight:700;">
+            معطلة
+        </span>
+    @endif
+</td>
 
-                                <form action="{{ route('admin.areas.destroy', $area->id) }}" method="POST"
-                                    onsubmit="return confirm('هل أنت متأكد؟')">
+<td>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <form action="{{ route('admin.areas.toggle-status', $area->id) }}" method="POST">
+            @csrf
 
-                                    @csrf
-                                    @method('DELETE')
+            <button type="submit"
+                    class="save-btn"
+                    style="background: {{ $area->is_active ? '#f59e0b' : '#16a34a' }};">
+                {{ $area->is_active ? 'تعطيل' : 'تفعيل' }}
+            </button>
+        </form>
 
-                                    <button class="delete-btn">
-                                        حذف
-                                    </button>
+        <form action="{{ route('admin.areas.destroy', $area->id) }}"
+              method="POST"
+              onsubmit="return confirm('هل أنت متأكد؟')">
+            @csrf
+            @method('DELETE')
 
-                                </form>
-
-                            </td>
+            <button class="delete-btn">
+                حذف
+            </button>
+        </form>
+    </div>
+</td>
+                           
 
                         </tr>
                     @endforeach

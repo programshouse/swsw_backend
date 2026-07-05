@@ -2,7 +2,7 @@
 
 @section('content')
 
-<div class="page-title">Create Rate</div>
+<div class="page-title"></div>
 
 <div class="table-card">
 

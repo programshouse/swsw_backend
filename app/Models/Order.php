@@ -75,4 +75,6 @@ class Order extends Model
     {
         return $this->hasOne(Ticket::class);
     }
+
+   
 }

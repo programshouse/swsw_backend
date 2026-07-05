@@ -86,4 +86,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(Wallet::class, 'owner_id');
     }
+
+    public function pointTransactions()
+{
+    return $this->morphMany(PointTransaction::class, 'owner');
+}
+
+public function getTotalPointsAttribute()
+{
+    return $this->pointTransactions()->sum('points');
+}
 }

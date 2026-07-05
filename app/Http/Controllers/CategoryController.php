@@ -7,15 +7,19 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index()
-    {
+   public function index()
+{
+    $categories = Category::get()->map(function ($category) {
+        return [
+            'id' => $category->id,
+            'name' => $category->name,
+        ];
+    });
 
-        $category = Category::get();
-
-        return response()->json([
-            'categories' => $category
-        ], 201);
-    }
+    return response()->json([
+        'categories' => $categories,
+    ], 200);
+}
 
 
   
@@ -35,11 +39,13 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+            'name_ar' => 'required|string|max:255',
         ]);
 
         Category::create([
-            'name' => $validated['name']
+            'name_en' => $validated['name_en'],
+            'name_ar' => $validated['name_ar']
         ]);
 
         return redirect()

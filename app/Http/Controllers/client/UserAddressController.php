@@ -11,9 +11,39 @@ class UserAddressController extends Controller
 {
 
     // get all client address
-   public function index(Request $request)
+public function index(Request $request)
 {
-    dd(auth('api_user')->user(), $request->bearerToken());
+    $user = $request->user();
+
+    $addresses = UserAddress::with(['government', 'area'])
+        ->where('user_id', $user->id)
+        ->latest()
+        ->get()
+        ->map(function ($address) {
+            return [
+                'user-id' =>$address->user_id,
+                'id' => $address->id,
+                'government' => [
+                    'id' => $address->government?->id,
+                    'name' => $address->government?->name,
+                ],
+                'area' => [
+                    'id' => $address->area?->id,
+                    'name' => $address->area?->name,
+                ],
+                
+                'full_address' => $address->full_address,
+                'location_link' => $address->location_link,
+                'phone' => $address->phone,
+                'is_default' => (bool) $address->is_default,
+                'created_at' => $address->created_at,
+            ];
+        });
+
+    return response()->json([
+        'status' => true,
+        'addresses' => $addresses,
+    ], 200);
 }
 
 
@@ -26,7 +56,9 @@ class UserAddressController extends Controller
             'area_id' => 'required|exists:areas,id',
             'full_address' => 'required|string',
             'location_link' => 'nullable|string',
-            'phone' => 'required|string|max:11'
+            'phone' => 'required|string|max:11',
+             'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
         ]);
 
         $validated['user_id'] = $request->user()->id;

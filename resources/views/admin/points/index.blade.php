@@ -1,11 +1,11 @@
 @extends('admin.layouts.app')
 
-@section('title', 'الطلبات')
+@section('title', 'النقاط')
 
 @section('content')
 
     <div class="page-title">
-        الطلبات
+        النقاط
     </div>
 
     @if (session('success'))

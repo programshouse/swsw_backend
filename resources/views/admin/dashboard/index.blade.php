@@ -186,7 +186,7 @@
     </div>
 @endforeach
 
-<div class="dashboard-charts-grid">
+{{-- <div class="dashboard-charts-grid">
 
     <div class="dashboard-chart-card">
         <div class="dashboard-chart-header">
@@ -210,7 +210,7 @@
         <canvas id="revenueChart" height="130"></canvas>
     </div>
 
-</div>
+</div> --}}
 
 @endsection
 

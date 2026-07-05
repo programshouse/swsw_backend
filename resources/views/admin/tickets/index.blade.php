@@ -44,7 +44,7 @@
 
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        {{-- <th>ID</th> --}}
                         {{-- <th>order id</th> --}}
                         <th>المحافظة</th>
                         <th>المنطقة</th>
@@ -55,7 +55,7 @@
                         <th>حالة الطلب</th>
                         <th>نوع المشكلة</th>
                         <th>التفاصيل</th>
-                        <th>الصور</th>
+                        {{-- <th>الصور</th> --}}
                         <th>تاريخ الإنشاء</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -66,7 +66,7 @@
                     @foreach ($tickets as $ticket)
                         <tr>
 
-                            <td>{{ $ticket->id }}</td>
+                            {{-- <td>{{ $ticket->id }}</td> --}}
 
                             {{-- <td>{{ $ticket->order_id }}</td> --}}
 
@@ -96,12 +96,12 @@
                             <td>{{ $ticket->details }}</td>
 
 
-                            <td>
+                            {{-- <td>
                                 @if ($ticket->image)
                                     <img src="{{ asset('storage/' . $ticket->image) }}" width="50" height="50"
                                         style="border-radius:50%">
                                 @endif
-                            </td>
+                            </td> --}}
 
                             <td>
                                 {{ optional($ticket->created_at)->format('Y-m-d') }}

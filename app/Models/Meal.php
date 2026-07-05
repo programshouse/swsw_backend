@@ -30,5 +30,28 @@ class Meal extends Model
         return $this->belongsTo(Category::class );
     }
 
+    public function offer()
+{
+    return $this->hasOne(MealOffer::class)
+        ->where('status', 1)
+        ->where(function ($q) {
+            $q->whereNull('start_date')
+              ->orWhereDate('start_date', '<=', now());
+        })
+        ->where(function ($q) {
+            $q->whereNull('end_date')
+              ->orWhereDate('end_date', '>=', now());
+        });
+}
 
+public function getFinalPriceAttribute()
+{
+    $offer = $this->offer;
+
+    if (!$offer) {
+        return $this->price;
+    }
+
+    return round($this->price - (($this->price * $offer->percentage) / 100), 2);
+}
 }

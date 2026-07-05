@@ -12,6 +12,10 @@
             margin-bottom: 18px;
             flex-wrap: wrap;
         }
+        .btn-rate {
+    background: #7c3aed;
+    color: #fff;
+}
 
         .search-input {
             flex: 1;
@@ -268,6 +272,14 @@
                                             {{ $kitchenUser->status === 'active' ? 'تعطيل الحساب' : 'تفعيل الحساب' }}
                                         </button>
                                     </form>
+
+                                   <a href="{{ route('admin.kitchens.rate', $kitchenUser->id) }}" class="btn btn-rate">
+    إضافة تقييم
+</a>
+
+<a href="{{ route('admin.kitchens.rates', $kitchenUser->id) }}" class="btn btn-rate">
+    التقييمات
+</a>
                                 </div>
                             </td>
                         </tr>

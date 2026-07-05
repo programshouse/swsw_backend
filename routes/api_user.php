@@ -20,11 +20,14 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\DashboardInsightsController;
 use App\Http\Controllers\EmailOtpPasswordController;
 use App\Http\Controllers\SettingsApiController;
+use App\Http\Controllers\OfferController;
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\EnsureGovernrateArea;
 use App\Http\Controllers\Delivery\AuthController;
-use App\Http\Controllers\Delivery\ShiftController;
+use App\Http\Controllers\Delivery\RateStoreController;
+use App\Http\Controllers\AppPageApiController;
 
+Route::get('/app-pages/{appType}/{pageType}', [AppPageApiController::class, 'show']);
 // Public authentication routes
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
@@ -45,22 +48,29 @@ Route::get('/categories', [CategoryController::class, 'index']);
 
 
 // government
-Route::get('/governments', [GovernmentController::class, 'index']);
+Route::get('/governments', [GovernmentController::class, 'appIndex']);
 
-// 
-Route::get('/areas', [AreaController::class, 'index']);
-// 
+Route::get('/areas', [AreaController::class, 'appIndex']);
+
 Route::get('/workdays', [WorkingDayController::class, 'index']);
-// 
 
 
 
+ 
 
 
 
 Route::middleware('auth:api_user')->group(function () {
 
   Route::patch('/update-location', [UserController::class, 'update_location']);
+    Route::get('/rates', [RateController::class, 'getRates']);
+    Route::post('/kitchen-rate/{order}', [RateController::class, 'kitchenRate']);
+    Route::post('/user-rate/{order}', [RateController::class, 'userRate']);
+    Route::get('/{kitchen}/rates', [RateController::class, 'kitchenRates']);
+  Route::get('/offers', [OfferController::class, 'kitchenOffers']);
+
+  Route::patch('/meals/{meal}/quantity', [MealController::class, 'updateQuantity']);
+
 
   Route::middleware(EnsureGovernrateArea::class)->group(function () {
     // kitchen
@@ -113,8 +123,17 @@ Route::middleware('auth:api_user')->group(function () {
     Route::get('/my-debit-requests', [WalletController::class, 'my_debit_requests']);
 
 
+    ///done
+
+    
+
+        
+
+         Route::get('/kitchens/{kitchen}/rates', [RateController::class, 'kitchenRates']);
+
+
+
     // rates
-    Route::post('/rate-kitchen', [RateController::class, 'rate_kitchen']);
   });
 
   Route::middleware(['auth:web', 'admin'])->group(function () {
@@ -146,6 +165,3 @@ Route::middleware('auth:api_user')->group(function () {
     // Route::get('/all-meals', [MealController::class, 'allMeals']);
   });
 });
-
-
-

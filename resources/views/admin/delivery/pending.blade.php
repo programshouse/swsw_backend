@@ -28,7 +28,7 @@
                         <th>الهاتف</th>
                         <th>النوع</th>
                         <th>المركبة</th>
-                        <th>الصورة</th>
+                        {{-- <th>الصورة</th> --}}
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
@@ -49,7 +49,7 @@
                                 @endif
                             </td>
 
-                            <td>
+                            {{-- <td>
                                 @if($delivery->image)
                                     <img
                                         src="{{ asset('storage/' . $delivery->image) }}"
@@ -60,7 +60,7 @@
                                 @else
                                     -
                                 @endif
-                            </td>
+                            </td> --}}
 
                             <td>
                                 <button

@@ -2,12 +2,12 @@
 
 @section('content')
 
-<div class="page-title">Edit Rate</div>
+<div class="page-title">تعديل التقييم</div>
 
 <div class="table-card">
 
     <div class="table-header">
-        <div class="table-title">Update Rate</div>
+        <div class="table-title">تعديل بيانات التقييم</div>
     </div>
 
     <div class="table-wrapper">
@@ -18,39 +18,53 @@
 
             @csrf
 
-            {{-- Name --}}
+            {{-- الاسم بالعربي --}}
             <div class="form-group">
-                <label class="form-label">Name</label>
+                <label class="form-label">الاسم بالعربي</label>
 
                 <input type="text"
-                       name="name"
+                       name="name_ar"
                        class="form-input"
-                       value="{{ old('name', $rate->name) }}">
+                       value="{{ old('name_ar', $rate->name_ar) }}">
 
-                @error('name')
+                @error('name_ar')
                     <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Type --}}
+            {{-- الاسم بالإنجليزي --}}
             <div class="form-group">
-                <label class="form-label">Type</label>
+                <label class="form-label">الاسم بالإنجليزي</label>
+
+                <input type="text"
+                       name="name_en"
+                       class="form-input"
+                       value="{{ old('name_en', $rate->name_en) }}">
+
+                @error('name_en')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- الشخص المُقيَّم --}}
+            <div class="form-group">
+                <label class="form-label">تقييم مين؟</label>
 
                 <select name="type" class="form-input">
 
-                    <option value="kitchen"
-                        {{ $rate->type == 'kitchen' ? 'selected' : '' }}>
-                        Kitchen
+                    <option value="client"
+                        {{ old('type', $rate->type) == 'client' ? 'selected' : '' }}>
+                        العميل
                     </option>
 
-                    <option value="client"
-                        {{ $rate->type == 'client' ? 'selected' : '' }}>
-                        Client
+                    <option value="kitchen"
+                        {{ old('type', $rate->type) == 'kitchen' ? 'selected' : '' }}>
+                        المطبخ
                     </option>
 
                     <option value="delivery"
-                        {{ $rate->type == 'delivery' ? 'selected' : '' }}>
-                        Delivery
+                        {{ old('type', $rate->type) == 'delivery' ? 'selected' : '' }}>
+                        الدليفري
                     </option>
 
                 </select>
@@ -60,13 +74,43 @@
                 @enderror
             </div>
 
-            {{-- Max Score --}}
+            {{-- المقيِّم --}}
             <div class="form-group">
-                <label class="form-label">Max Score</label>
+                <label class="form-label">السؤال موجه لمين؟</label>
+
+                <select name="target_type" class="form-input">
+
+                    <option value="client"
+                        {{ old('target_type', $rate->target_type) == 'client' ? 'selected' : '' }}>
+                        العميل
+                    </option>
+
+                    <option value="kitchen"
+                        {{ old('target_type', $rate->target_type) == 'kitchen' ? 'selected' : '' }}>
+                        المطبخ
+                    </option>
+
+                    <option value="delivery"
+                        {{ old('target_type', $rate->target_type) == 'delivery' ? 'selected' : '' }}>
+                        الدليفري
+                    </option>
+
+                </select>
+
+                @error('target_type')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- أقصى تقييم --}}
+            <div class="form-group">
+                <label class="form-label">أقصى تقييم</label>
 
                 <input type="number"
                        name="max_score"
                        class="form-input"
+                       min="1"
+                       max="5"
                        value="{{ old('max_score', $rate->max_score) }}">
 
                 @error('max_score')
@@ -78,11 +122,11 @@
             <div class="form-actions">
 
                 <a href="{{ route('admin.rates.index') }}" class="cancel-btn">
-                    Cancel
+                    إلغاء
                 </a>
 
                 <button type="submit" class="save-btn">
-                    Save Changes
+                    حفظ التعديلات
                 </button>
 
             </div>

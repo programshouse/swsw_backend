@@ -89,99 +89,119 @@ class OrderController extends Controller
 
 
     public function updateStatus(Request $request, Order $order)
-    {
-        $delivery = $request->user();
+{
+    $delivery = $request->user();
 
-        $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
-            ->where('delivery_user_id', $delivery->id)
-            ->first();
+    $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
+        ->where('delivery_user_id', $delivery->id)
+        ->first();
 
-        if (!$deliveryOrder) {
-            $delivery->orders()->attach($order->id, [
-                'status' => 'accepted',
-                'cash_settled' => false,
-            ]);
+    if (!$deliveryOrder) {
 
-            $order->update([
-                'status' => 'accepted_by_delivery',
-            ]);
-
+        if ($order->status !== 'ready_to_deliver') {
             return response()->json([
-                'status' => true,
-                'message' => 'order accepted',
-                'delivery_order_status' => 'accepted'
-            ]);
+                'status' => false,
+                'message' => 'Order is not ready to deliver',
+                'order_status' => $order->status,
+            ], 400);
         }
 
-        if ($deliveryOrder->status === 'accepted') {
-            $delivery->orders()->updateExistingPivot($order->id, [
-                'status' => 'picked_up'
-            ]);
+        $delivery->orders()->attach($order->id, [
+            'status' => 'accepted',
+            'cash_settled' => false,
+        ]);
 
-            $order->update([
-                'status' => 'received_by_delivery',
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'order picked up',
-            ]);
-        }
-
-        if ($deliveryOrder->status === 'picked_up') {
-            $delivery->orders()->updateExistingPivot($order->id, [
-                'status' => 'on_the_way'
-            ]);
-
-            $order->update([
-                'status' => 'on_the_way',
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'order on the way',
-            ]);
-        }
-
-        if ($deliveryOrder->status === 'on_the_way') {
-            $delivery->orders()->updateExistingPivot($order->id, [
-                'status' => 'delivered'
-            ]);
-
-            $order->update([
-                'status' => 'delivered',
-                'receive_date' => now()->toDateString(),
-                'receive_time' => now()->toTimeString(),
-            ]);
-
-            $orderHistory = OrderHistory::where('order_id', $order->id)->first();
-
-            if (!$orderHistory) {
-                OrderHistory::create([
-                    'order_id' => $order->id,
-                    'status' => 'delivered'
-                ]);
-            } else {
-                $orderHistory->update([
-                    'status' => 'delivered'
-                ]);
-            }
-
-            $cashInfo = $this->getDeliveryCashInfo($delivery);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'order delivered',
-                'cash_filter' => $cashInfo,
-            ]);
-        }
+        $order->update([
+            'status' => 'accepted_by_delivery',
+        ]);
 
         return response()->json([
-            'status' => false,
-            'message' => 'order already completed',
-            'delivery_order_status' => $deliveryOrder->status
+            'status' => true,
+            'message' => 'Order accepted by delivery',
+            'delivery_order_status' => 'accepted',
+            'order_status' => 'accepted_by_delivery',
         ]);
     }
+
+    if ($deliveryOrder->status === 'accepted') {
+
+        if ($order->status !== 'accepted_by_delivery') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid order status',
+                'order_status' => $order->status,
+            ], 400);
+        }
+
+        $delivery->orders()->updateExistingPivot($order->id, [
+            'status' => 'picked_up'
+        ]);
+
+        $order->update([
+            'status' => 'received_by_delivery',
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Order picked up',
+            'delivery_order_status' => 'picked_up',
+            'order_status' => 'received_by_delivery',
+        ]);
+    }
+
+    if ($deliveryOrder->status === 'picked_up') {
+
+        $delivery->orders()->updateExistingPivot($order->id, [
+            'status' => 'on_the_way'
+        ]);
+
+        $order->update([
+            'status' => 'on_the_way',
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Order on the way',
+            'delivery_order_status' => 'on_the_way',
+            'order_status' => 'on_the_way',
+        ]);
+    }
+
+    if ($deliveryOrder->status === 'on_the_way') {
+
+        $delivery->orders()->updateExistingPivot($order->id, [
+            'status' => 'delivered'
+        ]);
+
+        $order->update([
+            'status' => 'delivered',
+            'delivered_at' => now(),
+            'receive_date' => now()->toDateString(),
+            'receive_time' => now()->toTimeString(),
+        ]);
+
+        OrderHistory::updateOrCreate(
+            ['order_id' => $order->id],
+            ['status' => 'delivered']
+        );
+
+        $cashInfo = $this->getDeliveryCashInfo($delivery);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Order delivered',
+            'delivery_order_status' => 'delivered',
+            'order_status' => 'delivered',
+            'cash_filter' => $cashInfo,
+        ]);
+    }
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Order already completed',
+        'delivery_order_status' => $deliveryOrder->status
+    ], 400);
+}
 
 
 

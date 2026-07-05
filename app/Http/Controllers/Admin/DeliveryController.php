@@ -7,8 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\DeliveryUser;
 use App\Models\Level;
 use App\Models\Point;
+use App\Models\DeliveryPoint;
+use App\Models\DeliveryOrder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
+
 
 class DeliveryController extends Controller
 {
@@ -24,27 +27,34 @@ class DeliveryController extends Controller
         );
     }
 
-    public function accept($id)
-    {
-        $delivery = DeliveryUser::findOrFail($id);
+   public function accept($id)
+{
+    $delivery = DeliveryUser::findOrFail($id);
 
-        if ($delivery->status !== 'pending') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Already processed'
-            ], 400);
-        }
-
-        $delivery->update([
-            'status' => 'approved'
-        ]);
-
+    if ($delivery->status !== 'pending') {
         return response()->json([
-            'status' => true,
-            'message' => 'Delivery approved successfully',
-            'data' => $delivery
-        ]);
+            'status' => false,
+            'message' => 'Already processed'
+        ], 400);
     }
+
+    do {
+        $shiftCode = random_int(1000, 9999);
+    } while (
+        DeliveryUser::where('shift_code', $shiftCode)->exists()
+    );
+
+    $delivery->update([
+        'status' => 'approved',
+        'shift_code' => $shiftCode,
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Delivery approved successfully',
+        'data' => $delivery
+    ]);
+}
 
     public function reject($id)
     {
@@ -81,7 +91,7 @@ class DeliveryController extends Controller
 
         return view(
             'admin.delivery.approved',
-            compact('deliveries', 'levels', 'points','this_month')
+            compact('deliveries', 'levels', 'points', 'this_month')
         );
     }
 
@@ -147,16 +157,57 @@ class DeliveryController extends Controller
             ->with('success', $message);
     }
 
-    public function addPoint(Request $request, string $id)
-    {
-        $delivery = DeliveryUser::findOrFail($id);
+   public function addPoint(Request $request, string $id)
+{
+    $data = $request->validate([
+        'points' => 'required|integer|min:1',
+        'notes' => 'nullable|string',
+    ]);
 
-        $delivery->points()->attach($request->point_id, [
-            'created_at' => now(),
-        ]);
+    $delivery = DeliveryUser::findOrFail($id);
 
-        return redirect()
-            ->route('admin.delivery.approved')
-            ->with('success', 'points added successfully');
-    }
+    $delivery->pointTransactions()->create([
+        'source' => 'admin_add',
+        'points' => $data['points'],
+        'notes' => $data['notes'] ?? null,
+    ]);
+
+    return redirect()
+        ->route('admin.delivery.approved')
+        ->with('success', 'points added successfully');
+}
+
+
+
+
+
+
+
+   public function ordersIndex()
+{
+    $orders = DeliveryOrder::with([
+        'delivery',
+        'order.user',
+        'order.kitchen',
+    ])
+        ->latest()
+        ->get();
+
+    $points = Point::latest()->get();
+
+    return view('admin.delivery.orders', compact('orders', 'points'));
+}
+
+public function addOrderPoints(Request $request)
+{
+    $validated = $request->validate([
+        'delivery_user_id' => 'required|exists:delivery_users,id',
+        'order_id' => 'required|exists:orders,id',
+        'point_id' => 'required|exists:points,id',
+    ]);
+
+    DeliveryPoint::create($validated);
+
+    return back()->with('success', 'تم إضافة النقاط للدليفري بنجاح');
+}
 }

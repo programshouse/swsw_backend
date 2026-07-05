@@ -10,6 +10,7 @@ use App\Http\Controllers\Delivery\TicketController;
 use App\Http\Controllers\Delivery\VehicleController;
 use App\Http\Controllers\Delivery\EmailOtpPasswordController;
 use App\Http\Controllers\Delivery\OfferController;
+use App\Http\Controllers\Delivery\PointController;
 use App\Http\Controllers\orders\OrderHistoryController;
 use App\Http\Middleware\EnsureDeliveryWorking;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,7 @@ Route::prefix('delivery')->group(function () {
         Route::post('/start-Shift', [ShiftController::class, 'startShift'])->middleware(EnsureDeliveryWorking::class);
         // end shift
         Route::post('/end-Shift', [ShiftController::class, 'endShift']);
+         Route::post('/update-location', [ShiftController::class, 'updateLocation']);
         Route::get('/break-status', [OrderController::class, 'breakStatus']);
         Route::get(
             '/issue-types',
@@ -81,6 +83,19 @@ Route::prefix('delivery')->group(function () {
             Route::post('/{order}/reject', [OrderController::class, 'reject'])->middleware(EnsureDeliveryWorking::class);
             Route::post('/orders/{order}/no-response', [OrderController::class, 'noResponse']);
             Route::post('{order}/transfer', [OrderController::class, 'transfer']);
+
+
+             
         });
+
+         Route::get('/my-rewards', [RateStoreController::class, 'myRewards']);
+         Route::post('/rates', [RateStoreController::class, 'storeRates']);
+         Route::get('/rates', [RateStoreController::class, 'getRates']);
+
+         Route::get('/points', [PointController::class, 'index']);
+
+
+
+         
     });
 });

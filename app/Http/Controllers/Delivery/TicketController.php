@@ -41,7 +41,7 @@ class TicketController extends Controller
 {
     $request->validate([
         'order_status' => 'required|string',
-        'issue_type_id' => 'required|exists:issue_types,id',
+        'issue_type_id' => 'nullable|exists:issue_types,id',
         'details' => 'required|string|max:1000',
         'image' => 'nullable|image|mimes:png,jpeg,jpg|max:2048',
     ]);
@@ -75,7 +75,7 @@ class TicketController extends Controller
         'area_id' => $delivery->area_id,
         'order_id' => $order->id,
         'order_status' => $request->order_status,
-        'issue_type_id' => $request->issue_type_id,
+        'issue_type_id' => $request->issue_type_id ??null,
         'details' => $request->details,
         'image' => $imagePath,
     ]);

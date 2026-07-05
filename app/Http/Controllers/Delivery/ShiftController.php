@@ -24,6 +24,7 @@ class ShiftController extends Controller
         $request->validate([
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
+            'code'=>'nullable|int',
         ]);
 
         $delivery = $request->user();
@@ -102,4 +103,38 @@ class ShiftController extends Controller
             'data' => $shift->fresh()
         ]);
     }
+
+
+    public function updateLocation(Request $request)
+{
+    $request->validate([
+        'lat' => 'required|numeric',
+        'lng' => 'required|numeric',
+    ]);
+
+    $delivery = $request->user();
+
+    $delivery->update([
+        'current_lat' => $request->lat,
+        'current_lng' => $request->lng,
+        'last_location_at' => now(),
+    ]);
+
+    $activeShift = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
+        ->where('status', 'active')
+        ->latest()
+        ->first();
+
+    if ($activeShift) {
+        $activeShift->update([
+            'end_lat' => $request->lat,
+            'end_lng' => $request->lng,
+        ]);
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Location updated successfully',
+    ]);
+}
 }

@@ -31,14 +31,18 @@ class UserRateController extends Controller
       public function store(Request $request)
       {
             $request->validate([
-                  'name' => 'required|string|max:255',
+                  'name_ar' => 'required|string|max:255',
+                  'name_en' => 'required|string|max:255',
                   'type' => 'required|string|in:delivery,client,kitchen',
-                  'max_score' => 'required|integer|in:1,2,3,4',
+                  'target_type' => 'required|string|in:delivery,client,kitchen|different:type',
+                  'max_score' => 'required|integer|in:1,2,3,4,5',
             ]);
 
             UserRate::create([
-                  'name' => $request->name,
+                  'name_ar' => $request->name_ar,
+                  'name_en' => $request->name_en,
                   'type' => $request->type,
+                  'target_type' => $request->target_type,
                   'max_score' => $request->max_score,
             ]);
 
@@ -56,14 +60,18 @@ class UserRateController extends Controller
       {
 
             $request->validate([
-                  'name' => 'required|string|max:255',
+                  'name_ar' => 'required|string|max:255',
+                  'name_en' => 'required|string|max:255',
                   'type' => 'required|string|in:delivery,client,kitchen',
-                  'max_score' => 'required|integer|in:1,2,3,4',
+                  'target_type' => 'required|string|in:delivery,client,kitchen|different:type',
+                  'max_score' => 'required|integer|in:1,2,3,4,5',
             ]);
 
             $rate->update([
-                  'name' => $request->name,
+                  'name_ar' => $request->name_ar,
+                  'name_en' => $request->name_en,
                   'type' => $request->type,
+                  'target_type' => $request->target_type,
                   'max_score' => $request->max_score,
             ]);
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Delivery;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Offer;
+use App\Models\pointTransactions;
 
 class OfferController extends Controller
 {
@@ -27,4 +28,30 @@ class OfferController extends Controller
             'data' => $offers,
         ]);
     }
+
+
+
+///////aplly offer
+
+    public function takeOffer($offerId)
+{
+    $delivery = auth('api_delivery')->user();
+
+    $offer = Offer::where('is_active', 1)->findOrFail($offerId);
+
+    $delivery->pointTransactions()->create([
+        'source' => 'delivery_offer',
+        'points' => $offer->points,
+        'reference_type' => Offer::class,
+        'reference_id' => $offer->id,
+        'notes' => 'Points from delivery offer',
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Points added successfully',
+        'points_added' => $offer->points,
+        'total_points' => $delivery->fresh()->total_points,
+    ]);
+}
 }

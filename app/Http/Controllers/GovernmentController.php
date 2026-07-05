@@ -3,19 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\Government;
+use App\Models\Area;
 use Illuminate\Http\Request;
 
 class GovernmentController extends Controller
 {
-    public function index()
-{
-    $governments = Government::latest()->get();
 
-    return view(
-        'admin.governments.index',
-        compact('governments')
-    );
+
+public function appIndex()
+{
+    $governments = Government::with('areas')
+        ->latest()
+        ->get()
+        ->map(function ($government) {
+            return [
+                'id' => $government->id,
+                'name' => $government->name,
+                'areas' => $government->areas->map(function ($area) {
+                    return [
+                        'id' => $area->id,
+                        'name' => $area->name,
+                    ];
+                })->values(),
+            ];
+        });
+
+    return response()->json([
+        'status' => true,
+        'governments' => $governments,
+    ], 200);
 }
+
+    public function index()
+    {
+        $governments = Government::latest()->get();
+
+        return view(
+            'admin.governments.index',
+            compact('governments')
+        );
+    }
 
 
     public function store(Request $request)
@@ -45,22 +72,22 @@ class GovernmentController extends Controller
 
         return response()->json([
             'message' => 'government deleted successfully',
-        ] , 200);
+        ], 200);
     }
 
     public function toggleStatus(Request $request, Government $government)
-{
-    $government->update([
-        'is_active' => !$government->is_active
-    ]);
+    {
+        $government->update([
+            'is_active' => !$government->is_active
+        ]);
 
-    return redirect()
-        ->back()
-        ->with(
-            'success',
-            $government->is_active
-                ? 'تم تفعيل المحافظة'
-                : 'تم تعطيل المحافظة'
-        );
-}
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                $government->is_active
+                    ? 'تم تفعيل المحافظة'
+                    : 'تم تعطيل المحافظة'
+            );
+    }
 }

@@ -7,6 +7,28 @@ use Illuminate\Http\Request;
 
 class AreaController extends Controller
 {
+
+    public function appIndex()
+{
+    $areas = Area::with('government')->get()->map(function ($area) {
+        return [
+            'id' => $area->id,
+            'name' => $area->name,
+            'government' => [
+                'id' => $area->government?->id,
+                'name' => $area->government?->name,
+            ],
+        ];
+    });
+
+    return response()->json([
+        'status' => true,
+        'areas' => $areas,
+    ], 200);
+}
+
+
+
     public function index()
     {
 
@@ -15,9 +37,7 @@ class AreaController extends Controller
 
         return view('admin.areas.index', compact('areas','governments'));
 
-        // return response()->json([
-        //     'areas' => $area
-        // ], 201);
+        
     }
 
 
@@ -51,5 +71,22 @@ class AreaController extends Controller
         return response()->json([
             'message' => 'area deleted successfully',
         ], 200);
+    }
+
+
+     public function toggleStatus(Request $request, Area $area)
+    {
+        $area->update([
+            'is_active' => !$area->is_active
+        ]);
+
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                $area->is_active
+                    ? 'تم تفعيل المحافظة'
+                    : 'تم تعطيل المحافظة'
+            );
     }
 }

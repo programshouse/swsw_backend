@@ -10,7 +10,8 @@ class Government extends Model
 {
      use HasLocalization;
     protected $fillable = [
-        'name',
+        'name_en',
+         'name_ar',
          'is_active',
     ];
 

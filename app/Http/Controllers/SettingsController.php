@@ -17,7 +17,19 @@ class SettingsController extends Controller
 
     public function update(Request $request)
     {
+
+     $request->merge([
+        'work_start_time' => $request->work_start_time
+            ? substr($request->work_start_time, 0, 5)
+            : null,
+
+        'work_end_time' => $request->work_end_time
+            ? substr($request->work_end_time, 0, 5)
+            : null,
+    ]);
         $data = $request->validate([
+             'work_start_time' => 'required|date_format:H:i',
+        'work_end_time'   => 'required|date_format:H:i',
             'whatsapp_number' => 'nullable|string',
             'facebook_link'   => 'nullable|url',
             'instgram_link'   => 'nullable|url',
@@ -25,10 +37,23 @@ class SettingsController extends Controller
 
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
 
+            'delivery_app_link'   => 'nullable|url',
+            'kitchen_app_link'   => 'nullable|url',
+            'user_app_link'     => 'nullable|url',
+
             'user_video'      => 'nullable|mimes:mp4,mov,avi,webm|max:51200',
             'kitchen_video'   => 'nullable|mimes:mp4,mov,avi,webm|max:51200',
             'delivery_video'  => 'nullable|mimes:mp4,mov,avi,webm|max:51200',
+            'user_rewarded_points'=>'nullable|integer',
+            'vat_percentage' => 'required|numeric|min:0|max:100',
+
+'user_contract' => 'nullable|mimes:pdf|max:10240',
+'kitchen_contract' => 'nullable|mimes:pdf|max:10240',
+'delivery_contract' => 'nullable|mimes:pdf|max:10240',
         ]);
+
+        $data['work_start_time'] = substr($data['work_start_time'], 0, 5);
+$data['work_end_time'] = substr($data['work_end_time'], 0, 5);
 
         $settings = Setting::first();
 
@@ -59,6 +84,24 @@ class SettingsController extends Controller
         } else {
             unset($data['delivery_video']);
         }
+
+        if ($userContract = $this->uploadFile($request, 'user_contract', 'uploads/settings/contracts')) {
+    $data['user_contract'] = $userContract;
+} else {
+    unset($data['user_contract']);
+}
+
+if ($kitchenContract = $this->uploadFile($request, 'kitchen_contract', 'uploads/settings/contracts')) {
+    $data['kitchen_contract'] = $kitchenContract;
+} else {
+    unset($data['kitchen_contract']);
+}
+
+if ($deliveryContract = $this->uploadFile($request, 'delivery_contract', 'uploads/settings/contracts')) {
+    $data['delivery_contract'] = $deliveryContract;
+} else {
+    unset($data['delivery_contract']);
+}
 
         $settings->fill($data);
         $settings->save();

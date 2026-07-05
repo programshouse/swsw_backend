@@ -46,6 +46,7 @@ return new class extends Migration
             // vehicle type : car motorcycle bicycle 
             $table->enum('vehicle_type', ['car', 'motorcycle' ,'bicycle']);
             $table->string('referral_code')->nullable();
+             $table->boolean('is_reserve')->default(0)->after('status');
 
             // status approval
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');

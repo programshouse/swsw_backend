@@ -15,6 +15,9 @@ use App\Http\Resources\OrderResource;
 use App\Models\KitchenProfile;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Models\Setting;
+use App\Models\DeliveryOrder;
+
 
 class OrdersController extends Controller
 {
@@ -71,6 +74,25 @@ class OrdersController extends Controller
         ]);
 
         $user = $request->user();
+
+        $settings = Setting::first();
+
+        $start = $settings?->work_start_time;
+        $end = $settings?->work_end_time;
+
+        if ($start && $end) {
+            $now = Carbon::now('Africa/Cairo')->format('H:i:s');
+
+            if (!($now >= $start && $now <= $end)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Application is closed now',
+                    'work_start_time' => $start,
+                    'work_end_time' => $end,
+                    'current_time' => $now,
+                ], 422);
+            }
+        }
         $kitchen = KitchenProfile::find($validated['kitchen_id']);
 
         // check if kitchen is open now
@@ -83,15 +105,15 @@ class OrdersController extends Controller
         // check if one meals is unavailable
         foreach ($validated['items'] as $item) {
             $meal = \App\Models\Meal::find($item['meal_id']);
-            if(!$meal->availability) {
+            if (!$meal->availability) {
                 return response()->json([
-                    'message' => 'one of your items is unavailable now' ,
+                    'message' => 'one of your items is unavailable now',
                     'item' => [
-                        'name' => $meal->name ,
+                        'name' => $meal->name,
                         'id' => $meal->id,
                         'image' => $meal->image ? config('app.url') . '/storage/' . $meal->image : null
                     ]
-                ] , 422);
+                ], 422);
                 break;
             }
         }
@@ -106,15 +128,15 @@ class OrdersController extends Controller
 
         $lastOrder = Order::latest('id')->first();
 
-$nextId = $lastOrder ? $lastOrder->id + 1 : 1;
+        $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
 
-$orderNumber = 'ORD-' . now()->format('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+        $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
 
         // Create order
         $order = Order::create([
             'user_id' => $user->id,
             'kitchen_id' => $validated['kitchen_id'],
-             'number' => $orderNumber,
+            'number' => $orderNumber,
             'total' => $total,
             'user_address_id' => $validated['user_address_id'] ?? null,
             'receive_date' => $validated['receive_date'] ?? null,
@@ -276,46 +298,64 @@ $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . str_pad($nextId, 4, '0', ST
             'message' => 'Order deleted successfully'
         ]);
     }
+  public function accept_order(Request $request, Order $order): JsonResponse
+{
+    $user = $request->user();
 
-    public function accept_order(Request $request, Order $order): JsonResponse
-    {
-        $user = $request->user();
-        // check if user has access to accept this order
-        if ($user->role === 'kitchen') {
-            if ($order->kitchen_id !== $user->profile->id) {
-                return response()->json([
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-        } else {
-            if ($order->user_id !== $user->id) {
-                return response()->json([
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-        }
-
-        $validated = $request->validate([
-            'status' => 'required|in:accepted,rejected,ready_to_deliver,preparing'
-        ]);
-
-        if($order->status === $validated['status']) {
-            return response()->json([
-                'message' => "order is already " . $validated['status'],
-            ], 400);
-        }
-
-
-
-        $order_updated = $order->update([
-            'status' => $validated['status']
-        ]);
-
+    if ($user->role !== 'kitchen' || $order->kitchen_id !== $user->profile->id) {
         return response()->json([
-            'message' => 'Order ' . $validated['status'] . ' successfully',
-            'order_status' => $validated['status']
-        ]);
+            'status' => false,
+            'message' => 'Unauthorized'
+        ], 403);
     }
+
+    $validated = $request->validate([
+        'status' => 'required|in:accepted_by_kitchen,preparing,ready_to_deliver,cancelled_by_kitchen',
+        'deliveries_count' => 'required_if:status,ready_to_deliver|nullable|integer|min:1',
+    ]);
+
+    $current = $order->status;
+    $new = $validated['status'];
+
+    $allowedTransitions = [
+        'pending' => ['accepted_by_kitchen', 'cancelled_by_kitchen'],
+        'accepted_by_kitchen' => ['preparing', 'cancelled_by_kitchen'],
+        'preparing' => ['ready_to_deliver', 'cancelled_by_kitchen'],
+        'ready_to_deliver' => [],
+    ];
+
+    if (!isset($allowedTransitions[$current]) || !in_array($new, $allowedTransitions[$current])) {
+        return response()->json([
+            'status' => false,
+            'message' => "Cannot change order from {$current} to {$new}",
+        ], 400);
+    }
+
+    $data = ['status' => $new];
+
+    if ($new === 'cancelled_by_kitchen') {
+        $data['cancel_date'] = now();
+    }
+
+    $order->update($data);
+
+    $assignedDeliveries = [];
+
+    if ($new === 'ready_to_deliver') {
+        $assignedDeliveries = $this->assignNearestDeliveries(
+            $order,
+            (int) $validated['deliveries_count']
+        );
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Order status updated successfully',
+        'order_status' => $new,
+        'assigned_deliveries_count' => count($assignedDeliveries),
+        'assigned_deliveries' => $assignedDeliveries,
+    ]);
+}
 
     function cancel_order(Request $request, Order $order)
     {
@@ -391,4 +431,69 @@ $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . str_pad($nextId, 4, '0', ST
             'order_status' => $validated['status']
         ]);
     }
+
+
+    private function assignNearestDeliveries(Order $order, int $count): array
+{
+    $kitchen = $order->kitchen;
+
+    if (!$kitchen || !$kitchen->lat || !$kitchen->lng) {
+        return [];
+    }
+
+    $lat = $kitchen->lat;
+    $lng = $kitchen->lng;
+
+    $deliveries = DeliveryUser::query()
+        ->selectRaw("
+            delivery_users.*,
+            (
+                6371 * acos(
+                    cos(radians(?)) *
+                    cos(radians(current_lat)) *
+                    cos(radians(current_lng) - radians(?)) +
+                    sin(radians(?)) *
+                    sin(radians(current_lat))
+                )
+            ) AS distance
+        ", [$lat, $lng, $lat])
+        ->whereNotNull('current_lat')
+        ->whereNotNull('current_lng')
+        ->where('is_approved', 1)
+        ->whereHas('shiftLogs', function ($q) {
+            $q->where('status', 'active');
+        })
+        ->whereDoesntHave('orders', function ($q) {
+            $q->whereIn('delivery_orders.status', [
+                'accepted',
+                'picked_up',
+                'on_the_way'
+            ]);
+        })
+        ->orderBy('distance')
+        ->limit($count)
+        ->get();
+
+    foreach ($deliveries as $delivery) {
+        DeliveryOrder::updateOrCreate(
+            [
+                'order_id' => $order->id,
+                'delivery_user_id' => $delivery->id,
+            ],
+            [
+                'status' => 'pending',
+                'cash_settled' => false,
+            ]
+        );
+    }
+
+    return $deliveries->map(function ($delivery) {
+        return [
+            'id' => $delivery->id,
+            'name' => $delivery->name,
+            'phone' => $delivery->phone,
+            'distance_km' => round($delivery->distance, 2),
+        ];
+    })->toArray();
+}
 }

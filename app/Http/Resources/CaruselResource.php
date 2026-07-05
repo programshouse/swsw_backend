@@ -17,6 +17,7 @@ class CaruselResource extends JsonResource
         return [
             'id' => $this->id,
             'image' => $this->image ? config('app.url') . '/storage/' . $this->image : null,
+            'kitchen_id'=>$this->kitchen_id ?? null,
         ];
     }
 }

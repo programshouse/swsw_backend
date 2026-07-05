@@ -31,7 +31,9 @@ class DeliveryUser extends Authenticatable
         'code',
         'code_expires_at',
         'verified_at',
-        'referral_code'
+        'referral_code',
+        'is_reserve',
+        'shift_code'
     ];
 
     protected $hidden = [
@@ -85,13 +87,7 @@ class DeliveryUser extends Authenticatable
     }
 
 
-    public function orders()
-    {
-        return $this->belongsToMany(
-            Order::class,
-            'delivery_orders'
-        );
-    }
+   
 
     public function deliveryOrders()
     {
@@ -116,4 +112,28 @@ class DeliveryUser extends Authenticatable
             'delivery_user_id'
         );
     }
+
+    public function pointTransactions()
+{
+    return $this->morphMany(PointTransaction::class, 'owner');
+}
+
+public function getTotalPointsAttribute()
+{
+    return $this->pointTransactions()->sum('points');
+}
+
+
+
+public function shiftLogs()
+{
+    return $this->hasMany(DeliveryShiftLog::class, 'delivery_user_id');
+}
+
+public function orders()
+{
+    return $this->belongsToMany(Order::class, 'delivery_orders')
+        ->withPivot('status', 'cash_settled')
+        ->withTimestamps();
+}
 }

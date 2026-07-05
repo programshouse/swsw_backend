@@ -215,14 +215,18 @@
                     <th>البريد الإلكتروني</th>
                     <th>الهاتف</th>
                                             <th>الكود</th>
+                                              <th>الكود تاكيد الهوية </th>
 
                     <th>النوع</th>
                     <th>المركبة</th>
                     <th>المستوى</th>
-                    <th>الصورة</th>
+                    
+                    {{-- <th>الصورة</th> --}}
                     <th>الحالة</th>
+                   <th>الكود تاكيد الهوية </th>
+
                     <th>وقت الراحة</th>
-                    <th>كاش {{ $this_month }}</th>
+                    {{-- <th>كاش {{ $this_month }}</th> --}}
                     <th>الإجراءات</th>
                 </tr>
             </thead>
@@ -234,6 +238,7 @@
                         <td>{{ $delivery->email }}</td>
                         <td>{{ $delivery->phone }}</td>
                          <td>{{ $delivery->code ?? '-' }}</td>
+                          <td>{{ $delivery->shift_code ?? '-' }}</td>
                         <td>
                             <span class="type-badge">{{ $delivery->type }}</span>
                         </td>
@@ -241,13 +246,13 @@
                             {{ $delivery->has_vehicle ? $delivery->vehicle_type : 'لا توجد مركبة' }}
                         </td>
                         <td>{{ $delivery->level->name ?? '-' }}</td>
-                        <td>
+                        {{-- <td>
                             @if ($delivery->image)
                                 <img class="avatar" src="{{ asset('storage/' . $delivery->image) }}">
                             @else
                                 <span class="empty-avatar">-</span>
                             @endif
-                        </td>
+                        </td> --}}
                         <td>
                             <span class="status-badge {{ $delivery->is_break ? 'status-danger' : 'status-success' }}">
                                 {{ $delivery->is_break ? 'في راحة' : 'يعمل الآن' }}

@@ -6,6 +6,7 @@ use App\Models\Meal;
 use Illuminate\Http\Request;
 use App\Http\Resources\MealResource;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Models\Setting;
 
 class KitchenProfileResource extends JsonResource
 {
@@ -16,9 +17,17 @@ class KitchenProfileResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+         $settings = Setting::select(
+            'user_app_link',
+            'kitchen_app_link',
+            'delivery_app_link'
+        )->first();
         return [
+
+        
             'id' => $this->id ,
             'name' => $this->name,
+              'code '=> $this->code ??null,
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
             'facebook' => $this->facebook,
@@ -37,6 +46,11 @@ class KitchenProfileResource extends JsonResource
             'open_status' => $this->open_status,
             'have_star' => boolval($this->have_star),
             'chef_name' => $this->user->name ,
+             'app_links' => [
+                'user_app_link' => $settings?->user_app_link,
+                'kitchen_app_link' => $settings?->kitchen_app_link,
+                'delivery_app_link' => $settings?->delivery_app_link,
+            ],
         ];
     }
 }

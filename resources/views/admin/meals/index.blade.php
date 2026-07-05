@@ -154,8 +154,8 @@
             <table>
                 <thead>
 <tr>
-    <th>ID</th>
-    <th>الصورة</th>
+    {{-- <th>ID</th> --}}
+    {{-- <th>الصورة</th> --}}
     <th>الاسم</th>
     <th>الوصف</th>
     <th>الوصفة</th>
@@ -176,15 +176,15 @@
 <tbody>
 @foreach($meals as $meal)
     <tr>
-        <td>{{ $meal->id }}</td>
+        {{-- <td>{{ $meal->id }}</td> --}}
 
-        <td>
+        {{-- <td>
             @if(!empty($meal->image))
                 <img src="{{ $meal->image }}" class="meal-image" alt="meal">
             @else
                 -
             @endif
-        </td>
+        </td> --}}
 
         <td>{{ $meal->name ?? '-' }}</td>
 

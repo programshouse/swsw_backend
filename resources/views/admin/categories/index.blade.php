@@ -31,7 +31,8 @@
                 <thead>
                 <tr>
                     <th>ID</th>
-                    <th>اسم الفئة</th>
+                    <th>اسم الفئة بالعربى</th>
+                     <th>اسم الفئة بالانجليزية</th>
                     <th>تاريخ الإنشاء</th>
                     <th>الإجراءات</th>
                 </tr>
@@ -43,7 +44,8 @@
                     <tr>
                         <td>{{ $category->id }}</td>
 
-                        <td>{{ $category->name }}</td>
+                        <td>{{ $category->name_ar }}</td>
+                          <td>{{ $category->name_en }}</td>
 
                         <td>
                             {{ optional($category->created_at)->format('Y-m-d H:i') }}
@@ -93,12 +95,25 @@
 
             <div class="form-group">
                 <label class="form-label">
-                    اسم الفئة
+                    اسم الفئة بالعربى
                 </label>
 
                 <input
                     type="text"
-                    name="name"
+                    name="name_ar"
+                    class="form-input"
+                    required
+                >
+            </div>
+
+             <div class="form-group">
+                <label class="form-label">
+                    اسم الفئة بالانجليزية
+                </label>
+
+                <input
+                    type="text"
+                    name="name_en"
                     class="form-input"
                     required
                 >

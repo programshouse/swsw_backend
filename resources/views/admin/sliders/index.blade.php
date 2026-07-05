@@ -59,6 +59,20 @@
                 </select>
             </div>
 
+            <div class="form-group">
+                <label class="form-label">المطبخ (اختياري)</label>
+
+                <select name="kitchen_id" class="form-input">
+                    <option value="">كل المطابخ</option>
+
+                    @foreach($kitchens as $kitchen)
+                        <option value="{{ $kitchen->id }}" @selected(old('kitchen_id') == $kitchen->id)>
+                            {{ $kitchen->name ?? '-' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
         </div>
 
         <button type="submit" class="add-btn">
@@ -101,6 +115,13 @@
                                 {{ $carusel->area->name_ar ?? $carusel->area->name_en ?? $carusel->area->name ?? '-' }}
                             </strong>
                         </div>
+
+                        <div class="slider-area" style="margin-top:8px;">
+                            المطبخ:
+                            <strong>
+                                {{ $carusel->kitchen->name ?? 'كل المطابخ' }}
+                            </strong>
+                        </div>
                     </div>
 
                     <div class="slider-footer">
@@ -139,7 +160,7 @@
 <style>
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
 }
 
@@ -188,6 +209,12 @@
     padding: 14px;
     display: flex;
     justify-content: flex-end;
+}
+
+@media (max-width: 992px) {
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {

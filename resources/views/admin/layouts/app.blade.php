@@ -24,20 +24,20 @@
             margin-bottom: 24px;
         }
 
-        .video-preview{
-    width: 350px;
-    max-width: 100%;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    overflow: hidden;
-    margin-bottom: 12px;
-    background: #f9fafb;
-}
+        .video-preview {
+            width: 350px;
+            max-width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: #f9fafb;
+        }
 
-.video-preview video{
-    width: 100%;
-    display: block;
-}
+        .video-preview video {
+            width: 100%;
+            display: block;
+        }
 
         .back-btn {
             background: #2563eb;
@@ -524,185 +524,228 @@
 
     <div class="admin-layout">
 
-        <aside class="sidebar">
+      
+<aside class="sidebar">
 
-            <div class="logo-wrapper">
+    <div class="logo-wrapper">
+        @if (!empty($settings?->logo))
+            <img src="https://programshouse.com/swsw/public/uploads/settings/1782547392_logo_swsw-logo.jpg"
+                 alt="اللوجو"
+                 class="logo-image">
+        @endif
 
-                @if (!empty($settings?->logo))
-                    <img src="{{ url($settings->logo) }}" alt="اللوجو" class="logo-image">
-                @else
-                    <img src="{{ asset('logo.png') }}" alt="اللوجو" class="logo-image">
-                @endif
+        <div class="logo-text">لوحة التحكم</div>
+    </div>
 
-                <div class="logo-text">
-                    لوحة التحكم
-                </div>
+    <a href="{{ route('admin.dashboard') }}"
+       class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+        <span class="nav-icon">📊</span>
+        <span>الإحصائيات</span>
+    </a>
 
-            </div>
+    <a href="{{ route('admin.clients.index') }}"
+       class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
+        <span class="nav-icon">👥</span>
+        <span>المستخدمين</span>
+    </a>
 
-            <a href="{{ route('admin.dashboard') }}"
-                class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                <span class="nav-icon">📊</span>
-                <span>الإحصائيات</span>
-            </a>
+    {{-- المطابخ --}}
+    <div class="nav-group {{ request()->routeIs('admin.kitchens.*') || request()->routeIs('admin.meals.*') || request()->routeIs('admin.meal-offers.*') || request()->routeIs('admin.wallet.*') ? 'open' : '' }}">
+        <div class="nav-link parent" onclick="toggleMenu(this)">
+            <span class="nav-icon">🍽️</span>
+            <span>المطابخ</span>
+            <span class="arrow">⌄</span>
+        </div>
 
-            <a href="{{ route('admin.clients.index') }}"
-                class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
-                <span class="nav-icon">👥</span>
-                <span>المستخدمين</span>
-            </a>
-
+        <div class="submenu">
             <a href="{{ route('admin.kitchens.index') }}"
-                class="nav-link {{ request()->routeIs('admin.kitchens.*') ? 'active' : '' }}">
-                <span class="nav-icon">🍽️</span>
-                <span>المطابخ</span>
-            </a>
-
-            <a href="{{ route('admin.governments.index') }}"
-                class="nav-link {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
-                <span class="nav-icon">🏛️</span>
-                <span>المحافظات</span>
-            </a>
-
-            <a href="{{ route('admin.areas.index') }}"
-                class="nav-link {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
-                <span class="nav-icon">📍</span>
-                <span>المناطق</span>
-            </a>
-
-            <a href="{{ route('admin.tickets.index') }}"
-                class="nav-link {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
-                <span class="nav-icon">🎫</span>
-                <span>المشاكل</span>
-            </a>
-
-            <div
-                class="nav-group {{ request()->routeIs('admin.delivery.*') || request()->routeIs('admin.delivery.points.*') ? 'open' : '' }}">
-
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">🏍️</span>
-                    <span>الدليفري</span>
-                    <span class="arrow">⌄</span>
-                </div>
-
-                <div class="submenu">
-
-                    <a href="{{ route('admin.delivery.pending') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
-                        قيد الانتظار
-                    </a>
-
-                    <a href="{{ route('admin.delivery.profile.pending') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
-                        تعديلات ملفات الدليفري المعلقة
-                    </a>
-
-                    <a href="{{ route('admin.delivery.approved') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
-                        الدليفري المعتمد
-                    </a>
-
-                    <a href="{{ route('admin.delivery.points.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.points.*') ? 'active' : '' }}">
-                        نقاط الدليفري
-                    </a>
-
-
-
-                </div>
-            </div>
-
-            <a href="{{ route('admin.shifts.index') }}"
-                class="nav-link {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
-                <span class="nav-icon">🕒</span>
-                <span>الشيفتات</span>
-            </a>
-
-            <a href="{{ route('admin.points.index') }}"
-                class="nav-link {{ request()->routeIs('admin.points.*') ? 'active' : '' }}">
-                <span class="nav-icon">🏆</span>
-                <span>النقاط</span>
-            </a>
-
-            <a href="{{ route('admin.rates.index') }}"
-                class="nav-link {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
-                <span class="nav-icon">⭐</span>
-                <span>التقييمات</span>
-            </a>
-
-            <a href="{{ route('admin.categories.index') }}"
-                class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                <span class="nav-icon">🏷️</span>
-                <span>فئات العناصر</span>
+               class="nav-link sub {{ request()->routeIs('admin.kitchens.*') ? 'active' : '' }}">
+                المطابخ
             </a>
 
             <a href="{{ route('admin.meals.index') }}"
-                class="nav-link {{ request()->routeIs('admin.meals.*') ? 'active' : '' }}">
-                <span class="nav-icon">🍔</span>
-                <span>جميع الوجبات</span>
+               class="nav-link sub {{ request()->routeIs('admin.meals.*') ? 'active' : '' }}">
+                جميع الوجبات
             </a>
 
-            <a href="{{ route('admin.sliders.index') }}"
-                class="nav-link {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
-                <span class="nav-icon">🖼️</span>
-                <span>السلايدر</span>
-            </a>
-
-            <a href="{{ route('admin.workdays.index') }}"
-                class="nav-link {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
-                <span class="nav-icon">🕒</span>
-                <span>أيام وساعات العمل</span>
+            <a href="{{ route('admin.meal-offers.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.meal-offers.*') ? 'active' : '' }}">
+                عروض الوجبات
             </a>
 
             <a href="{{ route('admin.wallet.debit-requests') }}"
-                class="nav-link {{ request()->routeIs('admin.wallet.*') ? 'active' : '' }}">
-                <span class="nav-icon">💰</span>
-                <span>محفظة المطابخ</span>
+               class="nav-link sub {{ request()->routeIs('admin.wallet.*') ? 'active' : '' }}">
+                محفظة المطابخ
+            </a>
+        </div>
+    </div>
+
+    {{-- الدليفري --}}
+    <div class="nav-group {{ request()->routeIs('admin.delivery.*') || request()->routeIs('admin.delivery.points.*') || request()->routeIs('admin.deliveries.orders.*') || request()->routeIs('admin.reserve-deliveries.*') || request()->routeIs('admin.levels.*') || request()->routeIs('admin.offers.*') || request()->routeIs('admin.vehicles.*') || request()->routeIs('admin.points.*') ? 'open' : '' }}">
+        <div class="nav-link parent" onclick="toggleMenu(this)">
+            <span class="nav-icon">🏍️</span>
+            <span>الدليفري</span>
+            <span class="arrow">⌄</span>
+        </div>
+
+        <div class="submenu">
+            <a href="{{ route('admin.delivery.pending') }}"
+               class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
+                قيد الانتظار
             </a>
 
-            <a href="{{ route('admin.orders.index') }}"
-                class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
-                <span class="nav-icon">📦</span>
-                <span>الطلبات</span>
+            <a href="{{ route('admin.delivery.profile.pending') }}"
+               class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
+                تعديلات ملفات الدليفري المعلقة
             </a>
 
-            <a href="{{ route('admin.levels.index') }}"
-                class="nav-link {{ request()->routeIs('admin.levels.*') ? 'active' : '' }}">
-                <span class="nav-icon">🏆</span>
-                <span>المستويات</span>
+            <a href="{{ route('admin.delivery.approved') }}"
+               class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
+                الدليفري المعتمد
+            </a>
+
+            <a href="{{ route('admin.deliveries.orders.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.deliveries.orders.*') ? 'active' : '' }}">
+                طلبات الدليفري
+            </a>
+
+            <a href="{{ route('admin.reserve-deliveries.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.reserve-deliveries.*') ? 'active' : '' }}">
+                الحسابات الاحتياطية
+            </a>
+
+            <a href="{{ route('admin.delivery.points.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.delivery.points.*') ? 'active' : '' }}">
+                نقاط الدليفري
+            </a>
+
+            <a href="{{ route('admin.points.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.points.*') ? 'active' : '' }}">
+                النقاط
             </a>
 
             <a href="{{ route('admin.offers.index') }}"
-                class="nav-link {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
-                <span class="nav-icon">🎁</span>
-                <span>العروض</span>
+               class="nav-link sub {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
+                العروض
             </a>
 
-            <a href="{{ route('admin.issue-types.index') }}"
-                class="nav-link {{ request()->routeIs('admin.issue-types.*') ? 'active' : '' }}">
-                <span class="nav-icon">⚠️</span>
-                <span>أنواع المشاكل</span>
+            <a href="{{ route('admin.levels.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.levels.*') ? 'active' : '' }}">
+                المستويات
             </a>
 
             <a href="{{ route('admin.vehicles.index') }}"
-                class="nav-link {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}">
+               class="nav-link sub {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}">
+                وسائل التوصيل
+            </a>
+        </div>
+    </div>
 
-                <span class="nav-icon">🚗</span>
+    {{-- المشاكل --}}
+    <div class="nav-group {{ request()->routeIs('admin.tickets.*') || request()->routeIs('admin.issue-types.*') ? 'open' : '' }}">
+        <div class="nav-link parent" onclick="toggleMenu(this)">
+            <span class="nav-icon">🎫</span>
+            <span>المشاكل</span>
+            <span class="arrow">⌄</span>
+        </div>
 
-                <span>
-                    وسائل التوصيل
-                </span>
+        <div class="submenu">
+            <a href="{{ route('admin.tickets.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
+                المشاكل
+            </a>
 
+            <a href="{{ route('admin.issue-types.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.issue-types.*') ? 'active' : '' }}">
+                أنواع المشاكل
+            </a>
+        </div>
+    </div>
+
+    {{-- المناطق --}}
+    <div class="nav-group {{ request()->routeIs('admin.governments.*') || request()->routeIs('admin.areas.*') ? 'open' : '' }}">
+        <div class="nav-link parent" onclick="toggleMenu(this)">
+            <span class="nav-icon">📍</span>
+            <span>المناطق والمحافظات</span>
+            <span class="arrow">⌄</span>
+        </div>
+
+        <div class="submenu">
+            <a href="{{ route('admin.governments.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
+                المحافظات
+            </a>
+
+            <a href="{{ route('admin.areas.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
+                المناطق
+            </a>
+        </div>
+    </div>
+
+    {{-- التطبيق --}}
+    <div class="nav-group {{ request()->routeIs('admin.categories.*') || request()->routeIs('admin.sliders.*') || request()->routeIs('admin.rates.*') || request()->routeIs('admin.workdays.*') || request()->routeIs('admin.shifts.*') ? 'open' : '' }}">
+        <div class="nav-link parent" onclick="toggleMenu(this)">
+            <span class="nav-icon">📱</span>
+            <span>إعدادات التطبيق</span>
+            <span class="arrow">⌄</span>
+        </div>
+
+        <div class="submenu">
+            <a href="{{ route('admin.categories.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                فئات العناصر
+            </a>
+
+            <a href="{{ route('admin.sliders.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
+                السلايدر
+            </a>
+
+            <a href="{{ route('admin.rates.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
+                أسئلة التقييمات
+            </a>
+
+            <a href="{{ route('admin.workdays.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
+                أيام وساعات العمل
+            </a>
+
+            <a href="{{ route('admin.shifts.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
+                الشيفتات
+            </a>
+        </div>
+    </div>
+
+    {{-- عام --}}
+    <div class="nav-group {{ request()->routeIs('admin.referral-point-rules.*') || request()->routeIs('admin.settings.*') || request()->routeIs('app-pages.*') ? 'open' : '' }}">
+        <div class="nav-link parent" onclick="toggleMenu(this)">
+            <span class="nav-icon">⚙️</span>
+            <span>إعدادات عامة</span>
+            <span class="arrow">⌄</span>
+        </div>
+
+        <div class="submenu">
+            <a href="{{ route('admin.referral-point-rules.index') }}"
+               class="nav-link sub {{ request()->routeIs('admin.referral-point-rules.*') ? 'active' : '' }}">
+                مكافآت الدعوات
             </a>
 
             <a href="{{ route('admin.settings.index') }}"
-                class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                <span class="nav-icon">⚙️</span>
-                <span>الإعدادات</span>
+               class="nav-link sub {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                الإعدادات
             </a>
 
-        </aside>
+            <a href="{{ route('app-pages.index') }}"
+               class="nav-link sub {{ request()->routeIs('app-pages.*') ? 'active' : '' }}">
+                صفحات التطبيق
+            </a>
+        </div>
+    </div>
 
+</aside>
         <main class="main-wrapper">
 
             <header class="topbar">

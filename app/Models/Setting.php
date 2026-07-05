@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
-  protected $fillable = [
+    protected $fillable = [
         'whatsapp_number',
         'facebook_link',
         'instgram_link',
@@ -14,6 +14,28 @@ class Setting extends Model
         'logo',
         'user_video',
         'kitchen_video',
-        'delivery_video'
+        'delivery_video',
+        'user_app_link',
+        'kitchen_app_link',
+        'delivery_app_link',
+        'work_start_time',
+        'work_end_time',
+        'user_rewarded_points',
+        'vat_percentage',
+        'delivery_contract',
+        'kitchen_contract',
+        'user_contract'
     ];
+
+
+    public static function appLinks()
+    {
+        $setting = self::first();
+
+        return [
+            'user_app_link'     => $setting?->user_app_link,
+            'kitchen_app_link'  => $setting?->kitchen_app_link,
+            'delivery_app_link' => $setting?->delivery_app_link,
+        ];
+    }
 }

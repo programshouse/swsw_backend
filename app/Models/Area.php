@@ -14,6 +14,7 @@ class Area extends Model
         'name_en',
           'name_ar',
         'government_id',
+         'is_active',
     ];
 
 

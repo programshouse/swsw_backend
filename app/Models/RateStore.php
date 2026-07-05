@@ -15,6 +15,7 @@ class RateStore extends Model
         'rater_type',
         'rated_type',
         'score',
+        'details'
     ];
 
     public function order()

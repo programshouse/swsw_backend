@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\KitchenProfile;
 use App\Http\Resources\MealResource;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
 
 class MealController extends Controller
 {
@@ -143,4 +144,50 @@ class MealController extends Controller
         ->back()
         ->with('success', 'تم حذف الوجبة بنجاح');
     }
+
+       public function updateQuantity(Request $request, Meal $meal): JsonResponse
+{
+    $user = auth()->user();
+
+    if (!$user || $user->role !== 'kitchen') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized',
+        ], 403);
+    }
+
+    $kitchenProfile = KitchenProfile::where('user_id', $user->id)->first();
+
+    if (!$kitchenProfile) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Kitchen profile not found.',
+        ], 404);
+    }
+
+    if ($meal->kitchen_profile_id != $kitchenProfile->id) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized',
+        ], 403);
+    }
+
+    $validated = $request->validate([
+        'quantity' => 'required|integer|min:0',
+    ]);
+
+    $meal->update([
+        'quantity' => $validated['quantity'],
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Quantity updated successfully.',
+        'data' => [
+            'id' => $meal->id,
+            'quantity' => $meal->quantity,
+        ],
+    ]);
+}
+    
 }

@@ -10,6 +10,7 @@ class DeliveryPoint extends Model
     protected $fillable = [
         'point_id',
         'delivery_user_id',
+        'order_id',
     ];
 
 
@@ -25,4 +26,9 @@ class DeliveryPoint extends Model
             'delivery_user_id'
         );
     }
+
+    public function order()
+{
+    return $this->belongsTo(Order::class);
+}
 }

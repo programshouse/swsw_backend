@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Models\Setting;
 
 class DeliveryResource extends JsonResource
 {
@@ -14,9 +15,16 @@ class DeliveryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+         $settings = Setting::select(
+            'user_app_link',
+            'kitchen_app_link',
+            'delivery_app_link'
+        )->first();
+
         return [
             "id" => $this->id,
             "name" => $this->name,
+              'code '=> $this->code ??null ,
             "email" => $this->email,
             "phone" => $this->phone,
             "area" => new AreaResource($this->area),
@@ -28,6 +36,11 @@ class DeliveryResource extends JsonResource
             "vehicle_id" => $this->vehicle_id,
             "vehicle_type" => $this->vehicle_type,
             "image" => $this->image,
+             'app_links' => [
+                'user_app_link' => $settings?->user_app_link,
+                'kitchen_app_link' => $settings?->kitchen_app_link,
+                'delivery_app_link' => $settings?->delivery_app_link,
+            ],
         ];
     }
 }

@@ -28,7 +28,7 @@
 
             <thead>
                 <tr>
-                    <th>#</th>
+                   
                     <th>اسم المستوى</th>
                     <th>حد الكاش</th>
                     <th>المسافة (KM)</th>
@@ -42,10 +42,6 @@
                 @forelse ($levels as $level)
 
                     <tr>
-
-                        <td>
-                            {{ $level->id }}
-                        </td>
 
                         <td>
                             <span class="level-badge">
@@ -134,10 +130,11 @@
     font-weight:700;
 }
 
-.action-buttons{
-    display:flex;
-    gap:8px;
-    align-items:center;
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
 }
 
 .edit-btn{
