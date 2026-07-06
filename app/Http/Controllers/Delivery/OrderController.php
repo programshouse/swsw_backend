@@ -89,119 +89,119 @@ class OrderController extends Controller
 
 
     public function updateStatus(Request $request, Order $order)
-{
-    $delivery = $request->user();
+    {
+        $delivery = $request->user();
 
-    $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
-        ->where('delivery_user_id', $delivery->id)
-        ->first();
+        $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
+            ->where('delivery_user_id', $delivery->id)
+            ->first();
 
-    if (!$deliveryOrder) {
+        if (!$deliveryOrder) {
 
-        if ($order->status !== 'ready_to_deliver') {
+            if ($order->status !== 'ready_to_deliver') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Order is not ready to deliver',
+                    'order_status' => $order->status,
+                ], 400);
+            }
+
+            $delivery->orders()->attach($order->id, [
+                'status' => 'accepted',
+                'cash_settled' => false,
+            ]);
+
+            $order->update([
+                'status' => 'accepted_by_delivery',
+            ]);
+
             return response()->json([
-                'status' => false,
-                'message' => 'Order is not ready to deliver',
-                'order_status' => $order->status,
-            ], 400);
+                'status' => true,
+                'message' => 'Order accepted by delivery',
+                'delivery_order_status' => 'accepted',
+                'order_status' => 'accepted_by_delivery',
+            ]);
         }
 
-        $delivery->orders()->attach($order->id, [
-            'status' => 'accepted',
-            'cash_settled' => false,
-        ]);
+        if ($deliveryOrder->status === 'accepted') {
 
-        $order->update([
-            'status' => 'accepted_by_delivery',
-        ]);
+            if ($order->status !== 'accepted_by_delivery') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid order status',
+                    'order_status' => $order->status,
+                ], 400);
+            }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Order accepted by delivery',
-            'delivery_order_status' => 'accepted',
-            'order_status' => 'accepted_by_delivery',
-        ]);
-    }
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'picked_up'
+            ]);
 
-    if ($deliveryOrder->status === 'accepted') {
+            $order->update([
+                'status' => 'received_by_delivery',
+            ]);
 
-        if ($order->status !== 'accepted_by_delivery') {
             return response()->json([
-                'status' => false,
-                'message' => 'Invalid order status',
-                'order_status' => $order->status,
-            ], 400);
+                'status' => true,
+                'message' => 'Order picked up',
+                'delivery_order_status' => 'picked_up',
+                'order_status' => 'received_by_delivery',
+            ]);
         }
 
-        $delivery->orders()->updateExistingPivot($order->id, [
-            'status' => 'picked_up'
-        ]);
+        if ($deliveryOrder->status === 'picked_up') {
 
-        $order->update([
-            'status' => 'received_by_delivery',
-        ]);
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'on_the_way'
+            ]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Order picked up',
-            'delivery_order_status' => 'picked_up',
-            'order_status' => 'received_by_delivery',
-        ]);
-    }
+            $order->update([
+                'status' => 'on_the_way',
+            ]);
 
-    if ($deliveryOrder->status === 'picked_up') {
+            return response()->json([
+                'status' => true,
+                'message' => 'Order on the way',
+                'delivery_order_status' => 'on_the_way',
+                'order_status' => 'on_the_way',
+            ]);
+        }
 
-        $delivery->orders()->updateExistingPivot($order->id, [
-            'status' => 'on_the_way'
-        ]);
+        if ($deliveryOrder->status === 'on_the_way') {
 
-        $order->update([
-            'status' => 'on_the_way',
-        ]);
+            $delivery->orders()->updateExistingPivot($order->id, [
+                'status' => 'delivered'
+            ]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Order on the way',
-            'delivery_order_status' => 'on_the_way',
-            'order_status' => 'on_the_way',
-        ]);
-    }
+            $order->update([
+                'status' => 'delivered',
+                'delivered_at' => now(),
+                'receive_date' => now()->toDateString(),
+                'receive_time' => now()->toTimeString(),
+            ]);
 
-    if ($deliveryOrder->status === 'on_the_way') {
+            OrderHistory::updateOrCreate(
+                ['order_id' => $order->id],
+                ['status' => 'delivered']
+            );
 
-        $delivery->orders()->updateExistingPivot($order->id, [
-            'status' => 'delivered'
-        ]);
+            $cashInfo = $this->getDeliveryCashInfo($delivery);
 
-        $order->update([
-            'status' => 'delivered',
-            'delivered_at' => now(),
-            'receive_date' => now()->toDateString(),
-            'receive_time' => now()->toTimeString(),
-        ]);
-
-        OrderHistory::updateOrCreate(
-            ['order_id' => $order->id],
-            ['status' => 'delivered']
-        );
-
-        $cashInfo = $this->getDeliveryCashInfo($delivery);
+            return response()->json([
+                'status' => true,
+                'message' => 'Order delivered',
+                'delivery_order_status' => 'delivered',
+                'order_status' => 'delivered',
+                'cash_filter' => $cashInfo,
+            ]);
+        }
 
         return response()->json([
-            'status' => true,
-            'message' => 'Order delivered',
-            'delivery_order_status' => 'delivered',
-            'order_status' => 'delivered',
-            'cash_filter' => $cashInfo,
-        ]);
+            'status' => false,
+            'message' => 'Order already completed',
+            'delivery_order_status' => $deliveryOrder->status
+        ], 400);
     }
-
-    return response()->json([
-        'status' => false,
-        'message' => 'Order already completed',
-        'delivery_order_status' => $deliveryOrder->status
-    ], 400);
-}
 
 
 
@@ -256,17 +256,25 @@ class OrderController extends Controller
             ]);
         }
 
-        if (!$delivery_order) {
+        if ($delivery_order) {
+            $delivery_order->update([
+                'status' => 'accepted',
+                'rejected_at' => null,
+                'cash_settled' => false,
+            ]);
+        } else {
             $delivery->orders()->attach($order->id, [
                 'status' => 'accepted',
                 'rejected_at' => null,
                 'cash_settled' => false,
             ]);
-
-            $order->update([
-                'status' => 'accepted_by_delivery'
-            ]);
         }
+
+        $order->update([
+            'status' => 'accepted_by_delivery'
+        ]);
+
+        $order->refresh();
 
         return response()->json([
             'status' => true,
@@ -488,73 +496,73 @@ class OrderController extends Controller
     }
 
 
-  public function breakStatus(Request $request)
-{
-    $delivery = $request->user();
+    public function breakStatus(Request $request)
+    {
+        $delivery = $request->user();
 
-    $delivery->load('shift');
+        $delivery->load('shift');
 
-    $remainingMinutes = 0;
+        $remainingMinutes = 0;
 
-    if (
-        $delivery->is_break &&
-        $delivery->break_started_at &&
-        $delivery->break_time
-    ) {
-        $endTime = $delivery->break_started_at
-            ->copy()
-            ->addMinutes($delivery->break_time);
+        if (
+            $delivery->is_break &&
+            $delivery->break_started_at &&
+            $delivery->break_time
+        ) {
+            $endTime = $delivery->break_started_at
+                ->copy()
+                ->addMinutes($delivery->break_time);
 
-        $remainingMinutes = max(
-            0,
-            now()->diffInMinutes($endTime, false)
-        );
+            $remainingMinutes = max(
+                0,
+                now()->diffInMinutes($endTime, false)
+            );
 
-        if ($remainingMinutes <= 0) {
-            $delivery->update([
-                'is_break' => 0,
-                'break_started_at' => null,
-                'break_time' => null,
-            ]);
+            if ($remainingMinutes <= 0) {
+                $delivery->update([
+                    'is_break' => 0,
+                    'break_started_at' => null,
+                    'break_time' => null,
+                ]);
 
-            $remainingMinutes = 0;
+                $remainingMinutes = 0;
+            }
         }
+
+        $activeShiftLog = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+
+        $isInShift = $activeShiftLog ? true : false;
+        $shiftStatus = $isInShift ? 'in_shift' : 'out_of_shift';
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'is_break' => (bool) $delivery->is_break,
+                'break_time' => $delivery->break_time,
+                'remaining_minutes' => $remainingMinutes,
+                'break_started_at' => $delivery->break_started_at,
+
+                'shift' => [
+                    'id' => $delivery->shift?->id,
+                    'name' => $delivery->shift?->name,
+                    'from_time' => $delivery->shift?->from_time,
+                    'to_time' => $delivery->shift?->to_time,
+
+                    'is_in_shift' => $isInShift,
+                    'status' => $shiftStatus,
+
+                    'active_shift_log' => $activeShiftLog ? [
+                        'id' => $activeShiftLog->id,
+                        'start_time' => $activeShiftLog->start_time,
+                        'start_lat' => $activeShiftLog->start_lat,
+                        'start_lng' => $activeShiftLog->start_lng,
+                        'status' => $activeShiftLog->status,
+                    ] : null,
+                ],
+            ]
+        ]);
     }
-
-    $activeShiftLog = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
-        ->where('status', 'active')
-        ->latest()
-        ->first();
-
-    $isInShift = $activeShiftLog ? true : false;
-    $shiftStatus = $isInShift ? 'in_shift' : 'out_of_shift';
-
-    return response()->json([
-        'status' => true,
-        'data' => [
-            'is_break' => (bool) $delivery->is_break,
-            'break_time' => $delivery->break_time,
-            'remaining_minutes' => $remainingMinutes,
-            'break_started_at' => $delivery->break_started_at,
-
-            'shift' => [
-                'id' => $delivery->shift?->id,
-                'name' => $delivery->shift?->name,
-                'from_time' => $delivery->shift?->from_time,
-                'to_time' => $delivery->shift?->to_time,
-
-                'is_in_shift' => $isInShift,
-                'status' => $shiftStatus,
-
-                'active_shift_log' => $activeShiftLog ? [
-                    'id' => $activeShiftLog->id,
-                    'start_time' => $activeShiftLog->start_time,
-                    'start_lat' => $activeShiftLog->start_lat,
-                    'start_lng' => $activeShiftLog->start_lng,
-                    'status' => $activeShiftLog->status,
-                ] : null,
-            ],
-        ]
-    ]);
-}
 }

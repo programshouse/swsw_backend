@@ -22,16 +22,16 @@ class OfferController extends Controller
 
     public function store(Request $request)
     {
-       $data = $request->validate([
-    'name_ar' => 'required|string|max:255',
-    'name_en' => 'required|string|max:255',
+        $data = $request->validate([
+            'name_ar' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
 
-    'description_ar' => 'nullable|string',
-    'description_en' => 'nullable|string',
+            'description_ar' => 'nullable|string',
+            'description_en' => 'nullable|string',
 
-    'points' => 'required|integer|min:0',
-    'is_active' => 'nullable|boolean',
-]);
+            'points' => 'required|integer|min:0',
+            'is_active' => 'nullable|boolean',
+        ]);
 
         $data['is_active'] = $request->has('is_active');
 
@@ -49,16 +49,16 @@ class OfferController extends Controller
 
     public function update(Request $request, Offer $offer)
     {
-       $data = $request->validate([
-    'name_ar' => 'required|string|max:255',
-    'name_en' => 'required|string|max:255',
+        $data = $request->validate([
+            'name_ar' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
 
-    'description_ar' => 'nullable|string',
-    'description_en' => 'nullable|string',
+            'description_ar' => 'nullable|string',
+            'description_en' => 'nullable|string',
 
-    'points' => 'required|integer|min:0',
-    'is_active' => 'nullable|boolean',
-]);
+            'points' => 'required|integer|min:0',
+            'is_active' => 'nullable|boolean',
+        ]);
 
         $data['is_active'] = $request->has('is_active');
 

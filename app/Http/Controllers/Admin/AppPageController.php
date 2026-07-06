@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppPage;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 
 class AppPageController extends Controller
 {
@@ -96,5 +97,50 @@ class AppPageController extends Controller
             ->route('app-pages.index')
             ->with('success', 'تم حذف الصفحة بنجاح');
     }
+
+
+
+
+
+    public function appPage(Request $request): JsonResponse
+{
+    $validated = $request->validate([
+        'app_type' => [
+            'required',
+            Rule::in(['client', 'kitchen', 'delivery']),
+        ],
+        'page_type' => [
+            'required',
+            Rule::in(['privacy', 'terms']),
+        ],
+    ]);
+
+    $page = AppPage::where('app_type', $validated['app_type'])
+        ->where('page_type', $validated['page_type'])
+        ->where('is_active', true)
+        ->first();
+
+    if (!$page) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Page not found.',
+            'data' => null,
+        ], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'data' => [
+            'id' => $page->id,
+            'app_type' => $page->app_type,
+            'page_type' => $page->page_type,
+            'title_ar' => $page->title_ar,
+            'title_en' => $page->title_en,
+            'content_ar' => $page->content_ar,
+            'content_en' => $page->content_en,
+        ],
+    ]);
+}
 
 }

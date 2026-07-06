@@ -13,6 +13,7 @@ class GovernmentController extends Controller
 public function appIndex()
 {
     $governments = Government::with('areas')
+        ->where('is_active', true)
         ->latest()
         ->get()
         ->map(function ($government) {

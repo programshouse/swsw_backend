@@ -22,6 +22,7 @@ class Order extends Model
         'cancel_date',
         'delivered_at',
         'number',
+        'delivery_count',
     ];
 
        protected $casts = [

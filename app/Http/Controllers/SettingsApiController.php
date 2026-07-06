@@ -33,6 +33,9 @@ class SettingsApiController extends Controller
                 'user_video'      => $settings->user_video ? $prefix . '/' . $settings->user_video : null,
                 'kitchen_video'   => $settings->kitchen_video ? $prefix . '/' . $settings->kitchen_video : null,
                 'delivery_video'  => $settings->delivery_video ? $prefix . '/' . $settings->delivery_video : null,
+                'user_contract'     => 'https://programshouse.com/swsw/public' .'/' . $settings->user_contract ?? null ,
+                'kitchen_contract'     =>'https://programshouse.com/swsw/public' .'/' . $settings->kitchen_contract ?? null ,
+                'delivery_contract'     => 'https://programshouse.com/swsw/public' .'/' .$settings->delivery_contract ?? null ,
             ],
         ]);
     }

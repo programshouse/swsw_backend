@@ -371,4 +371,20 @@ class UserController extends Controller
 
         return redirect()->route('admin.login');
     }
+
+
+
+
+     public function logout(Request $request)
+    {
+        $user = $request->user();
+        if ($user) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Logged out successfully'
+        ]);
+    }
 }

@@ -24,7 +24,7 @@ class PendingDeliveryController extends Controller
         );
     }
 
-  public function accept($id)
+ public function accept($id)
 {
     DB::beginTransaction();
 
@@ -32,6 +32,8 @@ class PendingDeliveryController extends Controller
         $delivery = PendingDelivery::findOrFail($id);
 
         if (!$delivery->delivery_user_id) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'لا يوجد دليفري مرتبط بهذا الطلب',
@@ -41,6 +43,8 @@ class PendingDeliveryController extends Controller
         $deliveryUser = DeliveryUser::find($delivery->delivery_user_id);
 
         if (!$deliveryUser) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'الدليفري الأصلي غير موجود',
@@ -62,14 +66,20 @@ class PendingDeliveryController extends Controller
         ];
 
         if (!empty($delivery->image)) {
+
             if ($deliveryUser->image && $deliveryUser->image !== $delivery->image) {
-                Storage::disk('public')->delete($deliveryUser->image);
+                $oldImage = public_path(str_replace('public/', '', $deliveryUser->image));
+
+                if (file_exists($oldImage)) {
+                    @unlink($oldImage);
+                }
             }
 
             $updateData['image'] = $delivery->image;
         }
 
-        $deliveryUser->update($updateData);
+        // بدل update عشان لو fillable ناقص
+        $deliveryUser->forceFill($updateData)->save();
 
         $delivery->update([
             'status' => 'approved',
@@ -80,7 +90,6 @@ class PendingDeliveryController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تمت الموافقة على تعديل بيانات الدليفري بنجاح',
-            'data' => $deliveryUser->fresh(),
         ]);
 
     } catch (\Throwable $e) {
@@ -88,32 +97,7 @@ class PendingDeliveryController extends Controller
 
         return response()->json([
             'status' => false,
-            'message' => 'حدث خطأ أثناء الموافقة',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
-
-public function reject($id)
-{
-    try {
-        $delivery = PendingDelivery::findOrFail($id);
-
-        $delivery->update([
-            'status' => 'rejected',
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'تم رفض تعديل بيانات الدليفري بنجاح',
-            'data' => null,
-        ]);
-
-    } catch (\Throwable $e) {
-        return response()->json([
-            'status' => false,
-            'message' => 'حدث خطأ أثناء الرفض',
-            'error' => $e->getMessage(),
+            'message' => $e->getMessage(),
         ], 500);
     }
 }

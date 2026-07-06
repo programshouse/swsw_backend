@@ -103,7 +103,47 @@
 
 <script>
 function updateStatus(id, action) {
-    let url = '/admin/delivery/' + id + '/' + action;
+    let url = "{{ url('/admin/delivery') }}/" + id + "/" + action;
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: {
+            _token: "{{ csrf_token() }}"
+        },
+        success: function(response) {
+            console.log(response);
+
+            if (response.status) {
+                $('#row-' + id).remove();
+                alert(response.message);
+            } else {
+                alert(response.message || 'حدث خطأ');
+            }
+        },
+        error: function(xhr) {
+            console.log(xhr.status);
+            console.log(xhr.responseText);
+
+            let message = 'حدث خطأ، حاول مرة أخرى';
+
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+
+            alert(message);
+        }
+    });
+}
+</script>
+@endpush
+
+@push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+function updateStatus(id, action) {
+    let url = '/swsw/admin/delivery/' + id + '/' + action;
 
     $.ajax({
         url: url,
@@ -112,15 +152,30 @@ function updateStatus(id, action) {
             _token: '{{ csrf_token() }}'
         },
         success: function(response) {
+            console.log(response);
+
             if (response.status) {
                 $('#row-' + id).remove();
                 alert(response.message);
+            } else {
+                alert(response.message || 'حدث خطأ');
             }
         },
-        error: function() {
-            alert('حدث خطأ، حاول مرة أخرى');
+        error: function(xhr) {
+            console.log(xhr.status);
+            console.log(xhr.responseText);
+
+            let message = 'حدث خطأ، حاول مرة أخرى';
+
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+
+            alert(message);
         }
     });
 }
+</script>
+
 </script>
 @endpush

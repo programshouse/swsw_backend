@@ -12,7 +12,7 @@ class GovernmentController extends Controller
     
     public function index()
     {
-        $all_governments =  Government::where('status', true)->get();
+        $all_governments =  Government::where('is_active', true)->get();
        // 
 
         return response()->json([

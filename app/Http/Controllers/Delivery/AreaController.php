@@ -12,7 +12,7 @@ class AreaController extends Controller
     public function index(Government $government)
     {
 
-        $government_areas = $government->areas()->where('status', true)->get();
+        $government_areas = $government->areas()->where('is_active', true)->get();
         
 
         if ($government_areas->isEmpty()) {

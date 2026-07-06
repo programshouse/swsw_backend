@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Models\Setting;
 use App\Models\DeliveryOrder;
+use App\Models\DeliveryUser;
 
 
 class OrdersController extends Controller
@@ -298,61 +299,71 @@ class OrdersController extends Controller
             'message' => 'Order deleted successfully'
         ]);
     }
-  public function accept_order(Request $request, Order $order): JsonResponse
+    
+    public function accept_order(Request $request, Order $order): JsonResponse
 {
     $user = $request->user();
 
-    if ($user->role !== 'kitchen' || $order->kitchen_id !== $user->profile->id) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized'
-        ], 403);
+    if ($user->role === 'kitchen') {
+        if ($order->kitchen_id !== $user->profile->id) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+    } else {
+        if ($order->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
     }
 
     $validated = $request->validate([
-        'status' => 'required|in:accepted_by_kitchen,preparing,ready_to_deliver,cancelled_by_kitchen',
-        'deliveries_count' => 'required_if:status,ready_to_deliver|nullable|integer|min:1',
+        'status' => 'required|in:accepted,rejected,ready_to_deliver,preparing',
+
+        // مطلوب فقط لما المطبخ يحول الأوردر ready_to_deliver
+        'delivery_count' => 'required_if:status,ready_to_deliver|nullable|integer|min:1|max:10',
     ]);
 
-    $current = $order->status;
-    $new = $validated['status'];
-
-    $allowedTransitions = [
-        'pending' => ['accepted_by_kitchen', 'cancelled_by_kitchen'],
-        'accepted_by_kitchen' => ['preparing', 'cancelled_by_kitchen'],
-        'preparing' => ['ready_to_deliver', 'cancelled_by_kitchen'],
-        'ready_to_deliver' => [],
-    ];
-
-    if (!isset($allowedTransitions[$current]) || !in_array($new, $allowedTransitions[$current])) {
+    if ($order->status === $validated['status']) {
         return response()->json([
-            'status' => false,
-            'message' => "Cannot change order from {$current} to {$new}",
+            'message' => 'order is already ' . $validated['status'],
         ], 400);
     }
 
-    $data = ['status' => $new];
+    $updateData = [
+        'status' => $validated['status'],
+    ];
 
-    if ($new === 'cancelled_by_kitchen') {
-        $data['cancel_date'] = now();
+    if ($validated['status'] === 'ready_to_deliver') {
+        $updateData['delivery_count'] = $validated['delivery_count'];
     }
 
-    $order->update($data);
+    $order->update($updateData);
 
     $assignedDeliveries = [];
 
-    if ($new === 'ready_to_deliver') {
-        $assignedDeliveries = $this->assignNearestDeliveries(
-            $order,
-            (int) $validated['deliveries_count']
-        );
+    if ($validated['status'] === 'ready_to_deliver') {
+        $freshOrder = $order->fresh(['kitchen']);
+
+        $deliveryCount = (int) $freshOrder->delivery_count;
+
+        $assignedDeliveries = $this->assignNearestDeliveries($freshOrder, $deliveryCount);
+
+        if (empty($assignedDeliveries)) {
+            return response()->json([
+                'message' => 'Order ready_to_deliver successfully, but no delivery matched filters',
+                'order_status' => $validated['status'],
+                'delivery_count' => $deliveryCount,
+                'assigned_deliveries' => [],
+            ]);
+        }
     }
 
     return response()->json([
-        'status' => true,
-        'message' => 'Order status updated successfully',
-        'order_status' => $new,
-        'assigned_deliveries_count' => count($assignedDeliveries),
+        'message' => 'Order ' . $validated['status'] . ' successfully',
+        'order_status' => $validated['status'],
+        'delivery_count' => $order->fresh()->delivery_count,
         'assigned_deliveries' => $assignedDeliveries,
     ]);
 }
@@ -434,18 +445,26 @@ class OrdersController extends Controller
 
 
     private function assignNearestDeliveries(Order $order, int $count): array
-{
-    $kitchen = $order->kitchen;
+    {
+        $kitchen = $order->kitchen;
 
-    if (!$kitchen || !$kitchen->lat || !$kitchen->lng) {
-        return [];
-    }
+        if (!$kitchen) {
+            return [];
+        }
 
-    $lat = $kitchen->lat;
-    $lng = $kitchen->lng;
+        $kitchenAddress = \App\Models\UserAddress::where('user_id', $kitchen->user_id ?? $kitchen->id)
+            ->where('is_default', 1)
+            ->first();
 
-    $deliveries = DeliveryUser::query()
-        ->selectRaw("
+        if (!$kitchenAddress || !$kitchenAddress->lat || !$kitchenAddress->lng) {
+            return [];
+        }
+
+        $lat = $kitchenAddress->lat;
+        $lng = $kitchenAddress->lng;
+
+        $deliveries = DeliveryUser::query()
+            ->selectRaw("
             delivery_users.*,
             (
                 6371 * acos(
@@ -457,43 +476,44 @@ class OrdersController extends Controller
                 )
             ) AS distance
         ", [$lat, $lng, $lat])
-        ->whereNotNull('current_lat')
-        ->whereNotNull('current_lng')
-        ->where('is_approved', 1)
-        ->whereHas('shiftLogs', function ($q) {
-            $q->where('status', 'active');
-        })
-        ->whereDoesntHave('orders', function ($q) {
-            $q->whereIn('delivery_orders.status', [
-                'accepted',
-                'picked_up',
-                'on_the_way'
-            ]);
-        })
-        ->orderBy('distance')
-        ->limit($count)
-        ->get();
+            ->whereNotNull('current_lat')
+            ->whereNotNull('current_lng')
+            ->where('status', 'approved')
+            ->whereHas('shiftLogs', function ($q) {
+                $q->where('status', 'active');
+                $q->where('is_break', '0');
+            })
+            ->whereDoesntHave('orders', function ($q) {
+                $q->whereIn('delivery_orders.status', [
+                    'accepted',
+                    'picked_up',
+                    'on_the_way'
+                ]);
+            })
+            ->orderBy('distance')
+            ->limit($count)
+            ->get();
 
-    foreach ($deliveries as $delivery) {
-        DeliveryOrder::updateOrCreate(
-            [
-                'order_id' => $order->id,
-                'delivery_user_id' => $delivery->id,
-            ],
-            [
-                'status' => 'pending',
-                'cash_settled' => false,
-            ]
-        );
+        foreach ($deliveries as $delivery) {
+            DeliveryOrder::updateOrCreate(
+                [
+                    'order_id' => $order->id,
+                    'delivery_user_id' => $delivery->id,
+                ],
+                [
+                    'status' => 'pending',
+                    'cash_settled' => false,
+                ]
+            );
+        }
+
+        return $deliveries->map(function ($delivery) {
+            return [
+                'id' => $delivery->id,
+                'name' => $delivery->name,
+                'phone' => $delivery->phone,
+                'distance_km' => round($delivery->distance, 2),
+            ];
+        })->toArray();
     }
-
-    return $deliveries->map(function ($delivery) {
-        return [
-            'id' => $delivery->id,
-            'name' => $delivery->name,
-            'phone' => $delivery->phone,
-            'distance_km' => round($delivery->distance, 2),
-        ];
-    })->toArray();
-}
 }

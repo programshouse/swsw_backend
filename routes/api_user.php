@@ -26,6 +26,7 @@ use App\Http\Middleware\EnsureGovernrateArea;
 use App\Http\Controllers\Delivery\AuthController;
 use App\Http\Controllers\Delivery\RateStoreController;
 use App\Http\Controllers\AppPageApiController;
+use App\Http\Controllers\Admin\AppPageController;
 
 Route::get('/app-pages/{appType}/{pageType}', [AppPageApiController::class, 'show']);
 // Public authentication routes
@@ -61,6 +62,10 @@ Route::get('/workdays', [WorkingDayController::class, 'index']);
 
 
 Route::middleware('auth:api_user')->group(function () {
+
+   Route::post('/logout', [UserController::class, 'logout']);
+     Route::get('/app-pages', [AppPageController::class, 'appPage']);
+
 
   Route::patch('/update-location', [UserController::class, 'update_location']);
     Route::get('/rates', [RateController::class, 'getRates']);
