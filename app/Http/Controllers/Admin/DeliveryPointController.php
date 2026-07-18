@@ -4,23 +4,42 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryPoint;
+use App\Models\DeliveryUser;
+use App\Models\PointTransaction;
 
 
 class DeliveryPointController extends Controller
 {
       public function index()
-      {
-            $delivery_points = DeliveryPoint::get();
+    {
+        $delivery_points = PointTransaction::query()
+            ->with([
+                'owner',
+                'reference',
+            ])
+            ->whereHasMorph(
+                'owner',
+                [DeliveryUser::class]
+            )
+            ->latest()
+            ->get();
 
-            return view('admin.delivery_points.index', compact('delivery_points'));
-      }
+        return view(
+            'admin.delivery_points.index',
+            compact('delivery_points')
+        );
+    }
 
-      public function destroy(DeliveryPoint $deliveryPoint)
-      {
-            $deliveryPoint->delete();
+    public function destroy(PointTransaction $deliveryPoint)
+    {
+        if (!$deliveryPoint->owner instanceof DeliveryUser) {
+            abort(404);
+        }
 
-            return redirect()
-                  ->route('admin.delivery.points.index')
-                  ->with('success', 'Delivery Points Deleted Successfully');
-      }
+        $deliveryPoint->delete();
+
+        return redirect()
+            ->route('admin.delivery.points.index')
+            ->with('success', 'تم حذف عملية النقاط بنجاح');
+    }
 }

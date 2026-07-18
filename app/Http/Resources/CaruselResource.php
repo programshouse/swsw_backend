@@ -15,9 +15,9 @@ class CaruselResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'image' => $this->image ? config('app.url') . '/storage/' . $this->image : null,
-            'kitchen_id'=>$this->kitchen_id ?? null,
-        ];
+        'id' => $this->id,
+        'image' => url($this->image),
+        'kitchen_id' =>  $this->kitchenProfile->id ?? null,
+    ];
     }
 }

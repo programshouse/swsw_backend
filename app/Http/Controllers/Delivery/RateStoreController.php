@@ -9,6 +9,7 @@ use App\Models\RateStore;
 use App\Models\Point;
 use App\Models\User;
 use App\Models\Order;
+use App\Models\DeliveryOrder;
 use Illuminate\Http\Request;
 use App\Models\UserRate;
 
@@ -65,14 +66,12 @@ class RateStoreController extends Controller
     }
 
 
-
-   public function storeRates(Request $request)
+ public function storeRates(Request $request)
 {
-    $delivery = auth('api_delivery')->user();
+    $user = $request->user();
 
     $validated = $request->validate([
         'order_id' => 'required|exists:orders,id',
-        'rated_type' => 'required|in:client,kitchen',
         'details' => 'nullable|string',
 
         'rates' => 'required|array|min:1',
@@ -80,22 +79,31 @@ class RateStoreController extends Controller
         'rates.*.score' => 'required|integer|min:1|max:5',
     ]);
 
-    $order = Order::findOrFail($validated['order_id']);
+    $order = Order::with('deliveryOrders')->findOrFail($validated['order_id']);
+
+    $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
+        ->whereNotNull('delivery_user_id')
+        ->latest('id')
+        ->first();
+
+    if (!$deliveryOrder) {
+        return response()->json([
+            'status' => false,
+            'message' => 'No delivery user found for this order.',
+        ], 422);
+    }
 
     foreach ($validated['rates'] as $rate) {
         RateStore::updateOrCreate(
             [
                 'order_id' => $order->id,
-                'delivery_user_id' => $delivery->id,
                 'user_rate_id' => $rate['user_rate_id'],
-                'rated_type' => $validated['rated_type'],
-                'rater_type' => 'delivery',
+                'rater_type' => 'client',
+                'rated_type' => 'delivery',
             ],
             [
-                'user_id' => $validated['rated_type'] === 'client'
-                    ? $order->user_id
-                    : $order->kitchen_id,
-
+                'user_id' => $user->id,
+                'delivery_user_id' => $deliveryOrder->delivery_user_id,
                 'score' => $rate['score'],
                 'details' => $validated['details'] ?? null,
             ]
@@ -130,4 +138,30 @@ class RateStoreController extends Controller
             'points' => $points,
         ], 200);
     }
+
+
+   public function myRates(Request $request)
+{
+    $delivery = $request->user();
+
+    $rates = RateStore::query()
+        ->with([
+            'order.userAddress',
+            'user:id,name,phone',
+            'userRate',
+        ])
+        ->where('rated_type', 'delivery')
+        ->where('rater_type', 'client')
+        ->where('delivery_user_id', $delivery->id)
+        ->latest()
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'points_count' => $delivery->points ?? 0,
+        'average_rating' => round($rates->avg('score') ?? 0, 1),
+        'ratings_count' => $rates->count(),
+        'data' => ClientRateResource::collection($rates),
+    ]);
+}
 }

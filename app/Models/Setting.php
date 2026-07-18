@@ -24,7 +24,9 @@ class Setting extends Model
         'vat_percentage',
         'delivery_contract',
         'kitchen_contract',
-        'user_contract'
+        'user_contract',
+        'delivery_meter_price',
+       
     ];
 
 

@@ -56,6 +56,12 @@ return [
             'driver' => 'sanctum',
             'provider' => 'users',
         ],
+
+        
+              'sales' => [
+            'driver' => 'session',
+            'provider' => 'sales',
+        ],
     ],
 
     /*
@@ -86,10 +92,10 @@ return [
             'model' => App\Models\DeliveryUser::class,
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+         'sales' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Sale::class,
+        ],
     ],
 
     /*

@@ -5,30 +5,30 @@ namespace App\Http\Controllers\client;
 use App\Http\Controllers\Controller;
 use App\Models\Carusel;
 use App\Models\Area;
+use App\Models\User;
+use App\Helpers\FileHelper;
 use Illuminate\Http\Request;
 use App\Http\Resources\CaruselResource;
-use Illuminate\Support\Facades\Storage;
-use App\Models\User;
 
 class CaruselController extends Controller
 {
-
     public function index(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        $carusels = Carusel::where('area_id', $user->area_id)
-            ->orWhereNull('area_id')
-            ->get();
+    $carusels = Carusel::with('kitchenProfile')
+        ->where(function ($query) use ($user) {
+            $query->where('area_id', $user->area_id)
+                ->orWhereNull('area_id');
+        })
+        ->get();
 
-        return response()->json([
-            'carusel' => CaruselResource::collection($carusels),
-        ], 200);
-    }
+    return response()->json([
+        'carusel' => CaruselResource::collection($carusels),
+    ]);
+}
 
-    
-
-  public function GetAll(Request $request)
+    public function GetAll(Request $request)
     {
         $carusels = Carusel::with(['area', 'kitchen'])->latest()->get();
 
@@ -49,7 +49,11 @@ class CaruselController extends Controller
             'kitchen_id' => 'nullable|exists:users,id',
         ]);
 
-        $imagePath = $request->file('image')->store('carusel', 'public');
+        $imagePath = FileHelper::uploadImage(
+            $request,
+            'image',
+            'assets/uploads/carusel'
+        );
 
         Carusel::create([
             'image' => $imagePath,
@@ -64,9 +68,7 @@ class CaruselController extends Controller
 
     public function destroy(Request $request, Carusel $carusel)
     {
-        if ($carusel->image && Storage::disk('public')->exists($carusel->image)) {
-            Storage::disk('public')->delete($carusel->image);
-        }
+        FileHelper::deleteFile($carusel->image);
 
         $carusel->delete();
 

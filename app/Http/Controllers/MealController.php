@@ -8,6 +8,7 @@ use App\Models\KitchenProfile;
 use App\Http\Resources\MealResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
+use App\Helpers\FileHelper;
 
 class MealController extends Controller
 {
@@ -44,11 +45,13 @@ class MealController extends Controller
             'preparation_time' => 'required|integer|min:1',
         ]);
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('kitchens-meals', 'public');
-        }
+        $path = FileHelper::uploadImage(
+            $request,
+            'image',
+            'assets/uploads/kitchens-meals'
+        );
 
-        $meal  = Meal::create([
+        $meal = Meal::create([
             'category_id' => $validated['category_id'],
             'name' => $validated['name'],
             'description' => $validated['description'],
@@ -56,7 +59,7 @@ class MealController extends Controller
             'price' => $validated['price'],
             'available_delivery_today' => $validated['available_delivery_today'],
             'recipe' => $validated['recipe'],
-            'image' =>  $path,
+            'image' => $path,
             'kitchen_profile_id' => $user->id,
             'preparation_time' => $validated['preparation_time'],
         ]);
@@ -92,14 +95,14 @@ class MealController extends Controller
     // }
 
 
-   public function allMeals(Request $request)
-{
-    $meals = Meal::with(['kitchen',  'category'])
-        ->latest()
-        ->get();
+    public function allMeals(Request $request)
+    {
+        $meals = Meal::with(['kitchen',  'category'])
+            ->latest()
+            ->get();
 
-    return view('admin.meals.index', compact('meals'));
-}
+        return view('admin.meals.index', compact('meals'));
+    }
 
     public function approveMeal(Request $request, Meal $meal)
     {
@@ -140,54 +143,74 @@ class MealController extends Controller
 
         $meal->delete();
 
-         return redirect()
-        ->back()
-        ->with('success', 'تم حذف الوجبة بنجاح');
+        return redirect()
+            ->back()
+            ->with('success', 'تم حذف الوجبة بنجاح');
     }
 
-       public function updateQuantity(Request $request, Meal $meal): JsonResponse
-{
-    $user = auth()->user();
+    public function updateQuantity(Request $request, Meal $meal): JsonResponse
+    {
+        $user = auth()->user();
 
-    if (!$user || $user->role !== 'kitchen') {
+        if (!$user || $user->role !== 'kitchen') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $kitchenProfile = KitchenProfile::where('user_id', $user->id)->first();
+
+        if (!$kitchenProfile) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Kitchen profile not found.',
+            ], 404);
+        }
+
+        if ($meal->kitchen_profile_id != $kitchenProfile->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:0',
+        ]);
+
+        $meal->update([
+            'quantity' => $validated['quantity'],
+        ]);
+
         return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized',
-        ], 403);
+            'status' => true,
+            'message' => 'Quantity updated successfully.',
+            'data' => [
+                'id' => $meal->id,
+                'quantity' => $meal->quantity,
+            ],
+        ]);
     }
 
-    $kitchenProfile = KitchenProfile::where('user_id', $user->id)->first();
 
-    if (!$kitchenProfile) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Kitchen profile not found.',
-        ], 404);
+
+    public function updateImage(Request $request, Meal $meal)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $path = FileHelper::uploadImage(
+            $request,
+            'image',
+            'assets/uploads/kitchens-meals'
+        );
+
+        $meal->update([
+            'image' => $path,
+        ]);
+
+        return back()->with('success', 'تم تحديث صورة الوجبة بنجاح');
     }
-
-    if ($meal->kitchen_profile_id != $kitchenProfile->id) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized',
-        ], 403);
-    }
-
-    $validated = $request->validate([
-        'quantity' => 'required|integer|min:0',
-    ]);
-
-    $meal->update([
-        'quantity' => $validated['quantity'],
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Quantity updated successfully.',
-        'data' => [
-            'id' => $meal->id,
-            'quantity' => $meal->quantity,
-        ],
-    ]);
-}
-    
 }

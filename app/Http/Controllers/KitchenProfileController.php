@@ -13,6 +13,7 @@ use App\Http\Resources\KitchenProfileResource;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
 use App\Models\DeliveryUser;
+use App\Helpers\FileHelper;
 
 class KitchenProfileController extends Controller
 {
@@ -44,10 +45,17 @@ class KitchenProfileController extends Controller
             'cover' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
         ]);
 
-        if ($request->hasFile('logo') && $request->hasFile('cover')) {
-            $logo_path = $request->file('logo')->store('kitchens', 'public');
-            $cover_path = $request->file('cover')->store('kitchens', 'public');
-        }
+        $logo_path = FileHelper::uploadImage(
+            $request,
+            'logo',
+            'assets/uploads/kitchens'
+        );
+
+        $cover_path = FileHelper::uploadImage(
+            $request,
+            'cover',
+            'assets/uploads/kitchens'
+        );
 
 
         $profile = KitchenProfile::create([
@@ -221,34 +229,34 @@ class KitchenProfileController extends Controller
     }
 
 
-   public function kitchens(Request $request)
-{
-    $kitchens = User::where('role', 'kitchen')
-        ->with(['profile.government', 'profile.area'])
-        ->latest()
-        ->get()
-        ->map(function ($kitchen) {
+    public function kitchens(Request $request)
+    {
+        $kitchens = User::where('role', 'kitchen')
+            ->with(['profile.government', 'profile.area'])
+            ->latest()
+            ->get()
+            ->map(function ($kitchen) {
 
-            if (empty($kitchen->code)) {
-                $kitchen->referrals_count = 0;
+                if (empty($kitchen->code)) {
+                    $kitchen->referrals_count = 0;
+                    return $kitchen;
+                }
+
+                $usersCount = User::whereNotNull('referral_code')
+                    ->where('referral_code', $kitchen->code)
+                    ->count();
+
+                $deliveryCount = DeliveryUser::whereNotNull('referral_code')
+                    ->where('referral_code', $kitchen->code)
+                    ->count();
+
+                $kitchen->referrals_count = $usersCount + $deliveryCount;
+
                 return $kitchen;
-            }
+            });
 
-            $usersCount = User::whereNotNull('referral_code')
-                ->where('referral_code', $kitchen->code)
-                ->count();
-
-            $deliveryCount = DeliveryUser::whereNotNull('referral_code')
-                ->where('referral_code', $kitchen->code)
-                ->count();
-
-            $kitchen->referrals_count = $usersCount + $deliveryCount;
-
-            return $kitchen;
-        });
-
-    return view('admin.kitchens.index', compact('kitchens'));
-}
+        return view('admin.kitchens.index', compact('kitchens'));
+    }
 
     public function kitchen_show(Request $request, User $profile)
     {

@@ -12,6 +12,24 @@ class OrderItemsResource extends JsonResource
      *
      * @return array<string, mixed>
      */
+
+    private function imageUrl($path)
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return config('app.url') . '/' . $path;
+        }
+
+        return config('app.url') . '/storage/' . $path;
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -21,9 +39,10 @@ class OrderItemsResource extends JsonResource
             'price_pre_piece' => $this->price,
             'total_price' => $this->price * $this->quantity,
             'meal_name' => $this->meal->name ?? null,
-            'meal_image' => $this->meal->image ? config('app.url') . '/storage/' . $this->meal->image : null,
+            'meal_image' => $this->imageUrl($this->meal?->image),
+
+
             'preparation_time' => $this->meal->preparation_time ?? null,
         ];
-        
     }
 }

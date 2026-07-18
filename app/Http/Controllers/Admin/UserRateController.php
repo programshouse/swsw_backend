@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\UserRate;
 use Illuminate\Http\Request;
+use App\Models\RateStore;
+
 
 class UserRateController extends Controller
 {
@@ -81,12 +83,10 @@ class UserRateController extends Controller
       }
 
 
-      public function destroy(UserRate $rate)
+      public function destroy(RateStore $rate)
       {
             $rate->delete();
 
-            return redirect()
-                  ->route('admin.rates.index')
-                  ->with('success', 'Rate Deleted Successfully');
+            return back()->with('success', 'تم حذف التقييم بنجاح.');
       }
 }

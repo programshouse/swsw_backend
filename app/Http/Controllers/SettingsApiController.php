@@ -36,6 +36,9 @@ class SettingsApiController extends Controller
                 'user_contract'     => 'https://programshouse.com/swsw/public' .'/' . $settings->user_contract ?? null ,
                 'kitchen_contract'     =>'https://programshouse.com/swsw/public' .'/' . $settings->kitchen_contract ?? null ,
                 'delivery_contract'     => 'https://programshouse.com/swsw/public' .'/' .$settings->delivery_contract ?? null ,
+                'work_start_time'  => $settings->work_start_time,
+                 'work_end_time'  => $settings->work_end_time,
+                
             ],
         ]);
     }

@@ -50,7 +50,7 @@ class AuthController extends Controller
 
             'has_vehicle' => 'required|boolean',
             'vehicle_id' => 'nullable|string|exists:vehicles,id',
-            'vehicle_type' => 'nullable|in:car,motorcycle,bicycle',
+            'vehicle_type' => 'nullable|string|max:255',
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
               'referral_code' => 'nullable|string|max:50',
@@ -108,7 +108,7 @@ class AuthController extends Controller
             'type' => $request->type,
             'has_vehicle' => $request->has_vehicle,
             'vehicle_id' => $request->vehicle_id,
-            'vehicle_type' => $request->vehicle_type,
+            'vehicle_type' => $request->vehicle_type ??null,
             'image' => $imagePath,
             'status' => 'pending',
              'referral_code' => $validated['referral_code'] ?? null,

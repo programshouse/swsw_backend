@@ -27,12 +27,31 @@ use App\Http\Controllers\Delivery\AuthController;
 use App\Http\Controllers\Delivery\RateStoreController;
 use App\Http\Controllers\AppPageApiController;
 use App\Http\Controllers\Admin\AppPageController;
+use App\Http\Controllers\Admin\KitchenPackageController;
+use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\FirebaseTokenController;
+use App\Http\Controllers\NotificationController;
+
+
+
+Route::get('/firebase-test', function () {
+    try {
+        new \App\services\FirebaseNotificationService();
+
+        return 'Firebase OK';
+    } catch (\Throwable $e) {
+        return $e->getMessage();
+    }
+});
+
+
 
 Route::get('/app-pages/{appType}/{pageType}', [AppPageApiController::class, 'show']);
 // Public authentication routes
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/client-login', [UserController::class, 'client_login']);
+Route::get('/companies', [CompanyController::class, 'companies']);
 
 
 Route::post('password/send-otp', [EmailOtpPasswordController::class, 'sendOtp']);
@@ -57,116 +76,136 @@ Route::get('/workdays', [WorkingDayController::class, 'index']);
 
 
 
- 
+
 
 
 
 Route::middleware('auth:api_user')->group(function () {
 
-   Route::post('/logout', [UserController::class, 'logout']);
-     Route::get('/app-pages', [AppPageController::class, 'appPage']);
+    Route::post('/logout', [UserController::class, 'logout']);
+    Route::get('/app-pages', [AppPageController::class, 'appPage']);
 
 
-  Route::patch('/update-location', [UserController::class, 'update_location']);
+    Route::patch('/update-location', [UserController::class, 'update_location']);
     Route::get('/rates', [RateController::class, 'getRates']);
     Route::post('/kitchen-rate/{order}', [RateController::class, 'kitchenRate']);
     Route::post('/user-rate/{order}', [RateController::class, 'userRate']);
     Route::get('/{kitchen}/rates', [RateController::class, 'kitchenRates']);
-  Route::get('/offers', [OfferController::class, 'kitchenOffers']);
+    Route::get('/offers', [OfferController::class, 'kitchenOffers']);
 
-  Route::patch('/meals/{meal}/quantity', [MealController::class, 'updateQuantity']);
+    Route::get('/{order}/approval-status', [OrderSController::class, 'orderApprovalStatus']);
 
+    Route::patch('/meals/{meal}/quantity', [MealController::class, 'updateQuantity']);
 
-  Route::middleware(EnsureGovernrateArea::class)->group(function () {
-    // kitchen
-    Route::post('/kitchen-profile', [KitchenProfileController::class, 'store']);
-    Route::get('/my-kitchen-profile', [KitchenProfileController::class, 'me'])->middleware(EnsureProfileAccepted::class);
-    Route::patch('/open-status-kitchen-profile', [KitchenProfileController::class, 'open_status']);
-    Route::get('/kitchen-app-home', [KitchenAppHomeController::class, 'index']);
+    Route::get('/kitchen/packages', [KitchenPackageController::class, 'packages']);
 
-    // meals
-    Route::post('/create-meal', [MealController::class, 'store'])->middleware(EnsureProfileAccepted::class);
-    Route::delete('/meal/{meal}/delete', [MealController::class, 'destroy']);
-    Route::get('/my-meals', [MealController::class, 'my_meals'])->middleware(EnsureProfileAccepted::class);
-    Route::patch('/meal-availability/{meal}', [MealController::class, 'switchAvailability']);
+    Route::get('/my-points', [OfferController::class, 'myPoints']);
 
-    // orders
-    Route::get('/kitchen-orders', [OrdersController::class, 'kitchen_orders']);
-    Route::get('/client-orders', [OrdersController::class, 'client_orders']);
+    Route::post('/firebase-token',[FirebaseTokenController::class, 'store']);
 
-    Route::get('/orders', [OrdersController::class, 'index']);
-    Route::post('/orders', [OrdersController::class, 'store']);
+    Route::post( '/firebase-token/language',[FirebaseTokenController::class, 'updateLanguage']);
 
-    Route::get('/orders/{order}', [OrdersController::class, 'show']);
-    Route::patch('/orders/{order}', [OrdersController::class, 'update']);
-    Route::delete('/orders/{order}', [OrdersController::class, 'destroy']);
-    Route::patch('/orders/{order}/change-status', [OrdersController::class, 'accept_order']);
-    Route::patch('/orders/{order}/deliver', [OrdersController::class, 'deliver_order']);
-    Route::post('/order/{order}/cancel', [OrdersController::class, 'cancel_order']);
+    Route::delete('/firebase-token',[FirebaseTokenController::class, 'destroy'] );
 
-    // client address
-    Route::get('/client-address', [UserAddressController::class, 'index']);
-    Route::post('/create-client-address', [UserAddressController::class, 'store']);
-    Route::delete('/delete-client-address/{address}', [UserAddressController::class, 'destroy']);
-    Route::patch('/set-default-client-address/{address}', [UserAddressController::class, 'set_default_address']);
+    Route::get('/notifications',[NotificationController::class, 'index']);
 
+    Route::post('/notifications/{notification}/read',[NotificationController::class, 'markAsRead']);
 
-    // client app home
-    Route::get('/client-home', [ClientController::class, 'ClientHome']);
-    Route::get('/client-kitchen-details/{kitchen}', [ClientController::class, 'kitchen_details']);
-    Route::get('/client-meal-by-category/{category}', [ClientController::class, 'meals']);
-    Route::get('/client-my-profile', [ClientController::class, 'client_my_profile']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-    // client search
-    Route::get('/meal-search', [ClientController::class, 'meals_list']);
-    Route::get('/kitchen-search', [ClientController::class, 'kitchens_list']);
+    Route::middleware(EnsureGovernrateArea::class)->group(function () {
+        // kitchen
+        Route::post('/kitchen-profile', [KitchenProfileController::class, 'store']);
+        Route::get('/my-kitchen-profile', [KitchenProfileController::class, 'me'])->middleware(EnsureProfileAccepted::class);
+        Route::patch('/open-status-kitchen-profile', [KitchenProfileController::class, 'open_status']);
+        Route::get('/kitchen-app-home', [KitchenAppHomeController::class, 'index']);
 
+        // meals
+        Route::post('/create-meal', [MealController::class, 'store'])->middleware(EnsureProfileAccepted::class);
+        Route::delete('/meal/{meal}/delete', [MealController::class, 'destroy']);
+        Route::get('/my-meals', [MealController::class, 'my_meals'])->middleware(EnsureProfileAccepted::class);
+        Route::patch('/meal-availability/{meal}', [MealController::class, 'switchAvailability']);
 
-    // wallet
-    Route::get('/my-wallet', [WalletController::class, 'my_wallet']);
-    Route::post('/create-debit-request', [WalletController::class, 'create_debit_request']);
-    Route::get('/my-debit-requests', [WalletController::class, 'my_debit_requests']);
+        // orders
+        Route::get('/kitchen-orders', [OrdersController::class, 'kitchen_orders']);
+        Route::get('/client-orders', [OrdersController::class, 'client_orders']);
 
+        Route::get('/orders', [OrdersController::class, 'index']);
+        Route::post('/orders', [OrdersController::class, 'store']);                          ///notify
 
-    ///done
+        Route::get('/orders/{order}', [OrdersController::class, 'show']);
+        Route::patch('/orders/{order}', [OrdersController::class, 'update']);
+        Route::delete('/orders/{order}', [OrdersController::class, 'destroy']);
+        Route::patch('/orders/{order}/change-status', [OrdersController::class, 'accept_order']);      ///notify
+        Route::patch('/orders/{order}/deliver', [OrdersController::class, 'deliver_order']);
+        Route::post('/order/{order}/cancel', [OrdersController::class, 'cancel_order']);                    //notify
 
-    
-
-        
-
-         Route::get('/kitchens/{kitchen}/rates', [RateController::class, 'kitchenRates']);
+        // client address
+        Route::get('/client-address', [UserAddressController::class, 'index']);
+        Route::post('/create-client-address', [UserAddressController::class, 'store']);
+        Route::delete('/delete-client-address/{address}', [UserAddressController::class, 'destroy']);
+        Route::patch('/set-default-client-address/{address}', [UserAddressController::class, 'set_default_address']);
 
 
+        // client app home
+        Route::get('/client-home', [ClientController::class, 'ClientHome']);
+        Route::get('/company-kitchens', [ClientController::class, 'companyKitchens']);
 
-    // rates
-  });
+        Route::get('/kitchens-by-area', [ClientController::class, 'kitchensByArea']);
+        Route::get('/client-kitchen-details/{kitchen}', [ClientController::class, 'kitchen_details']);
+        Route::get('/client-meal-by-category/{category}', [ClientController::class, 'meals']);
+        Route::get('/client-my-profile', [ClientController::class, 'client_my_profile']);
 
-  Route::middleware(['auth:web', 'admin'])->group(function () {
-    // dashboard
-    // Route::get('/all-clients', [ClientController::class, 'all_clients']);
-    //  Route::get('/dashboard-insights', [DashboardInsightsController::class, 'index']);
-    // Route::get('/client/{user}', [ClientController::class, 'client_profile']);
-    // Route::get('/dash-kitchen-wallet/{kitchen}', [WalletController::class, 'wallet_transactions_for_kitchen']);
-    Route::get('/all-debit-requests', [WalletController::class, 'all_debit_requests']);
-    // Route::patch('/approve-debit-request/{debit_request}', [WalletController::class, 'approve_debit_request']);
+        // client search
+        Route::get('/meal-search', [ClientController::class, 'meals_list']);
+        Route::get('/kitchen-search', [ClientController::class, 'kitchens_list']);
 
 
-    // // carusel
-    Route::get('/carusel', [CaruselController::class, 'index']);
-    // Route::post('/create-carusel', [CaruselController::class, 'store']);
-    // Route::delete('/carusel/{carusel}/delete', [CaruselController::class, 'destroy']);
+        // wallet
+        Route::get('/my-wallet', [WalletController::class, 'my_wallet']);
+        Route::post('/create-debit-request', [WalletController::class, 'create_debit_request']);
+        Route::get('/my-debit-requests', [WalletController::class, 'my_debit_requests']);
 
-    // // kitchen
-    //  Route::post('/dashboard-generate-kitchen-user-forget-password-code/{user}', [UserController::class, 'generate_kitchen_user_forget_password_code']);
-    //  Route::get('/kitchen-profile/{profile}', [KitchenProfileController::class, 'show']);
-    //  Route::patch('/active-kitchen-profile/{profile}', [KitchenProfileController::class, 'active']);
-    //    Route::patch('/add-star-to-kitchen-profile/{kitchen}', [KitchenProfileController::class, 'add_star']);
-    //  Route::get('/kitchen-meals/{kitchen}', [KitchenProfileController::class, 'meals'])->middleware(EnsureProfileAccepted::class);
-    // // account
-    //  Route::patch('/active-kitchen-account/{user}', [UserController::class, 'active']);
-    Route::get('/kitchen-accounts', [UserController::class, 'kitchen_users']);
-    // // meals
-    // Route::post('/approve-meal/{meal}', [MealController::class, 'approveMeal']);
-    // Route::get('/all-meals', [MealController::class, 'allMeals']);
-  });
+
+        ///done
+
+
+
+
+
+        Route::get('/kitchens/{kitchen}/rates', [RateController::class, 'kitchenRates']);
+        Route::get('/carusel', [CaruselController::class, 'index']);
+
+
+        // rates
+    });
+
+    Route::middleware(['auth:web', 'admin'])->group(function () {
+        // dashboard
+        // Route::get('/all-clients', [ClientController::class, 'all_clients']);
+        //  Route::get('/dashboard-insights', [DashboardInsightsController::class, 'index']);
+        // Route::get('/client/{user}', [ClientController::class, 'client_profile']);
+        // Route::get('/dash-kitchen-wallet/{kitchen}', [WalletController::class, 'wallet_transactions_for_kitchen']);
+        Route::get('/all-debit-requests', [WalletController::class, 'all_debit_requests']);
+        // Route::patch('/approve-debit-request/{debit_request}', [WalletController::class, 'approve_debit_request']);
+
+
+        // // carusel
+
+        // Route::post('/create-carusel', [CaruselController::class, 'store']);
+        // Route::delete('/carusel/{carusel}/delete', [CaruselController::class, 'destroy']);
+
+        // // kitchen
+        //  Route::post('/dashboard-generate-kitchen-user-forget-password-code/{user}', [UserController::class, 'generate_kitchen_user_forget_password_code']);
+        //  Route::get('/kitchen-profile/{profile}', [KitchenProfileController::class, 'show']);
+        //  Route::patch('/active-kitchen-profile/{profile}', [KitchenProfileController::class, 'active']);
+        //    Route::patch('/add-star-to-kitchen-profile/{kitchen}', [KitchenProfileController::class, 'add_star']);
+        //  Route::get('/kitchen-meals/{kitchen}', [KitchenProfileController::class, 'meals'])->middleware(EnsureProfileAccepted::class);
+        // // account
+        //  Route::patch('/active-kitchen-account/{user}', [UserController::class, 'active']);
+        Route::get('/kitchen-accounts', [UserController::class, 'kitchen_users']);
+        // // meals
+        // Route::post('/approve-meal/{meal}', [MealController::class, 'approveMeal']);
+        // Route::get('/all-meals', [MealController::class, 'allMeals']);
+    });
 });

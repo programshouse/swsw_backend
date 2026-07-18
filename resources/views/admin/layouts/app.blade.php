@@ -524,247 +524,357 @@
 
     <div class="admin-layout">
 
-      
-<aside class="sidebar">
 
-    <div class="logo-wrapper">
-        @if (!empty($settings?->logo))
-            <img src="https://programshouse.com/swsw/public/uploads/settings/1782547392_logo_swsw-logo.jpg"
-                 alt="اللوجو"
-                 class="logo-image">
-        @endif
+        <aside class="sidebar">
 
-        <div class="logo-text">لوحة التحكم</div>
-    </div>
+            <div class="logo-wrapper">
+                @if (!empty($settings?->logo))
+                    <img src="https://programshouse.com/swsw/public/uploads/settings/1782547392_logo_swsw-logo.jpg"
+                        alt="اللوجو" class="logo-image">
+                @endif
 
-    <a href="{{ route('admin.dashboard') }}"
-       class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-        <span class="nav-icon">📊</span>
-        <span>الإحصائيات</span>
-    </a>
+                <div class="logo-text">لوحة التحكم</div>
+            </div>
 
-    <a href="{{ route('admin.clients.index') }}"
-       class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
-        <span class="nav-icon">👥</span>
-        <span>المستخدمين</span>
-    </a>
+              @if (auth('sales')->check())
 
-    {{-- المطابخ --}}
-    <div class="nav-group {{ request()->routeIs('admin.kitchens.*') || request()->routeIs('admin.meals.*') || request()->routeIs('admin.meal-offers.*') || request()->routeIs('admin.wallet.*') ? 'open' : '' }}">
-        <div class="nav-link parent" onclick="toggleMenu(this)">
-            <span class="nav-icon">🍽️</span>
-            <span>المطابخ</span>
-            <span class="arrow">⌄</span>
-        </div>
+        <li class="nav-item">
+            <a
+                href="{{ route('admin.sales.kitchens.index') }}"
+                class="nav-link {{
+                    request()->routeIs('admin.sales.kitchens.*')
+                        ? 'active'
+                        : ''
+                }}"
+            >
+                <i class="fas fa-store"></i>
+                <span>المطابخ</span>
+            </a>
+        </li>
 
-        <div class="submenu">
-            <a href="{{ route('admin.kitchens.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.kitchens.*') ? 'active' : '' }}">
-                المطابخ
+    @endif
+
+    @if (auth('web')->check())
+
+            <a href="{{ route('admin.dashboard') }}"
+                class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <span class="nav-icon">📊</span>
+                <span>الإحصائيات</span>
             </a>
 
-            <a href="{{ route('admin.meals.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.meals.*') ? 'active' : '' }}">
-                جميع الوجبات
+            <a href="{{ route('admin.clients.index') }}"
+                class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
+                <span class="nav-icon">👥</span>
+                <span>المستخدمين</span>
             </a>
 
-            <a href="{{ route('admin.meal-offers.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.meal-offers.*') ? 'active' : '' }}">
-                عروض الوجبات
-            </a>
-
-            <a href="{{ route('admin.wallet.debit-requests') }}"
-               class="nav-link sub {{ request()->routeIs('admin.wallet.*') ? 'active' : '' }}">
-                محفظة المطابخ
-            </a>
-        </div>
-    </div>
-
-    {{-- الدليفري --}}
-    <div class="nav-group {{ request()->routeIs('admin.delivery.*') || request()->routeIs('admin.delivery.points.*') || request()->routeIs('admin.deliveries.orders.*') || request()->routeIs('admin.reserve-deliveries.*') || request()->routeIs('admin.levels.*') || request()->routeIs('admin.offers.*') || request()->routeIs('admin.vehicles.*') || request()->routeIs('admin.points.*') ? 'open' : '' }}">
-        <div class="nav-link parent" onclick="toggleMenu(this)">
-            <span class="nav-icon">🏍️</span>
-            <span>الدليفري</span>
-            <span class="arrow">⌄</span>
-        </div>
-
-        <div class="submenu">
-            <a href="{{ route('admin.delivery.pending') }}"
-               class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
-                قيد الانتظار
-            </a>
-
-            <a href="{{ route('admin.delivery.profile.pending') }}"
-               class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
-                تعديلات ملفات الدليفري المعلقة
-            </a>
-
-            <a href="{{ route('admin.delivery.approved') }}"
-               class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
-                الدليفري المعتمد
-            </a>
-
-            <a href="{{ route('admin.deliveries.orders.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.deliveries.orders.*') ? 'active' : '' }}">
-                طلبات الدليفري
-            </a>
-
-            <a href="{{ route('admin.reserve-deliveries.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.reserve-deliveries.*') ? 'active' : '' }}">
-                الحسابات الاحتياطية
-            </a>
-
-            <a href="{{ route('admin.delivery.points.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.delivery.points.*') ? 'active' : '' }}">
-                نقاط الدليفري
-            </a>
-
-            <a href="{{ route('admin.points.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.points.*') ? 'active' : '' }}">
-                النقاط
-            </a>
-
-            <a href="{{ route('admin.offers.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
-                العروض
-            </a>
-
-            <a href="{{ route('admin.levels.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.levels.*') ? 'active' : '' }}">
-                المستويات
-            </a>
-
-            <a href="{{ route('admin.vehicles.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}">
-                وسائل التوصيل
-            </a>
-        </div>
-    </div>
-
-    {{-- المشاكل --}}
-    <div class="nav-group {{ request()->routeIs('admin.tickets.*') || request()->routeIs('admin.issue-types.*') ? 'open' : '' }}">
-        <div class="nav-link parent" onclick="toggleMenu(this)">
-            <span class="nav-icon">🎫</span>
-            <span>المشاكل</span>
-            <span class="arrow">⌄</span>
-        </div>
-
-        <div class="submenu">
-            <a href="{{ route('admin.tickets.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
-                المشاكل
-            </a>
-
-            <a href="{{ route('admin.issue-types.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.issue-types.*') ? 'active' : '' }}">
-                أنواع المشاكل
-            </a>
-        </div>
-    </div>
-
-    {{-- المناطق --}}
-    <div class="nav-group {{ request()->routeIs('admin.governments.*') || request()->routeIs('admin.areas.*') ? 'open' : '' }}">
-        <div class="nav-link parent" onclick="toggleMenu(this)">
-            <span class="nav-icon">📍</span>
-            <span>المناطق والمحافظات</span>
-            <span class="arrow">⌄</span>
-        </div>
-
-        <div class="submenu">
-            <a href="{{ route('admin.governments.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
-                المحافظات
-            </a>
-
-            <a href="{{ route('admin.areas.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
-                المناطق
-            </a>
-        </div>
-    </div>
-
-    {{-- التطبيق --}}
-    <div class="nav-group {{ request()->routeIs('admin.categories.*') || request()->routeIs('admin.sliders.*') || request()->routeIs('admin.rates.*') || request()->routeIs('admin.workdays.*') || request()->routeIs('admin.shifts.*') ? 'open' : '' }}">
-        <div class="nav-link parent" onclick="toggleMenu(this)">
-            <span class="nav-icon">📱</span>
-            <span>إعدادات التطبيق</span>
-            <span class="arrow">⌄</span>
-        </div>
-
-        <div class="submenu">
-            <a href="{{ route('admin.categories.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                فئات العناصر
-            </a>
-
-            <a href="{{ route('admin.sliders.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
-                السلايدر
-            </a>
-
-            <a href="{{ route('admin.rates.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
-                أسئلة التقييمات
-            </a>
-
-            <a href="{{ route('admin.workdays.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
-                أيام وساعات العمل
-            </a>
-
-            <a href="{{ route('admin.shifts.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
-                الشيفتات
-            </a>
-        </div>
-    </div>
-
-    {{-- عام --}}
-    <div class="nav-group {{ request()->routeIs('admin.referral-point-rules.*') || request()->routeIs('admin.settings.*') || request()->routeIs('app-pages.*') ? 'open' : '' }}">
-        <div class="nav-link parent" onclick="toggleMenu(this)">
-            <span class="nav-icon">⚙️</span>
-            <span>إعدادات عامة</span>
-            <span class="arrow">⌄</span>
-        </div>
-
-        <div class="submenu">
-            <a href="{{ route('admin.referral-point-rules.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.referral-point-rules.*') ? 'active' : '' }}">
-                مكافآت الدعوات
-            </a>
-
-            <a href="{{ route('admin.settings.index') }}"
-               class="nav-link sub {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                الإعدادات
-            </a>
-
-            <a href="{{ route('app-pages.index') }}"
-               class="nav-link sub {{ request()->routeIs('app-pages.*') ? 'active' : '' }}">
-                صفحات التطبيق
-            </a>
-        </div>
-    </div>
-
-</aside>
-        <main class="main-wrapper">
-
-            <header class="topbar">
-
-                <div class="admin-info">
-                    {{ auth()->user()->name ?? 'Admin' }}
-                    -
-                    {{ auth()->user()->email ?? '' }}
+            {{-- المطابخ --}}
+            <div
+                class="nav-group {{ request()->routeIs('admin.kitchens.*') || request()->routeIs('admin.meals.*') || request()->routeIs('admin.meal-offers.*') || request()->routeIs('admin.wallet.*') ? 'open' : '' }}">
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <span class="nav-icon">🍽️</span>
+                    <span>المطابخ</span>
+                    <span class="arrow">⌄</span>
                 </div>
 
-                <form method="POST" action="{{ route('admin.logout') }}">
-                    @csrf
+                <div class="submenu">
+                    <a href="{{ route('admin.kitchens.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.kitchens.*') ? 'active' : '' }}">
+                        المطابخ
+                    </a>
 
-                    <button type="submit" class="logout-btn">
-                        تسجيل الخروج
-                    </button>
-                </form>
+                    <a href="{{ route('admin.meals.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.meals.*') ? 'active' : '' }}">
+                        جميع الوجبات
+                    </a>
 
-            </header>
+                    <a href="{{ route('admin.meal-offers.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.meal-offers.*') ? 'active' : '' }}">
+                        عروض الوجبات
+                    </a>
+
+                    <a href="{{ route('admin.kitchen-packages.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.kitchen-packages.*') ? 'active' : '' }}">
+                        باقات المطابخ
+                    </a>
+
+                  
+
+                    <a href="{{ route('admin.wallet.debit-requests') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.wallet.*') ? 'active' : '' }}">
+                        محفظة المطابخ
+                    </a>
+                </div>
+            </div>
+
+            {{-- الدليفري --}}
+            <div
+                class="nav-group {{ request()->routeIs('admin.delivery.*') || request()->routeIs('admin.delivery.points.*') || request()->routeIs('admin.deliveries.orders.*') || request()->routeIs('admin.reserve-deliveries.*') || request()->routeIs('admin.levels.*') || request()->routeIs('admin.offers.*') || request()->routeIs('admin.vehicles.*') || request()->routeIs('admin.points.*') ? 'open' : '' }}">
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <span class="nav-icon">🏍️</span>
+                    <span>الدليفري</span>
+                    <span class="arrow">⌄</span>
+                </div>
+
+                <div class="submenu">
+                    <a href="{{ route('admin.delivery.pending') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
+                        قيد الانتظار
+                    </a>
+
+                    <a href="{{ route('admin.delivery.profile.pending') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
+                        تعديلات ملفات الدليفري المعلقة
+                    </a>
+
+                    <a href="{{ route('admin.delivery.approved') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
+                        الدليفري المعتمد
+                    </a>
+
+                    <a href="{{ route('admin.deliveries.orders.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.deliveries.orders.*') ? 'active' : '' }}">
+                        طلبات الدليفري
+                    </a>
+
+                    <a href="{{ route('admin.reserve-deliveries.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.reserve-deliveries.*') ? 'active' : '' }}">
+                        الحسابات الاحتياطية
+                    </a>
+
+                    <a href="{{ route('admin.delivery.points.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.delivery.points.*') ? 'active' : '' }}">
+                        نقاط الدليفري
+                    </a>
+
+                    <a href="{{ route('admin.points.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.points.*') ? 'active' : '' }}">
+                        النقاط
+                    </a>
+
+                    <a href="{{ route('admin.offers.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
+                        العروض
+                    </a>
+
+
+                    <a href="{{ route('delivery-offer-requests.index') }}"
+                        class="nav-link sub {{ request()->routeIs('delivery-offer-requests.*') ? 'active' : '' }}">
+                        طلبات عروض الدليفري
+                    </a>
+
+                    <a href="{{ route('admin.levels.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.levels.*') ? 'active' : '' }}">
+                        المستويات
+                    </a>
+
+                    <a href="{{ route('admin.vehicles.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}">
+                        وسائل التوصيل
+                    </a>
+                </div>
+            </div>
+
+            {{-- المشاكل --}}
+            <div
+                class="nav-group {{ request()->routeIs('admin.tickets.*') || request()->routeIs('admin.issue-types.*') ? 'open' : '' }}">
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <span class="nav-icon">🎫</span>
+                    <span>المشاكل</span>
+                    <span class="arrow">⌄</span>
+                </div>
+
+                <div class="submenu">
+                    <a href="{{ route('admin.tickets.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
+                        المشاكل
+                    </a>
+
+                    <a href="{{ route('admin.issue-types.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.issue-types.*') ? 'active' : '' }}">
+                        أنواع المشاكل
+                    </a>
+                </div>
+            </div>
+
+            {{-- المناطق --}}
+            <div
+                class="nav-group {{ request()->routeIs('admin.governments.*') || request()->routeIs('admin.areas.*') ? 'open' : '' }}">
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <span class="nav-icon">📍</span>
+                    <span>المناطق والمحافظات</span>
+                    <span class="arrow">⌄</span>
+                </div>
+
+                <div class="submenu">
+                    <a href="{{ route('admin.governments.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
+                        المحافظات
+                    </a>
+
+                    <a href="{{ route('admin.areas.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
+                        المناطق
+                    </a>
+                </div>
+            </div>
+
+
+            <a href="{{ route('admin.cash-codes.index') }}"
+                class="nav-link sub {{ request()->routeIs('admin.cash-codes.*') ? 'active' : '' }}">
+
+                 اكواد الخصم
+            </a>
+           
+                <a href="{{ route('admin.sales.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-tag"></i>
+
+                    <span>موظفو المبيعات</span>
+                </a>
+          
+
+           
+
+           
+                <a href="{{ route('admin.order-pricing.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.order-pricing.*') ? 'active' : '' }}">
+                    <i class="fas fa-calculator"></i>
+                    <span>تسعير الطلبات</span>
+                </a>
+        
+            {{-- التطبيق --}}
+            <div
+                class="nav-group {{ request()->routeIs('admin.categories.*') || request()->routeIs('admin.sliders.*') || request()->routeIs('admin.rates.*') || request()->routeIs('admin.workdays.*') || request()->routeIs('admin.shifts.*') ? 'open' : '' }}">
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <span class="nav-icon">📱</span>
+                    <span>إعدادات التطبيق</span>
+                    <span class="arrow">⌄</span>
+                </div>
+
+                <div class="submenu">
+                    <a href="{{ route('admin.categories.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                        فئات العناصر
+                    </a>
+
+                    <a href="{{ route('admin.sliders.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
+                        السلايدر
+                    </a>
+
+                    <a href="{{ route('admin.rates.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
+                        أسئلة التقييمات
+                    </a>
+
+                    <a href="{{ route('admin.workdays.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
+                        أيام وساعات العمل
+                    </a>
+
+                    <a href="{{ route('admin.shifts.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
+                        الشيفتات
+                    </a>
+                </div>
+            </div>
+
+            {{-- عام --}}
+            <div
+                class="nav-group {{ request()->routeIs('admin.referral-point-rules.*') || request()->routeIs('admin.settings.*') || request()->routeIs('app-pages.*') ? 'open' : '' }}">
+                <div class="nav-link parent" onclick="toggleMenu(this)">
+                    <span class="nav-icon">⚙️</span>
+                    <span>إعدادات عامة</span>
+                    <span class="arrow">⌄</span>
+                </div>
+
+                <div class="submenu">
+                    <a href="{{ route('admin.referral-point-rules.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.referral-point-rules.*') ? 'active' : '' }}">
+                        مكافآت الدعوات
+                    </a>
+
+                    <a href="{{ route('admin.settings.index') }}"
+                        class="nav-link sub {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                        الإعدادات
+                    </a>
+
+                    <a href="{{ route('app-pages.index') }}"
+                        class="nav-link sub {{ request()->routeIs('app-pages.*') ? 'active' : '' }}">
+                        صفحات التطبيق
+                    </a>
+                </div>
+            </div>
+
+
+            <a href="{{ route('admin.order-financial-reports.index') }}"
+                class="nav-link {{ request()->routeIs('admin.order-financial-reports.*') ? 'active' : '' }}">
+                <span class="nav-icon">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </span>
+
+                <span>التقرير المالي للطلبات</span>
+            </a>
+ @endif
+        </aside>
+
+        
+        <main class="main-wrapper">
+
+           <header class="topbar">
+
+    <div class="admin-info">
+        @if (auth('sales')->check())
+            {{ auth('sales')->user()->name }}
+            -
+            {{ auth('sales')->user()->email
+                ?? auth('sales')->user()->code
+                ?? '' }}
+
+        @elseif (auth('web')->check())
+            {{ auth('web')->user()->name ?? 'Admin' }}
+            -
+            {{ auth('web')->user()->email ?? '' }}
+        @endif
+    </div>
+
+    @if (auth('sales')->check())
+        <form
+            action="{{ route('sales.logout') }}"
+            method="POST"
+            class="logout-form"
+        >
+            @csrf
+
+            <button
+                type="submit"
+                class="nav-link logout-button"
+            >
+                <i class="fas fa-sign-out-alt"></i>
+                <span>تسجيل الخروج</span>
+            </button>
+        </form>
+
+    @elseif (auth('web')->check())
+        <form
+            action="{{ route('admin.logout') }}"
+            method="POST"
+            class="logout-form"
+        >
+            @csrf
+
+            <button
+                type="submit"
+                class="nav-link logout-button"
+            >
+                <i class="fas fa-sign-out-alt"></i>
+                <span>تسجيل الخروج</span>
+            </button>
+        </form>
+    @endif
+
+</header>
 
             <section class="content">
                 @yield('content')

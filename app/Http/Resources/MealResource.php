@@ -23,7 +23,7 @@ class MealResource extends JsonResource
             'available_delivery_today' => boolval($this->available_delivery_today),
             'recipe' => $this->recipe,
             'approved' => $this->approved ,
-            'image' => $this->image ? config('app.url') . '/storage/' . $this->image : null,
+          'image' => $this->image ? url($this->image) : null,
             'kitchen_name' => $this->kitchen->name ,
             'kitchen_phone' => $this->kitchen->phone ,
             'category_name' => $this->category->name ,

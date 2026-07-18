@@ -11,6 +11,7 @@ use App\Models\DeliveryPoint;
 use App\Models\DeliveryOrder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
+use App\services\PointService;
 
 
 class DeliveryController extends Controller
@@ -40,16 +41,16 @@ class DeliveryController extends Controller
 
         do {
             $shiftCode = random_int(1000, 9999);
-            $referralCode = random_int(1000, 9999);
+            $Code = random_int(1000, 9999);
         } while (
             DeliveryUser::where('shift_code', $shiftCode)->exists() ||
-            DeliveryUser::where('referral_code', $referralCode)->exists()
+            DeliveryUser::where('code', $Code)->exists()
         );
 
         $delivery->update([
             'status' => 'approved',
             'shift_code' => $shiftCode,
-            'referral_code' => $referralCode,
+            'code' => $Code,
         ]);
 
         return response()->json([
@@ -160,26 +161,58 @@ class DeliveryController extends Controller
             ->with('success', $message);
     }
 
-    public function addPoint(Request $request, string $id)
-    {
-        $data = $request->validate([
-            'points' => 'required|integer|min:1',
-            'notes' => 'nullable|string',
-        ]);
+  public function addPoint(
+    Request $request,
+    string $id,
+    PointService $pointService
+) {
+    $data = $request->validate([
+        'point_id' => [
+            'required',
+            'integer',
+            'exists:points,id',
+        ],
 
-        $delivery = DeliveryUser::findOrFail($id);
+        'notes' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+    ], [
+        'point_id.required' => 'يجب اختيار عدد النقاط',
+        'point_id.integer' => 'اختيار النقاط غير صحيح',
+        'point_id.exists' => 'اختيار النقاط غير موجود',
+    ]);
 
-        $delivery->pointTransactions()->create([
-            'source' => 'admin_add',
-            'points' => $data['points'],
-            'notes' => $data['notes'] ?? null,
-        ]);
+    $delivery = DeliveryUser::findOrFail($id);
 
+    $point = Point::findOrFail($data['point_id']);
+
+    $pointsNumber = (int) $point->number;
+
+    if ($pointsNumber <= 0) {
         return redirect()
-            ->route('admin.delivery.approved')
-            ->with('success', 'points added successfully');
+            ->back()
+            ->withInput()
+            ->with('error', 'عدد النقاط يجب أن يكون أكبر من صفر');
     }
 
+    $pointService->add(
+        owner: $delivery,
+        points: $pointsNumber,
+        source: 'admin_add',
+        reference: $point,
+        notes: $data['notes']
+            ?? 'تمت إضافة النقاط بواسطة الأدمن'
+    );
+
+    return redirect()
+        ->route('admin.delivery.approved')
+        ->with(
+            'success',
+            "تمت إضافة {$pointsNumber} نقطة إلى {$delivery->name} بنجاح"
+        );
+}
 
 
 

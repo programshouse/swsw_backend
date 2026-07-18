@@ -34,6 +34,9 @@
         <option value="terms" {{ old('page_type', $page->page_type ?? '') == 'terms' ? 'selected' : '' }}>
             الشروط والأحكام
         </option>
+        <option value="get_help" {{ old('page_type', $page->page_type ?? '') == 'get_help' ? 'selected' : '' }}>
+            احصل على المساعدة
+        </option>
     </select>
 
     @error('page_type')
@@ -44,10 +47,7 @@
 <div class="form-group">
     <label class="form-label">العنوان بالعربي</label>
 
-    <input type="text"
-           name="title_ar"
-           class="form-input"
-           value="{{ old('title_ar', $page->title_ar ?? '') }}">
+    <input type="text" name="title_ar" class="form-input" value="{{ old('title_ar', $page->title_ar ?? '') }}">
 
     @error('title_ar')
         <div class="text-danger">{{ $message }}</div>
@@ -57,10 +57,7 @@
 <div class="form-group">
     <label class="form-label">العنوان بالإنجليزي</label>
 
-    <input type="text"
-           name="title_en"
-           class="form-input"
-           value="{{ old('title_en', $page->title_en ?? '') }}">
+    <input type="text" name="title_en" class="form-input" value="{{ old('title_en', $page->title_en ?? '') }}">
 
     @error('title_en')
         <div class="text-danger">{{ $message }}</div>
@@ -70,9 +67,7 @@
 <div class="form-group">
     <label class="form-label">المحتوى بالعربي</label>
 
-    <textarea name="content_ar"
-              class="form-input"
-              rows="12">{{ old('content_ar', $page->content_ar ?? '') }}</textarea>
+    <textarea name="content_ar" class="form-input" rows="12">{{ old('content_ar', $page->content_ar ?? '') }}</textarea>
 
     @error('content_ar')
         <div class="text-danger">{{ $message }}</div>
@@ -82,9 +77,7 @@
 <div class="form-group">
     <label class="form-label">المحتوى بالإنجليزي</label>
 
-    <textarea name="content_en"
-              class="form-input"
-              rows="12">{{ old('content_en', $page->content_en ?? '') }}</textarea>
+    <textarea name="content_en" class="form-input" rows="12">{{ old('content_en', $page->content_en ?? '') }}</textarea>
 
     @error('content_en')
         <div class="text-danger">{{ $message }}</div>
@@ -93,10 +86,8 @@
 
 <div class="form-group">
     <label>
-        <input type="checkbox"
-               name="is_active"
-               value="1"
-               {{ old('is_active', $page->is_active ?? true) ? 'checked' : '' }}>
+        <input type="checkbox" name="is_active" value="1"
+            {{ old('is_active', $page->is_active ?? true) ? 'checked' : '' }}>
         مفعل
     </label>
 </div>

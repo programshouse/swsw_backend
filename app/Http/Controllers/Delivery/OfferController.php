@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Delivery;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Offer;
+use App\Models\DeliveryOfferRequest;
 use App\Models\pointTransactions;
+use Illuminate\Http\JsonResponse;
 
 class OfferController extends Controller
 {
@@ -31,27 +33,45 @@ class OfferController extends Controller
 
 
 
-///////aplly offer
 
-    public function takeOffer($offerId)
+
+
+
+
+public function applyOffer(Request $request, Offer $offer): JsonResponse
 {
     $delivery = auth('api_delivery')->user();
 
-    $offer = Offer::where('is_active', 1)->findOrFail($offerId);
+    if (!$offer->is_active) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Offer is not active',
+        ], 400);
+    }
 
-    $delivery->pointTransactions()->create([
-        'source' => 'delivery_offer',
+    $exists = DeliveryOfferRequest::where('delivery_user_id', $delivery->id)
+        ->where('offer_id', $offer->id)
+        ->first();
+
+    if ($exists) {
+        return response()->json([
+            'status' => false,
+            'message' => 'You already applied to this offer',
+            'request_status' => $exists->status,
+        ], 400);
+    }
+
+    $requestOffer = DeliveryOfferRequest::create([
+        'delivery_user_id' => $delivery->id,
+        'offer_id' => $offer->id,
+        'status' => 'pending',
         'points' => $offer->points,
-        'reference_type' => Offer::class,
-        'reference_id' => $offer->id,
-        'notes' => 'Points from delivery offer',
     ]);
 
     return response()->json([
         'status' => true,
-        'message' => 'Points added successfully',
-        'points_added' => $offer->points,
-        'total_points' => $delivery->fresh()->total_points,
+        'message' => 'Offer applied successfully and waiting for admin approval',
+        'data' => $requestOffer,
     ]);
 }
 }

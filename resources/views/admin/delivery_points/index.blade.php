@@ -1,11 +1,11 @@
 @extends('admin.layouts.app')
 
-@section('title', 'نقاط الديلفري')
+@section('title', 'نقاط الدليفري')
 
 @section('content')
 
     <div class="page-title">
-        نقاط الديلفري
+        نقاط الدليفري
     </div>
 
     @if (session('success'))
@@ -14,75 +14,149 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="success-alert"
+            style="background: #fee2e2; color: #991b1b;">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="table-card">
 
         <div class="table-header">
 
             <div class="table-title">
-                نقاط الديلفري
+                سجل نقاط الدليفري
             </div>
 
         </div>
 
         @if ($delivery_points->count())
 
-            <table>
+            <div class="table-wrapper">
 
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Point ID</th>
-                        <th>Delivery ID</th>
-                        <th>Delivery Name</th>
-                        <th>Number Of Points</th>
-                        <th>Amount Of cash</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
+                <table>
 
-                    @foreach ($delivery_points as $point)
+                    <thead>
                         <tr>
-
-                            <td>{{ $point->id }}</td>
-
-                            <td>
-                                {{ $point->point->id ?? null }} </td>
-
-                            <td>{{ $point->delivery->id }}</td>
-
-                            <td>{{ $point->delivery->name }}</td>
-                            <td>
-                                {{ $point->point->number ?? null }}
-                            </td>
-                            <td>
-                                <span class="badge">
-                                    {{ $point->point->amount ?? null}}
-                                </span>
-                            </td>
-
-                            <td>
-                                <form method="post" action="{{ route('admin.delivery.points.destroy', $point->id) }}"
-                                    onsubmit="return confirm('Are you sure?')">
-
-                                    @method('POST')
-                                    @csrf
-
-                                    <button type="submit" class="btn-small btn-danger">
-                                        Delete
-                                    </button>
-
-                                </form>
-                            </td>
+                            <th>ID</th>
+                            <th>الدليفري</th>
+                            <th>رقم الدليفري</th>
+                            <th>المصدر</th>
+                            <th>عدد النقاط</th>
+                            <th>المرجع</th>
+                            <th>الملاحظات</th>
+                            <th>تاريخ الإضافة</th>
+                            <th>الإجراء</th>
                         </tr>
-                    @endforeach
+                    </thead>
 
-                </tbody>
+                    <tbody>
 
-            </table>
+                        @foreach ($delivery_points as $transaction)
+
+                            <tr>
+
+                                <td>
+                                    {{ $transaction->id }}
+                                </td>
+
+                                <td>
+                                    {{ $transaction->owner?->name ?? 'غير متاح' }}
+                                </td>
+
+                                <td>
+                                    {{ $transaction->owner?->id ?? '-' }}
+                                </td>
+
+                                <td>
+                                    @switch($transaction->source)
+                                        @case('admin_add')
+                                            إضافة بواسطة الأدمن
+                                            @break
+
+                                        @case('delivery_offer')
+                                            عرض دليفري
+                                            @break
+
+                                        @case('referral')
+                                            دعوة مستخدم
+                                            @break
+
+                                        @case('admin_deduct')
+                                            خصم بواسطة الأدمن
+                                            @break
+
+                                        @default
+                                            {{ $transaction->source }}
+                                    @endswitch
+                                </td>
+
+                                <td>
+                                    <span class="status-badge"
+                                        style="
+                                            background:
+                                                {{ $transaction->points >= 0 ? '#dcfce7' : '#fee2e2' }};
+                                            color:
+                                                {{ $transaction->points >= 0 ? '#166534' : '#991b1b' }};
+                                        ">
+
+                                        {{ $transaction->points >= 0 ? '+' : '' }}
+                                        {{ $transaction->points }}
+
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @if ($transaction->reference)
+                                        {{ class_basename($transaction->reference_type) }}
+                                        #{{ $transaction->reference_id }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+
+                                <td>
+                                    {{ $transaction->notes ?: '-' }}
+                                </td>
+
+                                <td>
+                                    {{ $transaction->created_at?->format('Y-m-d H:i') }}
+                                </td>
+
+                                <td>
+
+                                    <form method="POST"
+                                        action="{{ route('admin.delivery.points.destroy', $transaction->id) }}"
+                                        onsubmit="return confirm('هل أنت متأكد من حذف عملية النقاط؟')">
+
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit"
+                                            class="delete-btn">
+
+                                            حذف
+                                        </button>
+
+                                    </form>
+
+                                </td>
+
+                            </tr>
+
+                        @endforeach
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
         @else
+
             <div class="empty">
-                لا توجد نقاط محفوظة للديلفري
+                لا توجد عمليات نقاط محفوظة للدليفري
             </div>
 
         @endif

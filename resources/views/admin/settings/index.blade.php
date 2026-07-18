@@ -35,10 +35,11 @@
         <form method="POST" action="{{ route('admin.settings.update') }}" enctype="multipart/form-data">
             @csrf
 
-             <div class="form-group">
+            <div class="form-group">
                 <label class="form-label"> عدد نقاط مكافاة المستخدم</label>
                 <input type="text" name="user_rewarded_points" class="form-input"
-                    value="{{ old('user_rewarded_points', $settings->user_rewarded_points ?? '') }}" placeholder="مثال: 100">
+                    value="{{ old('user_rewarded_points', $settings->user_rewarded_points ?? '') }}"
+                    placeholder="مثال: 100">
             </div>
 
             <div class="form-group">
@@ -89,17 +90,7 @@
                     placeholder="https://delivery_app.com/...">
             </div>
 
-            <div class="form-group">
-    <label class="form-label">القيمة المضافة (%)</label>
-    <input type="number"
-           step="0.01"
-           min="0"
-           max="100"
-           name="vat_percentage"
-           class="form-input"
-           value="{{ old('vat_percentage', $settings->vat_percentage ?? 0) }}"
-           placeholder="مثال: 14">
-</div>
+
 
             <div class="working-hours-box">
                 <div class="working-hours-header">
@@ -127,6 +118,8 @@
                     </div>
                 </div>
             </div>
+
+
 
             {{-- <div class="form-group">
             <label class="form-label"></label>
@@ -204,46 +197,49 @@
 
             <div class="contracts-grid">
 
-    <div class="contract-card">
-        <label class="form-label">عقد المستخدم PDF</label>
+                <div class="contract-card">
+                    <label class="form-label">عقد المستخدم PDF</label>
 
-        @if (!empty($settings->user_contract))
-            <a href="{{ url($assetPrefix . $settings->user_contract) }}" target="_blank" class="contract-link">
-                عرض العقد الحالي
-            </a>
-            <div class="video-name">{{ basename($settings->user_contract) }}</div>
-        @endif
+                    @if (!empty($settings->user_contract))
+                        <a href="{{ url($assetPrefix . $settings->user_contract) }}" target="_blank"
+                            class="contract-link">
+                            عرض العقد الحالي
+                        </a>
+                        <div class="video-name">{{ basename($settings->user_contract) }}</div>
+                    @endif
 
-        <input type="file" name="user_contract" class="file-input" accept="application/pdf,.pdf">
-    </div>
+                    <input type="file" name="user_contract" class="file-input" accept="application/pdf,.pdf">
+                </div>
 
-    <div class="contract-card">
-        <label class="form-label">عقد المطبخ PDF</label>
+                <div class="contract-card">
+                    <label class="form-label">عقد المطبخ PDF</label>
 
-        @if (!empty($settings->kitchen_contract))
-            <a href="{{ url($assetPrefix . $settings->kitchen_contract) }}" target="_blank" class="contract-link">
-                عرض العقد الحالي
-            </a>
-            <div class="video-name">{{ basename($settings->kitchen_contract) }}</div>
-        @endif
+                    @if (!empty($settings->kitchen_contract))
+                        <a href="{{ url($assetPrefix . $settings->kitchen_contract) }}" target="_blank"
+                            class="contract-link">
+                            عرض العقد الحالي
+                        </a>
+                        <div class="video-name">{{ basename($settings->kitchen_contract) }}</div>
+                    @endif
 
-        <input type="file" name="kitchen_contract" class="file-input" accept="application/pdf,.pdf">
-    </div>
+                    <input type="file" name="kitchen_contract" class="file-input" accept="application/pdf,.pdf">
+                </div>
 
-    <div class="contract-card">
-        <label class="form-label">عقد الدليفري PDF</label>
+                <div class="contract-card">
+                    <label class="form-label">عقد الدليفري PDF</label>
 
-        @if (!empty($settings->delivery_contract))
-            <a href="{{ url($assetPrefix . $settings->delivery_contract) }}" target="_blank" class="contract-link">
-                عرض العقد الحالي
-            </a>
-            <div class="video-name">{{ basename($settings->delivery_contract) }}</div>
-        @endif
+                    @if (!empty($settings->delivery_contract))
+                        <a href="{{ url($assetPrefix . $settings->delivery_contract) }}" target="_blank"
+                            class="contract-link">
+                            عرض العقد الحالي
+                        </a>
+                        <div class="video-name">{{ basename($settings->delivery_contract) }}</div>
+                    @endif
 
-        <input type="file" name="delivery_contract" class="file-input" accept="application/pdf,.pdf">
-    </div>
+                    <input type="file" name="delivery_contract" class="file-input" accept="application/pdf,.pdf">
+                </div>
 
-</div>
+            </div>
 
             <button type="submit" class="add-btn">
                 حفظ الإعدادات

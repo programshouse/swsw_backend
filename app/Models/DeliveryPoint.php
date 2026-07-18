@@ -11,6 +11,7 @@ class DeliveryPoint extends Model
         'point_id',
         'delivery_user_id',
         'order_id',
+        'number'
     ];
 
 

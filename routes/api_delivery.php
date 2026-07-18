@@ -11,10 +11,13 @@ use App\Http\Controllers\Delivery\VehicleController;
 use App\Http\Controllers\Delivery\EmailOtpPasswordController;
 use App\Http\Controllers\Delivery\OfferController;
 use App\Http\Controllers\Delivery\PointController;
+use App\Http\Controllers\Delivery\DeliveryOfferController;
 use App\Http\Controllers\orders\OrderHistoryController;
 use App\Http\Controllers\Admin\AppPageController;
 use App\Http\Middleware\EnsureDeliveryWorking;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FirebaseTokenController;
+use App\Http\Controllers\NotificationController;
 
 
 
@@ -59,12 +62,14 @@ Route::prefix('delivery')->group(function () {
         Route::get('/kitchen/rates', [RateStoreController::class, 'rates_by_kitchen']);
         Route::get('/client/rates', [RateStoreController::class, 'rates_by_client']);
 
+        Route::get('/my-rates', [RateStoreController::class, 'myRates']);
+
 
         // start shift
         Route::post('/start-Shift', [ShiftController::class, 'startShift'])->middleware(EnsureDeliveryWorking::class);
         // end shift
         Route::post('/end-Shift', [ShiftController::class, 'endShift']);
-         Route::post('/update-location', [ShiftController::class, 'updateLocation']);
+        Route::post('/update-location', [ShiftController::class, 'updateLocation']);
         Route::get('/break-status', [OrderController::class, 'breakStatus']);
         Route::get(
             '/issue-types',
@@ -72,33 +77,58 @@ Route::prefix('delivery')->group(function () {
         );
 
         Route::get('/offers', [OfferController::class, 'offers']);
+        Route::post('/offers/{offer}/apply', [OfferController::class, 'applyOffer']);
         // orders 
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
 
             Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->middleware(EnsureDeliveryWorking::class);
-        
+            Route::get('/reports/weekly', [OrderController::class, 'weeklyReports']);
+
             Route::post('/{order}/issue', [TicketController::class, 'store']);
 
-            Route::post('/{order}/accept', [OrderController::class, 'accept'])->middleware(EnsureDeliveryWorking::class);
-            Route::post('/{order}/reject', [OrderController::class, 'reject'])->middleware(EnsureDeliveryWorking::class);
+            Route::post('/{order}/accept', [OrderController::class, 'accept'])->middleware(EnsureDeliveryWorking::class);         //notify
+            Route::post('/{order}/reject', [OrderController::class, 'reject'])->middleware(EnsureDeliveryWorking::class);             //notify
             Route::post('/orders/{order}/no-response', [OrderController::class, 'noResponse']);
             Route::post('{order}/transfer', [OrderController::class, 'transfer']);
-
-
-             
         });
 
-         Route::get('/my-rewards', [RateStoreController::class, 'myRewards']);
-         Route::post('/rates', [RateStoreController::class, 'storeRates']);
-         Route::get('/rates', [RateStoreController::class, 'getRates']);
+        Route::get('/my-rewards', [RateStoreController::class, 'myRewards']);
+        Route::post('/rates', [RateStoreController::class, 'storeRates']);
+        Route::get('/rates', [RateStoreController::class, 'getRates']);
 
-         Route::get('/points', [PointController::class, 'index']);
+        Route::get('/points', [PointController::class, 'index']);
 
-            Route::get('/app-pages', [AppPageController::class, 'appPage']);
+        Route::get('/app-pages', [AppPageController::class, 'appPage']);
 
+        Route::post(
+            '/firebase-token',
+            [FirebaseTokenController::class, 'store']
+        );
 
+        Route::post(
+            '/firebase-token/language',
+            [FirebaseTokenController::class, 'updateLanguage']
+        );
 
-         
+        Route::delete(
+            '/firebase-token',
+            [FirebaseTokenController::class, 'destroy']
+        );
+
+        Route::get(
+            '/notifications',
+            [NotificationController::class, 'index']
+        );
+
+        Route::post(
+            '/notifications/{notification}/read',
+            [NotificationController::class, 'markAsRead']
+        );
+
+        Route::post(
+            '/notifications/read-all',
+            [NotificationController::class, 'markAllAsRead']
+        );
     });
 });

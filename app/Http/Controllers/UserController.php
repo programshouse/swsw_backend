@@ -46,6 +46,9 @@ class UserController extends Controller
                     return $query->where('role', $request->role);
                 })
             ],
+            'is_company' => 'nullable|boolean',
+
+
             'government_id' => 'required|exists:governments,id',
             'area_id' => 'required|exists:areas,id',
             'role' => 'required|string|max:255|in:admin,client,kitchen,delivery',
@@ -59,8 +62,8 @@ class UserController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($validated) {
- $government = Government::findOrFail($validated['government_id']);
-    $area = Area::findOrFail($validated['area_id']);
+            $government = Government::findOrFail($validated['government_id']);
+            $area = Area::findOrFail($validated['area_id']);
             $user = User::create([
                 'code' => $this->generateDeliveryCode(),
                 'name' => $validated['name'],
@@ -71,13 +74,15 @@ class UserController extends Controller
                 'role' => $validated['role'],
                 'password' => Hash::make($validated['password']),
                 'referral_code' => $validated['referral_code'] ?? null,
+                'is_company' => (bool) ($validated['is_company'] ?? 0),
+
             ]);
 
             UserAddress::create([
                 'user_id' => $user->id,
                 'government_id' => $validated['government_id'] ?? null,
                 'area_id' => $validated['area_id'] ?? null,
-                  'full_address' => $government->name . ' - ' . $area->name,
+                'full_address' => $government->name . ' - ' . $area->name,
                 'phone' => $validated['phone'],
                 'location_link' => $validated['location_link'] ?? null,
                 'lat' => $validated['lat'],
@@ -375,7 +380,7 @@ class UserController extends Controller
 
 
 
-     public function logout(Request $request)
+    public function logout(Request $request)
     {
         $user = $request->user();
         if ($user) {

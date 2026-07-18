@@ -24,7 +24,7 @@ class ShiftController extends Controller
         $request->validate([
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
-            'code'=>'nullable|int',
+            'code' => 'nullable|int',
         ]);
 
         $delivery = $request->user();
@@ -35,6 +35,13 @@ class ShiftController extends Controller
                 'message' => 'Unauthenticated'
             ], 401);
         }
+        if ((string) $request->code !== (string) $delivery->shift_code) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid shift code',
+            ], 422);
+        }
+
 
         $activeShift = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
             ->where('status', 'active')
@@ -106,35 +113,35 @@ class ShiftController extends Controller
 
 
     public function updateLocation(Request $request)
-{
-    $request->validate([
-        'lat' => 'required|numeric',
-        'lng' => 'required|numeric',
-    ]);
+    {
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+        ]);
 
-    $delivery = $request->user();
+        $delivery = $request->user();
 
-    $delivery->update([
-        'current_lat' => $request->lat,
-        'current_lng' => $request->lng,
-        'last_location_at' => now(),
-    ]);
+        $delivery->update([
+            'current_lat' => $request->lat,
+            'current_lng' => $request->lng,
+            'last_location_at' => now(),
+        ]);
 
-    $activeShift = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
-        ->where('status', 'active')
-        ->latest()
-        ->first();
+        $activeShift = DeliveryShiftLog::where('delivery_user_id', $delivery->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
 
-    if ($activeShift) {
-        $activeShift->update([
-            'end_lat' => $request->lat,
-            'end_lng' => $request->lng,
+        if ($activeShift) {
+            $activeShift->update([
+                'end_lat' => $request->lat,
+                'end_lng' => $request->lng,
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Location updated successfully',
         ]);
     }
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Location updated successfully',
-    ]);
-}
 }

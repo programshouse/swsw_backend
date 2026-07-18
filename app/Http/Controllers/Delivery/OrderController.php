@@ -11,6 +11,8 @@ use App\Models\DeliveryUser;
 use App\Models\OrderHistory;
 use Illuminate\Http\Request;
 use App\Models\DeliveryShiftLog;
+use Carbon\Carbon;
+use App\services\OrderNotificationService;
 
 class OrderController extends Controller
 {
@@ -97,32 +99,14 @@ class OrderController extends Controller
             ->first();
 
         if (!$deliveryOrder) {
-
-            if ($order->status !== 'ready_to_deliver') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Order is not ready to deliver',
-                    'order_status' => $order->status,
-                ], 400);
-            }
-
-            $delivery->orders()->attach($order->id, [
-                'status' => 'accepted',
-                'cash_settled' => false,
-            ]);
-
-            $order->update([
-                'status' => 'accepted_by_delivery',
-            ]);
-
             return response()->json([
-                'status' => true,
-                'message' => 'Order accepted by delivery',
-                'delivery_order_status' => 'accepted',
-                'order_status' => 'accepted_by_delivery',
-            ]);
+                'status' => false,
+                'message' => 'You must accept this order first',
+                'order_status' => $order->status,
+            ], 400);
         }
 
+        // 1) Received from kitchen
         if ($deliveryOrder->status === 'accepted') {
 
             if ($order->status !== 'accepted_by_delivery') {
@@ -133,8 +117,8 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            $delivery->orders()->updateExistingPivot($order->id, [
-                'status' => 'picked_up'
+            $deliveryOrder->update([
+                'status' => 'picked_up',
             ]);
 
             $order->update([
@@ -143,34 +127,25 @@ class OrderController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Order picked up',
+                'message' => 'Order received by delivery',
                 'delivery_order_status' => 'picked_up',
                 'order_status' => 'received_by_delivery',
             ]);
         }
 
+        // 2) Delivered
         if ($deliveryOrder->status === 'picked_up') {
 
-            $delivery->orders()->updateExistingPivot($order->id, [
-                'status' => 'on_the_way'
-            ]);
+            if ($order->status !== 'received_by_delivery') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid order status',
+                    'order_status' => $order->status,
+                ], 400);
+            }
 
-            $order->update([
-                'status' => 'on_the_way',
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Order on the way',
-                'delivery_order_status' => 'on_the_way',
-                'order_status' => 'on_the_way',
-            ]);
-        }
-
-        if ($deliveryOrder->status === 'on_the_way') {
-
-            $delivery->orders()->updateExistingPivot($order->id, [
-                'status' => 'delivered'
+            $deliveryOrder->update([
+                'status' => 'delivered',
             ]);
 
             $order->update([
@@ -199,14 +174,19 @@ class OrderController extends Controller
         return response()->json([
             'status' => false,
             'message' => 'Order already completed',
-            'delivery_order_status' => $deliveryOrder->status
+            'delivery_order_status' => $deliveryOrder->status,
+            'order_status' => $order->status,
         ], 400);
     }
 
 
 
-    public function accept(Request $request, Order $order)
-    {
+
+    public function accept(
+        Request $request,
+        Order $order,
+        OrderNotificationService $notificationService
+    ) {
         $delivery = $request->user();
 
         $delivery->load('level');
@@ -276,6 +256,16 @@ class OrderController extends Controller
 
         $order->refresh();
 
+        $notificationService->notifyKitchenDeliveryAccepted(
+            $order,
+            $delivery
+        );
+
+        $notificationService->notifyClientStatusChanged(
+            $order,
+            'accepted_by_delivery'
+        );
+
         return response()->json([
             'status' => true,
             'message' => 'you accepted this order.',
@@ -290,8 +280,14 @@ class OrderController extends Controller
         ]);
     }
 
-    public function reject(Request $request, Order $order)
-    {
+
+
+
+    public function reject(
+        Request $request,
+        Order $order,
+        OrderNotificationService $notificationService
+    ) {
         $delivery = $request->user();
 
         if (!$delivery) {
@@ -325,7 +321,23 @@ class OrderController extends Controller
             ]);
         }
 
-        $newDelivery = $this->assignOrderToNearestDelivery($order, $delivery->id);
+        $newDelivery = $this->assignOrderToNearestDelivery(
+            $order,
+            $delivery->id
+        );
+
+        $notificationService->notifyKitchenDeliveryRejected(
+            $order,
+            $delivery,
+            $newDelivery
+        );
+
+        if ($newDelivery) {
+            $notificationService->notifyDeliveryNewOrder(
+                $order,
+                $newDelivery
+            );
+        }
 
         return response()->json([
             'status' => true,
@@ -334,6 +346,8 @@ class OrderController extends Controller
             'new_delivery_id' => $newDelivery?->id,
         ]);
     }
+
+
 
     public function transfer(Request $request, Order $order)
     {
@@ -563,6 +577,118 @@ class OrderController extends Controller
                     ] : null,
                 ],
             ]
+        ]);
+    }
+
+
+
+
+
+
+
+    public function weeklyReports(Request $request)
+    {
+        $delivery = $request->user();
+
+        $date = $request->date ? Carbon::parse($request->date) : now();
+
+        $startOfWeek = $date->copy()->startOfWeek(Carbon::SATURDAY);
+        $endOfWeek = $date->copy()->endOfWeek(Carbon::FRIDAY);
+
+        $deliveryOrders = DeliveryOrder::with(['order.userAddress'])
+            ->where('delivery_user_id', $delivery->id)
+            ->whereBetween('updated_at', [
+                $startOfWeek->copy()->startOfDay(),
+                $endOfWeek->copy()->endOfDay(),
+            ])
+            ->get();
+
+        $deliveredOrders = $deliveryOrders->where('status', 'delivered');
+
+        $deliveredCount = $deliveredOrders->count();
+
+        $earnings = $deliveredOrders->sum(function ($deliveryOrder) {
+            return (float) optional($deliveryOrder->order)->total;
+        });
+
+        $cancelledOrders = $deliveryOrders->where('status', 'cancelled');
+
+        $lateOrders = $deliveredOrders->filter(function ($deliveryOrder) {
+            $order = $deliveryOrder->order;
+
+            if (!$order || !$order->receive_date || !$order->receive_time || !$order->delivered_at) {
+                return false;
+            }
+
+            $expectedTime = Carbon::parse($order->receive_date . ' ' . $order->receive_time);
+            $deliveredAt = Carbon::parse($order->delivered_at);
+
+            return $deliveredAt->gt($expectedTime);
+        });
+
+        $onTimeOrders = $deliveredOrders->filter(function ($deliveryOrder) use ($lateOrders) {
+            return !$lateOrders->contains('id', $deliveryOrder->id);
+        });
+
+        $onTimeCount = $onTimeOrders->count();
+        $cancelledCount = $cancelledOrders->count();
+        $lateCount = $lateOrders->count();
+
+        $totalForChart = $onTimeCount + $cancelledCount + $lateCount;
+
+        $formatOrders = function ($orders) {
+            return $orders->map(function ($deliveryOrder) {
+                $order = $deliveryOrder->order;
+
+                return [
+                    'order_id' => $order?->id,
+                    'order_number' => $order?->number,
+                    'date' => optional($order?->created_at)->toDateString(),
+                    'time' => optional($order?->created_at)->format('H:i'),
+                    'address' => $order?->userAddress?->full_address,
+                    'phone' => $order?->userAddress?->phone,
+                    'location_link' => $order?->userAddress?->location_link,
+                    'lat' => $order?->userAddress?->lat,
+                    'lng' => $order?->userAddress?->lng,
+                    'status' => $deliveryOrder->status,
+                    'order_status' => $order?->status,
+                    'total' => (float) ($order?->total ?? 0),
+                ];
+            })->values();
+        };
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'week' => [
+                    'from' => $startOfWeek->toDateString(),
+                    'to' => $endOfWeek->toDateString(),
+                ],
+
+                'delivered_orders' => $deliveredCount,
+                'earnings_so_far' => round($earnings, 2),
+
+                'chart' => [
+                    'on_time_orders' => [
+                        'count' => $onTimeCount,
+                        'percentage' => $totalForChart > 0 ? round(($onTimeCount / $totalForChart) * 100) : 0,
+                    ],
+                    'cancelled_orders' => [
+                        'count' => $cancelledCount,
+                        'percentage' => $totalForChart > 0 ? round(($cancelledCount / $totalForChart) * 100) : 0,
+                    ],
+                    'late_orders' => [
+                        'count' => $lateCount,
+                        'percentage' => $totalForChart > 0 ? round(($lateCount / $totalForChart) * 100) : 0,
+                    ],
+                ],
+
+                'details' => [
+                    'on_time_orders' => $formatOrders($onTimeOrders),
+                    'cancelled_orders' => $formatOrders($cancelledOrders),
+                    'late_orders' => $formatOrders($lateOrders),
+                ],
+            ],
         ]);
     }
 }

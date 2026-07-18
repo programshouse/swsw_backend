@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DeliveryOrder extends Model
 {
 
@@ -24,6 +24,14 @@ class DeliveryOrder extends Model
     }
 
     public function delivery()
+    {
+        return $this->belongsTo(
+            DeliveryUser::class,
+            'delivery_user_id'
+        );
+    }
+
+     public function deliveryUser(): BelongsTo
     {
         return $this->belongsTo(
             DeliveryUser::class,

@@ -10,6 +10,10 @@ use Illuminate\Http\JsonResponse;
 
 class AppPageController extends Controller
 {
+    private array $appTypes = ['client', 'kitchen', 'delivery'];
+
+    private array $pageTypes = ['privacy', 'terms', 'app_pages', 'get_help'];
+
     public function index()
     {
         $pages = AppPage::latest()->get();
@@ -27,11 +31,11 @@ class AppPageController extends Controller
         $data = $request->validate([
             'app_type' => [
                 'required',
-                Rule::in(['client', 'kitchen', 'delivery']),
+                Rule::in($this->appTypes),
             ],
             'page_type' => [
                 'required',
-                Rule::in(['privacy', 'terms']),
+                Rule::in($this->pageTypes),
                 Rule::unique('app_pages')->where(function ($query) use ($request) {
                     return $query->where('app_type', $request->app_type);
                 }),
@@ -62,11 +66,11 @@ class AppPageController extends Controller
         $data = $request->validate([
             'app_type' => [
                 'required',
-                Rule::in(['client', 'kitchen', 'delivery']),
+                Rule::in($this->appTypes),
             ],
             'page_type' => [
                 'required',
-                Rule::in(['privacy', 'terms']),
+                Rule::in($this->pageTypes),
                 Rule::unique('app_pages')
                     ->where(function ($query) use ($request) {
                         return $query->where('app_type', $request->app_type);
@@ -98,49 +102,44 @@ class AppPageController extends Controller
             ->with('success', 'تم حذف الصفحة بنجاح');
     }
 
-
-
-
-
     public function appPage(Request $request): JsonResponse
-{
-    $validated = $request->validate([
-        'app_type' => [
-            'required',
-            Rule::in(['client', 'kitchen', 'delivery']),
-        ],
-        'page_type' => [
-            'required',
-            Rule::in(['privacy', 'terms']),
-        ],
-    ]);
+    {
+        $validated = $request->validate([
+            'app_type' => [
+                'required',
+                Rule::in($this->appTypes),
+            ],
+            'page_type' => [
+                'required',
+                Rule::in($this->pageTypes),
+            ],
+        ]);
 
-    $page = AppPage::where('app_type', $validated['app_type'])
-        ->where('page_type', $validated['page_type'])
-        ->where('is_active', true)
-        ->first();
+        $page = AppPage::where('app_type', $validated['app_type'])
+            ->where('page_type', $validated['page_type'])
+            ->where('is_active', true)
+            ->first();
 
-    if (!$page) {
+        if (!$page) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Page not found.',
+                'data' => null,
+            ], 404);
+        }
+
         return response()->json([
-            'status' => false,
-            'message' => 'Page not found.',
-            'data' => null,
-        ], 404);
+            'status' => true,
+            'message' => 'Success',
+            'data' => [
+                'id' => $page->id,
+                'app_type' => $page->app_type,
+                'page_type' => $page->page_type,
+                'title_ar' => $page->title_ar,
+                'title_en' => $page->title_en,
+                'content_ar' => $page->content_ar,
+                'content_en' => $page->content_en,
+            ],
+        ]);
     }
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'data' => [
-            'id' => $page->id,
-            'app_type' => $page->app_type,
-            'page_type' => $page->page_type,
-            'title_ar' => $page->title_ar,
-            'title_en' => $page->title_en,
-            'content_ar' => $page->content_ar,
-            'content_en' => $page->content_en,
-        ],
-    ]);
-}
-
 }

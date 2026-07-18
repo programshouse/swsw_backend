@@ -18,4 +18,11 @@ public function kitchen()
 {
     return $this->belongsTo(User::class, 'kitchen_id');
 }
+
+public function kitchenProfile()
+{
+    return $this->belongsTo(KitchenProfile::class, 'kitchen_id', 'user_id');
+}
+
+
 }

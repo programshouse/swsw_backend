@@ -19,7 +19,7 @@ class ClientRateResource extends JsonResource
             'Order Number' => $this->order->number,
             'Date' => $this->order->receive_date,
             'Time' => $this->order->receive_time,
-            'kitchen name' => $this->user->profile->name,
+            'kitchen name' => $this->user->profile->name ?? null,
             'user_address' => $this->order->userAddress?->full_address,
             'score' => $this->score,
             'rate name' => $this->userRate->name,

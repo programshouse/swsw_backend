@@ -24,7 +24,8 @@ class OrderDetailResource extends JsonResource
             'kitchen_id' => $this->kitchen_id,
             'kitchen_name' => $this->kitchen->name,
             'kitchen_address' => $this->kitchen?->full_address,
-           
+           'payment_method' => $this->payment_status ?? null,
+          
             'total' => $this->total,
             'status' => $this->status,
             'created_at' => $this->created_at,

@@ -13,11 +13,13 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\traits\HasFirebaseNotifications;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens , HasFirebaseNotifications;
 
     /**
      * The attributes that are mass assignable.
@@ -33,7 +35,9 @@ class User extends Authenticatable
         'role',
         'status',
         'password',
-        'referral_code'
+        'referral_code',
+        'company_id',
+        'sales_id'
     ];
 
     /**
@@ -88,12 +92,38 @@ class User extends Authenticatable
     }
 
     public function pointTransactions()
-{
-    return $this->morphMany(PointTransaction::class, 'owner');
-}
+    {
+        return $this->morphMany(PointTransaction::class, 'owner');
+    }
 
-public function getTotalPointsAttribute()
+    public function getTotalPointsAttribute()
+    {
+        return $this->pointTransactions()->sum('points');
+    }
+
+    public function defaultAddress()
+    {
+        return $this->hasOne(UserAddress::class, 'user_id')->where('is_default', 1);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+
+    public function cashCodes()
+    {
+        return $this->hasMany(CashCode::class);
+    }
+
+    public function cashCodeUsages()
+    {
+        return $this->hasMany(CashCodeUsage::class);
+    }
+
+  public function salesEmployee()
 {
-    return $this->pointTransactions()->sum('points');
+    return $this->belongsTo(Sale::class, 'sales_id');
 }
 }

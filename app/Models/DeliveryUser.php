@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-
+use App\traits\HasFirebaseNotifications;
 class DeliveryUser extends Authenticatable
 {
-    use HasApiTokens;
+    use HasApiTokens , HasFirebaseNotifications;
 
     protected $fillable = [
         'name',

@@ -17,6 +17,9 @@ use App\Http\Resources\CaruselResource;
 use App\Http\Resources\ClientProfileResource;
 use App\Http\Resources\DashboardClientREsource;
 use App\Models\DeliveryUser;
+use App\services\PointService;
+use App\Models\Point;
+
 
 
 class ClientController extends Controller
@@ -27,7 +30,15 @@ class ClientController extends Controller
         // default user address
         $default_address = UserAddress::where('user_id', $user)->where('is_default', true)->first();
 
-        $kitchens_in_area = KitchenProfile::where('government_id', $default_address->government_id)->where('area_id', $default_address->area_id)->where('statue', 'approved')->with('government', 'area')->get();
+        $kitchens_in_area = KitchenProfile::query()
+            ->where('government_id', $default_address->government_id)
+            ->where('area_id', $default_address->area_id)
+            ->where('statue', 'approved')
+            ->whereHas('user', function ($query) {
+                $query->where('is_company', 0);
+            })
+            ->with(['government', 'area', 'user'])
+            ->get();
 
         $carusel = Carusel::all();
 
@@ -104,24 +115,25 @@ class ClientController extends Controller
         // default user address
         $default_address = UserAddress::where('user_id', $user)->where('is_default', true)->first();
 
-        $meals_in_cat = Meal::whereLike('name', '%'. $search . '%')->whereHas('kitchen', function ($k) use ($default_address) {
+        $meals_in_cat = Meal::whereLike('name', '%' . $search . '%')->whereHas('kitchen', function ($k) use ($default_address) {
             return $k->where('government_id', $default_address->government_id)->where('area_id', $default_address->area_id)->where('statue', 'approved');
         })->get();
 
 
         return response()->json([
             'data' => ClientMealResource::collection($meals_in_cat)
-        ] , 200);
+        ], 200);
     }
 
-    public function client_my_profile(Request $request) {
+    public function client_my_profile(Request $request)
+    {
 
-        $user = $request->user() ;
+        $user = $request->user();
 
-        if($user->role !== 'client'){
+        if ($user->role !== 'client') {
             return response()->json([
                 'message' => 'you are not a client '
-            ] , 403);
+            ], 403);
         }
 
         $user->load('address');
@@ -141,12 +153,12 @@ class ClientController extends Controller
         // default user address
         $default_address = UserAddress::where('user_id', $user)->where('is_default', true)->first();
 
-        $kitchens = KitchenProfile::where('statue' , 'approved')->where('government_id', $default_address->government_id)->where('area_id', $default_address->area_id)->whereLike('name' ,  '%'. $search . '%')->get() ;
+        $kitchens = KitchenProfile::where('statue', 'approved')->where('government_id', $default_address->government_id)->where('area_id', $default_address->area_id)->whereLike('name',  '%' . $search . '%')->get();
 
 
         return response()->json([
             'data' => KitchenProfileResource::collection($kitchens)
-        ] , 200);
+        ], 200);
     }
 
     // dashboard functions
@@ -166,42 +178,178 @@ class ClientController extends Controller
     // }
 
 
-  public function all_clients(Request $request)
-{
-    $clients = User::where('role', 'client')
-        ->latest()
-        ->get()
-        ->map(function ($client) {
+    public function all_clients(Request $request)
+    {
+        $clients = User::query()
+            ->where('role', 'client')
+            ->withSum(
+                'pointTransactions as total_points',
+                'points'
+            )
+            ->latest()
+            ->get()
+            ->map(function ($client) {
 
-            if (empty($client->code)) {
-                $client->referrals_count = 0;
+                if (empty($client->code)) {
+                    $client->referrals_count = 0;
+                    $client->total_points = (int) ($client->total_points ?? 0);
+
+                    return $client;
+                }
+
+                $usersCount = User::query()
+                    ->whereNotNull('referral_code')
+                    ->where('referral_code', $client->code)
+                    ->count();
+
+                $deliveryCount = DeliveryUser::query()
+                    ->whereNotNull('referral_code')
+                    ->where('referral_code', $client->code)
+                    ->count();
+
+                $client->referrals_count = $usersCount + $deliveryCount;
+                $client->total_points = (int) ($client->total_points ?? 0);
+
                 return $client;
-            }
+            });
 
-            $usersCount = User::whereNotNull('referral_code')
-                ->where('referral_code', $client->code)
-                ->count();
+        $points = Point::query()
+            ->orderBy('number')
+            ->get();
 
-            $deliveryCount = DeliveryUser::whereNotNull('referral_code')
-                ->where('referral_code', $client->code)
-                ->count();
-
-            $client->referrals_count = $usersCount + $deliveryCount;
-
-            return $client;
-        });
-
-    return view('admin.clients.index', compact('clients'));
-}
-
-public function client_profile(Request $request, User $user)
-{
-    if ($user->role !== 'client') {
-        abort(404);
+        return view('admin.clients.index', compact(
+            'clients',
+            'points'
+        ));
     }
 
-    $user->load(['address', 'orders']);
+    public function client_profile(Request $request, User $user)
+    {
+        if ($user->role !== 'client') {
+            abort(404);
+        }
 
-    return view('admin.clients.show', compact('user'));
-}
+        $user->load([
+            'address.area',
+            'address.government',
+        ]);
+
+        $orders = $user->orders()
+            ->when($request->filled('order_number'), function ($query) use ($request) {
+                $query->where('number', 'like', '%' . $request->order_number . '%');
+            })
+            ->latest()
+            ->get();
+
+        $user->setRelation('orders', $orders);
+
+        return view('admin.clients.show', compact('user'));
+    }
+
+
+
+
+    public function kitchensByArea(Request $request)
+    {
+        $validated = $request->validate([
+            'area_id' => 'required|exists:areas,id',
+        ]);
+
+        $kitchens = KitchenProfile::with('user')
+            ->where('statue', 'approved')
+            ->where('area_id', $validated['area_id'])
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => ClientKitchenResource::collection($kitchens),
+        ]);
+    }
+
+
+
+
+
+    public function addPoint(
+        Request $request,
+        string $id,
+        PointService $pointService
+    ) {
+        $data = $request->validate([
+            'point_id' => [
+                'required',
+                'integer',
+                'exists:points,id',
+            ],
+
+            'notes' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+        ], [
+            'point_id.required' => 'يجب اختيار عدد النقاط',
+            'point_id.integer' => 'اختيار النقاط غير صحيح',
+            'point_id.exists' => 'اختيار النقاط غير موجود',
+        ]);
+
+        $client = User::query()
+            ->where('role', 'client')
+            ->findOrFail($id);
+
+        $point = Point::findOrFail($data['point_id']);
+
+        $pointsNumber = (int) $point->number;
+
+        if ($pointsNumber <= 0) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'عدد النقاط يجب أن يكون أكبر من صفر');
+        }
+
+        $pointService->add(
+            owner: $client,
+            points: $pointsNumber,
+            source: 'admin_add',
+            reference: $point,
+            notes: $data['notes']
+                ?? 'تمت إضافة النقاط للعميل بواسطة الأدمن'
+        );
+
+        return redirect()
+            ->route('admin.clients.index')
+            ->with(
+                'success',
+                "تمت إضافة {$pointsNumber} نقطة إلى {$client->name} بنجاح"
+            );
+    }
+
+
+
+
+
+    public function companyKitchens(Request $request)
+    {
+        $user = $request->user();
+
+       
+
+        $kitchens = KitchenProfile::query()
+            ->where('statue', 'approved')
+            ->whereHas('user', function ($query) {
+                $query->where('is_company', 1);
+            })
+            ->with([
+                'government',
+                'area',
+                'user',
+            ])
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => KitchenProfileResource::collection($kitchens),
+        ]);
+    }
 }
