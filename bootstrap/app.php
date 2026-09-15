@@ -4,6 +4,8 @@ use App\Http\Middleware\Admin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\EnsureAdminIsActive;
+use App\Http\Middleware\AdminPermission;
 
 return Application::configure(
     basePath: dirname(__DIR__)
@@ -23,6 +25,8 @@ return Application::configure(
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => Admin::class,
+             'admin.active' => EnsureAdminIsActive::class,
+              'admin.permission' => AdminPermission::class,
         ]);
 
         /*

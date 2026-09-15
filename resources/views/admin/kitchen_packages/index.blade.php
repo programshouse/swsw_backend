@@ -5,10 +5,20 @@
 @section('content')
 
 <div class="page-title">باقات المطابخ</div>
+<style>
+.alert 
+{ padding: 12px 16px; margin-bottom: 20px; border-radius: 8px; font-size: 14px; font-weight: 500; } 
+.alert-success
+ { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; } 
+.alert-error 
+{ background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+</style>
 
-@if(session('success'))
-    <div class="success-alert">{{ session('success') }}</div>
-@endif
+@if(session('success')) 
+<div class="alert alert-success"> {{ session('success') }} </div> 
+@endif @if(session('error')) 
+<div class="alert alert-error"> {{ session('error') }} </div>
+ @endif
 
 <div class="table-card">
 
@@ -25,7 +35,9 @@
             <tr>
                 <th>الاسم</th>
                 <th>السعر</th>
-                <th>المدة</th>
+                 <th>عدد الوجبات</th>
+                  <th>عدد الاوردرات</th>
+                <th>المدة بالشهر </th>
                 <th>الحالة</th>
                 <th>الإجراءات</th>
             </tr>
@@ -36,6 +48,8 @@
                 <tr>
                     <td>{{ $package->name }}</td>
                     <td>{{ number_format($package->price, 2) }}</td>
+                     <td>{{ $package->meals_limit }}</td>
+                      <td>{{ $package->orders_limit }}</td>
                     <td>{{ $package->duration }}</td>
                     <td>{{ $package->active ? 'مفعلة' : 'غير مفعلة' }}</td>
                     <td>

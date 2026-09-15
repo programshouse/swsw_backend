@@ -7,31 +7,35 @@ use App\Models\UserAddress;
 use App\Models\WalletTransaction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    protected $guarded = []; 
+    protected $guarded = [];
 
-   protected $casts = [
-    'subtotal' => 'decimal:2',
-    'vat_percentage' => 'decimal:2',
-    'vat_value' => 'decimal:2',
+    protected $casts = [
+        'subtotal' => 'decimal:2',
+        'vat_percentage' => 'decimal:2',
+        'vat_value' => 'decimal:2',
 
-    'distance_km' => 'decimal:2',
-    'delivery_meter_price' => 'decimal:2',
-    'delivery_price' => 'decimal:2',
+        'distance_km' => 'decimal:2',
+        'delivery_meter_price' => 'decimal:2',
+        'delivery_price' => 'decimal:2',
 
-    'kitchen_service_fee' => 'decimal:2',
-    'client_service_fee' => 'decimal:2',
-    'kitchen_net_amount' => 'decimal:2',
+        'kitchen_service_fee' => 'decimal:2',
+        'client_service_fee' => 'decimal:2',
+        'kitchen_net_amount' => 'decimal:2',
 
-    'total_before_discount' => 'decimal:2',
-    'discount_value' => 'decimal:2',
-    'total' => 'decimal:2',
+        'total_before_discount' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'total' => 'decimal:2',
 
-    'book_for_later' => 'boolean',
-     'delivered_at' => 'datetime',
-];
+        'book_for_later' => 'boolean',
+        'delivered_at' => 'datetime',
+
+        'paid_at' => 'datetime',
+        'payment_expires_at' => 'datetime',
+    ];
 
     public function deliveryOrders()
     {
@@ -91,4 +95,24 @@ class Order extends Model
     {
         return $this->hasOne(CashCodeUsage::class);
     }
+
+
+    public function paymentTransactions()
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function successfulPayment()
+    {
+        return $this->hasOne(PaymentTransaction::class)
+            ->where('status', 'paid')
+            ->latestOfMany();
+    }
+
+    public function financialTransactions(): HasMany
+{
+    return $this->hasMany(
+        FinancialTransaction::class
+    );
+}
 }

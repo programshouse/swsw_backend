@@ -12,6 +12,9 @@ use App\Models\DeliveryOrder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use App\services\PointService;
+use App\Models\Wallet;
+use App\Models\Area;
+use Illuminate\Support\Facades\DB;
 
 
 class DeliveryController extends Controller
@@ -28,38 +31,65 @@ class DeliveryController extends Controller
         );
     }
 
+
+
     public function accept($id)
     {
-        $delivery = DeliveryUser::findOrFail($id);
+        DB::beginTransaction();
 
-        if ($delivery->status !== 'pending') {
+        try {
+            $delivery = DeliveryUser::findOrFail($id);
+
+            if ($delivery->status !== 'pending') {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Already processed'
+                ], 400);
+            }
+
+            do {
+                $shiftCode = random_int(1000, 9999);
+                $code = random_int(1000, 9999);
+            } while (
+                DeliveryUser::where('shift_code', $shiftCode)->exists() ||
+                DeliveryUser::where('code', $code)->exists()
+            );
+
+            $delivery->update([
+                'status' => 'approved',
+                'shift_code' => $shiftCode,
+                'code' => $code,
+            ]);
+
+            Wallet::firstOrCreate(
+                [
+                    'owner_id' => $delivery->id,
+                    'owner_type' => 'delivery',
+                ],
+                [
+                    'available_amount' => 0,
+                    'pending_amount' => 0,
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Delivery approved successfully',
+                'data' => $delivery->fresh(),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => false,
-                'message' => 'Already processed'
-            ], 400);
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        do {
-            $shiftCode = random_int(1000, 9999);
-            $Code = random_int(1000, 9999);
-        } while (
-            DeliveryUser::where('shift_code', $shiftCode)->exists() ||
-            DeliveryUser::where('code', $Code)->exists()
-        );
-
-        $delivery->update([
-            'status' => 'approved',
-            'shift_code' => $shiftCode,
-            'code' => $Code,
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Delivery approved successfully',
-            'data' => $delivery
-        ]);
     }
-
     public function reject($id)
     {
         $delivery = DeliveryUser::findOrFail($id);
@@ -83,21 +113,46 @@ class DeliveryController extends Controller
     }
 
 
-    public function approved()
-    {
-        $deliveries = DeliveryUser::with('level')->where('status', 'approved')
-            ->latest()
-            ->get();
+  public function approved(Request $request)
+{
+    $deliveries = DeliveryUser::with([
+            'level',
+            'government',
+            'area'
+        ])
+        ->where('status', 'approved')
 
-        $levels = Level::all();
-        $points = Point::get();
-        $this_month = Carbon::now()->format('F');
+        // فلتر اسم الدليفري
+        ->when($request->name, function ($query) use ($request) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        })
 
-        return view(
-            'admin.delivery.approved',
-            compact('deliveries', 'levels', 'points', 'this_month')
-        );
-    }
+        // فلتر المنطقة
+        ->when($request->area_id, function ($query) use ($request) {
+            $query->where('area_id', $request->area_id);
+        })
+
+        ->latest()
+        ->get();
+
+
+    $levels = Level::all();
+    $points = Point::get();
+
+    // جلب المناطق للـ select
+    $areas = Area::all();
+
+
+    return view(
+        'admin.delivery.approved',
+        compact(
+            'deliveries',
+            'levels',
+            'points',
+            'areas'
+        )
+    );
+}
 
     public function promotion(Request $request, string $id)
     {
@@ -135,84 +190,113 @@ class DeliveryController extends Controller
     {
         $delivery = DeliveryUser::findOrFail($id);
 
-        $is_break = $delivery->is_break;
+        /*
+    |--------------------------------------------------------------------------
+    | إنهاء الراحة
+    |--------------------------------------------------------------------------
+    */
 
-        if ($is_break == 1) {
-
-            $delivery->update([
-                'is_break' => 0,
-                'break_time' => 0,
-            ]);
-
-            $message = "Delivery {$delivery->name} Is Now Working";
-        } else {
+        if ((bool) $delivery->is_break) {
 
             $delivery->update([
-                'is_break' => 1,
-                'break_time' => $request->break_time,
-                'break_started_at' => now()
+                'is_break' => false,
+                'break_time' => null,
+                'break_started_at' => null,
             ]);
 
-            $message = "Delivery {$delivery->name} Is Now On Break";
+            return redirect()
+                ->route('admin.delivery.approved')
+                ->with(
+                    'success',
+                    "تم إنهاء راحة الدليفري {$delivery->name} وأصبح يعمل الآن"
+                );
         }
+
+        /*
+    |--------------------------------------------------------------------------
+    | بدء الراحة
+    |--------------------------------------------------------------------------
+    */
+
+        $validated = $request->validate([
+            'break_time' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:1440',
+            ],
+        ], [
+            'break_time.required' => 'يرجى إدخال مدة الراحة.',
+            'break_time.integer' => 'مدة الراحة يجب أن تكون رقمًا صحيحًا.',
+            'break_time.min' => 'مدة الراحة يجب ألا تقل عن دقيقة واحدة.',
+            'break_time.max' => 'مدة الراحة يجب ألا تزيد عن 1440 دقيقة.',
+        ]);
+
+        $delivery->update([
+            'is_break' => true,
+            'break_time' => $validated['break_time'],
+            'break_started_at' => now(),
+        ]);
 
         return redirect()
             ->route('admin.delivery.approved')
-            ->with('success', $message);
+            ->with(
+                'success',
+                "تم بدء راحة الدليفري {$delivery->name} لمدة {$validated['break_time']} دقيقة"
+            );
     }
+    public function addPoint(
+        Request $request,
+        string $id,
+        PointService $pointService
+    ) {
+        $data = $request->validate([
+            'point_id' => [
+                'required',
+                'integer',
+                'exists:points,id',
+            ],
 
-  public function addPoint(
-    Request $request,
-    string $id,
-    PointService $pointService
-) {
-    $data = $request->validate([
-        'point_id' => [
-            'required',
-            'integer',
-            'exists:points,id',
-        ],
+            'notes' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+        ], [
+            'point_id.required' => 'يجب اختيار عدد النقاط',
+            'point_id.integer' => 'اختيار النقاط غير صحيح',
+            'point_id.exists' => 'اختيار النقاط غير موجود',
+        ]);
 
-        'notes' => [
-            'nullable',
-            'string',
-            'max:1000',
-        ],
-    ], [
-        'point_id.required' => 'يجب اختيار عدد النقاط',
-        'point_id.integer' => 'اختيار النقاط غير صحيح',
-        'point_id.exists' => 'اختيار النقاط غير موجود',
-    ]);
+        $delivery = DeliveryUser::findOrFail($id);
 
-    $delivery = DeliveryUser::findOrFail($id);
+        $point = Point::findOrFail($data['point_id']);
 
-    $point = Point::findOrFail($data['point_id']);
+        $pointsNumber = (int) $point->number;
 
-    $pointsNumber = (int) $point->number;
+        if ($pointsNumber <= 0) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'عدد النقاط يجب أن يكون أكبر من صفر');
+        }
 
-    if ($pointsNumber <= 0) {
-        return redirect()
-            ->back()
-            ->withInput()
-            ->with('error', 'عدد النقاط يجب أن يكون أكبر من صفر');
-    }
-
-    $pointService->add(
-        owner: $delivery,
-        points: $pointsNumber,
-        source: 'admin_add',
-        reference: $point,
-        notes: $data['notes']
-            ?? 'تمت إضافة النقاط بواسطة الأدمن'
-    );
-
-    return redirect()
-        ->route('admin.delivery.approved')
-        ->with(
-            'success',
-            "تمت إضافة {$pointsNumber} نقطة إلى {$delivery->name} بنجاح"
+        $pointService->add(
+            owner: $delivery,
+            points: $pointsNumber,
+            source: 'admin_add',
+            reference: $point,
+            notes: $data['notes']
+                ?? 'تمت إضافة النقاط بواسطة الأدمن'
         );
-}
+
+        return redirect()
+            ->route('admin.delivery.approved')
+            ->with(
+                'success',
+                "تمت إضافة {$pointsNumber} نقطة إلى {$delivery->name} بنجاح"
+            );
+    }
 
 
 
@@ -245,5 +329,33 @@ class DeliveryController extends Controller
         DeliveryPoint::create($validated);
 
         return back()->with('success', 'تم إضافة النقاط للدليفري بنجاح');
+    }
+
+
+
+
+    public function toggleStatus(DeliveryUser $delivery)
+    {
+        if ($delivery->status === 'inactive') {
+
+            $delivery->update([
+                'status' => 'approved',
+                'is_break' => 0,
+            ]);
+
+            $message = 'تم تفعيل الدليفري بنجاح';
+        } else {
+
+            $delivery->update([
+                'status' => 'inactive',
+                'is_break' => 0,
+            ]);
+
+            $delivery->tokens()->delete();
+
+            $message = 'تم تعطيل الدليفري بنجاح';
+        }
+
+        return back()->with('success', $message);
     }
 }

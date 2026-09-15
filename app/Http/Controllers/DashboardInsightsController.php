@@ -6,6 +6,7 @@ use App\Models\KitchenProfile;
 use App\Models\Meal;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\DeliveryUser;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,7 @@ class DashboardInsightsController extends Controller
                 'approved' => Meal::where('approved', true)->count(),
                 'pending' => Meal::where('approved', false)->count(),
                 'available_now' => Meal::where('availability', true)->count(),
+                'rejected' => Meal::where('approved', 'rejected')->count(),
             ],
             'orders' => [
                 'total' => Order::count(),
@@ -70,6 +72,13 @@ class DashboardInsightsController extends Controller
                 'total_revenue' => (float) Order::where('status', 'delivered')->sum('total'),
                 'today_revenue' => (float) Order::where('status', 'delivered')->whereDate('delivered_at', $today)->sum('total'),
                 'last_7_days_trend' => $trend,
+            ],
+            'delivery' => [
+                'total' => DeliveryUser::count(),
+                 'approved' => DeliveryUser::where('status', 'approved')->count(),
+                'pending' => DeliveryUser::where('status', 'pending')->count(),
+                'rejected' => DeliveryUser::where('status', 'rejected')->count(),
+                // 'inactive' => DeliveryUser::where('status', 'inactive')->count(),
             ],
         ];
 

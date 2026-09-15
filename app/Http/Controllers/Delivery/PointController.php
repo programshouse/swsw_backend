@@ -69,19 +69,50 @@ public function myPoints(Request $request)
 {
     $user = $request->user();
 
+    $transactions = $user
+        ->pointTransactions()
+        ->latest('id')
+        ->get();
+
     return response()->json([
         'status' => true,
-        'total_points' => $user->pointTransactions()->sum('points'),
-        'transactions' => $user->pointTransactions()
-            ->latest()
-            ->get()
-            ->map(fn ($item) => [
+
+        'total_points' => (int) $transactions->sum('points'),
+
+        'total_added' => (int) $transactions
+            ->where('points', '>', 0)
+            ->sum('points'),
+
+        'total_deducted' => abs(
+            (int) $transactions
+                ->where('points', '<', 0)
+                ->sum('points')
+        ),
+
+        'transactions' => $transactions->map(function ($item) {
+            return [
                 'id' => $item->id,
+
+                'type' => $item->points > 0
+                    ? 'added'
+                    : 'deducted',
+
                 'source' => $item->source,
-                'points' => $item->points,
+
+                'points' => (int) $item->points,
+
+                'points_value' => abs((int) $item->points),
+
+                'reference_type' => $item->reference_type,
+
+                'reference_id' => $item->reference_id,
+
                 'notes' => $item->notes,
-                'created_at' => $item->created_at->format('Y-m-d H:i'),
-            ]),
+
+                'created_at' => optional($item->created_at)
+                    ->format('Y-m-d H:i'),
+            ];
+        })->values(),
     ]);
 }
 }

@@ -27,8 +27,11 @@ class ClientController extends Controller
     public function ClientHome(Request $request)
     {
         $user = $request->user()->id;
+
         // default user address
-        $default_address = UserAddress::where('user_id', $user)->where('is_default', true)->first();
+        $default_address = UserAddress::where('user_id', $user)
+            ->where('is_default', true)
+            ->first();
 
         $kitchens_in_area = KitchenProfile::query()
             ->where('government_id', $default_address->government_id)
@@ -37,16 +40,30 @@ class ClientController extends Controller
             ->whereHas('user', function ($query) {
                 $query->where('is_company', 0);
             })
-            ->with(['government', 'area', 'user'])
+            ->with([
+                'government',
+                'area',
+                'user',
+
+                'meals' => function ($query) {
+                    $query->where('approved', 'approved');
+                },
+
+                // MealResource يستخدم العلاقات دي
+                'meals.kitchen',
+                'meals.category',
+            ])
             ->get();
 
         $carusel = Carusel::all();
 
-        // $kitchens_in_area->load('government' , 'area');
-
         return response()->json([
-            'kitchens' => ClientKitchenResource::collection($kitchens_in_area),
-            'carusel' => CaruselResource::collection($carusel)
+            'kitchens' => ClientKitchenResource::collection(
+                $kitchens_in_area
+            ),
+            'carusel' => CaruselResource::collection(
+                $carusel
+            ),
         ]);
     }
 
@@ -98,7 +115,7 @@ class ClientController extends Controller
         // default user address
         $default_address = UserAddress::where('user_id', $user)->where('is_default', true)->first();
 
-        $meals_in_cat = Meal::where('category_id', $category->id)->whereHas('kitchen', function ($k) use ($default_address) {
+        $meals_in_cat = Meal::where('category_id', $category->id)->where('approved', 'approved')->whereHas('kitchen', function ($k) use ($default_address) {
             return $k->where('government_id', $default_address->government_id)->where('area_id', $default_address->area_id)->where('statue', 'approved');
         })->get();
 
@@ -178,50 +195,61 @@ class ClientController extends Controller
     // }
 
 
-    public function all_clients(Request $request)
-    {
-        $clients = User::query()
-            ->where('role', 'client')
-            ->withSum(
-                'pointTransactions as total_points',
-                'points'
-            )
-            ->latest()
-            ->get()
-            ->map(function ($client) {
+    
+public function all_clients(Request $request)
+{
+    $search = $request->input('search');
 
-                if (empty($client->code)) {
-                    $client->referrals_count = 0;
-                    $client->total_points = (int) ($client->total_points ?? 0);
+    $clients = User::query()
+        ->where('role', 'client')
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        })
+        ->withSum(
+            'pointTransactions as total_points',
+            'points'
+        )
+        ->latest()
+        ->get()
+        ->map(function ($client) {
 
-                    return $client;
-                }
-
-                $usersCount = User::query()
-                    ->whereNotNull('referral_code')
-                    ->where('referral_code', $client->code)
-                    ->count();
-
-                $deliveryCount = DeliveryUser::query()
-                    ->whereNotNull('referral_code')
-                    ->where('referral_code', $client->code)
-                    ->count();
-
-                $client->referrals_count = $usersCount + $deliveryCount;
+            if (empty($client->code)) {
+                $client->referrals_count = 0;
                 $client->total_points = (int) ($client->total_points ?? 0);
 
                 return $client;
-            });
+            }
 
-        $points = Point::query()
-            ->orderBy('number')
-            ->get();
+            $usersCount = User::query()
+                ->whereNotNull('referral_code')
+                ->where('referral_code', $client->code)
+                ->count();
 
-        return view('admin.clients.index', compact(
-            'clients',
-            'points'
-        ));
-    }
+            $deliveryCount = DeliveryUser::query()
+                ->whereNotNull('referral_code')
+                ->where('referral_code', $client->code)
+                ->count();
+
+            $client->referrals_count = $usersCount + $deliveryCount;
+            $client->total_points = (int) ($client->total_points ?? 0);
+
+            return $client;
+        });
+
+    $points = Point::query()
+        ->orderBy('number')
+        ->get();
+
+    return view('admin.clients.index', compact(
+        'clients',
+        'points'
+    ));
+}
+
+
 
     public function client_profile(Request $request, User $user)
     {
@@ -333,7 +361,7 @@ class ClientController extends Controller
     {
         $user = $request->user();
 
-       
+
 
         $kitchens = KitchenProfile::query()
             ->where('statue', 'approved')

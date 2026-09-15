@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Meal;
 use Illuminate\Http\Request;
 use App\Models\KitchenProfile;
+use App\Models\KitchenPackageSubscription;
 use App\Http\Resources\MealResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +33,34 @@ class MealController extends Controller
 
 
         $user = $request->user()->profile;
+
+        $subscription = KitchenPackageSubscription::with('package')
+            ->where('kitchen_id', $user->id)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+        if (!$subscription) {
+            return response()->json([
+                'message' => 'No active package found for this kitchen.',
+            ], 403);
+        }
+
+
+        $mealsCount = Meal::where('kitchen_profile_id', $user->id)->count();
+
+
+        if (
+            $subscription->package->meals_limit > 0 &&
+            $mealsCount >= $subscription->package->meals_limit
+        ) {
+
+            return response()->json([
+                'message' => 'You have reached your meals limit for your current package.',
+                'limit' => $subscription->package->meals_limit,
+                'used' => $mealsCount,
+            ], 422);
+        }
 
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
@@ -189,6 +218,57 @@ class MealController extends Controller
             'data' => [
                 'id' => $meal->id,
                 'quantity' => $meal->quantity,
+            ],
+        ]);
+    }
+
+
+
+
+
+
+
+    public function updatepreparingTime(Request $request, Meal $meal): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (!$user || $user->role !== 'kitchen') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $kitchenProfile = KitchenProfile::where('user_id', $user->id)->first();
+
+        if (!$kitchenProfile) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Kitchen profile not found.',
+            ], 404);
+        }
+
+        if ($meal->kitchen_profile_id != $kitchenProfile->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'preparation_time' => 'required|integer|min:0',
+        ]);
+
+        $meal->update([
+            'preparation_time' => $validated['preparation_time'],
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'preparation time updated successfully.',
+            'data' => [
+                'id' => $meal->id,
+                'preparation_time' => $meal->preparation_time,
             ],
         ]);
     }

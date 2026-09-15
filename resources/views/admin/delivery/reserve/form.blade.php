@@ -116,31 +116,119 @@
 
    
 
-    <div class="form-group">
-        <label class="form-label">المحافظة</label>
-        <select name="government_id" class="form-input" required>
-            <option value="">اختر المحافظة</option>
-            @foreach($governments as $government)
-                <option value="{{ $government->id }}"
-                    @selected(old('government_id', $delivery->government_id ?? '') == $government->id)>
-                    {{ $government->name_ar }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+  <div class="form-group">
+    <label class="form-label">المحافظة</label>
 
-    <div class="form-group">
-        <label class="form-label">المنطقة</label>
-        <select name="area_id" class="form-input" required>
-            <option value="">اختر المنطقة</option>
-            @foreach($areas as $area)
-                <option value="{{ $area->id }}"
-                    @selected(old('area_id', $delivery->area_id ?? '') == $area->id)>
-                    {{ $area->name_ar }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+    <select
+        name="government_id"
+        id="government_id"
+        class="form-input"
+        required
+    >
+        <option value="">اختر المحافظة</option>
+
+        @foreach($governments as $government)
+            <option
+                value="{{ $government->id }}"
+                @selected(old('government_id', $delivery->government_id ?? '') == $government->id)
+            >
+                {{ $government->name_ar }}
+            </option>
+        @endforeach
+    </select>
+
+    @error('government_id')
+        <div class="text-danger">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="form-group">
+    <label class="form-label">المنطقة</label>
+
+    <select
+        name="area_id"
+        id="area_id"
+        class="form-input"
+        required
+        disabled
+    >
+        <option value="">اختر المحافظة أولاً</option>
+    </select>
+
+    @error('area_id')
+        <div class="text-danger">{{ $message }}</div>
+    @enderror
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const governmentSelect = document.getElementById('government_id');
+    const areaSelect = document.getElementById('area_id');
+
+    const governments = @json(
+        $governments->mapWithKeys(function ($government) {
+            return [
+                $government->id => $government->areas->map(function ($area) {
+                    return [
+                        'id' => $area->id,
+                        'name' => $area->name_ar,
+                    ];
+                })->values()
+            ];
+        })
+    );
+
+    const selectedGovernment = "{{ old('government_id', $delivery->government_id ?? '') }}";
+    const selectedArea = "{{ old('area_id', $delivery->area_id ?? '') }}";
+
+    function loadAreas(governmentId, selected = '') {
+
+        areaSelect.innerHTML = '';
+
+        if (!governmentId || !governments[governmentId]) {
+            areaSelect.disabled = true;
+            areaSelect.innerHTML =
+                '<option value="">اختر المحافظة أولاً</option>';
+            return;
+        }
+
+        areaSelect.disabled = false;
+
+        areaSelect.innerHTML =
+            '<option value="">اختر المنطقة</option>';
+
+        governments[governmentId].forEach(function (area) {
+
+            const option = document.createElement('option');
+
+            option.value = area.id;
+            option.textContent = area.name;
+
+            if (String(area.id) === String(selected)) {
+                option.selected = true;
+            }
+
+            areaSelect.appendChild(option);
+        });
+
+        if (governments[governmentId].length === 0) {
+            areaSelect.disabled = true;
+            areaSelect.innerHTML =
+                '<option value="">لا توجد مناطق متاحة</option>';
+        }
+    }
+
+    governmentSelect.addEventListener('change', function () {
+        loadAreas(this.value);
+    });
+
+    if (selectedGovernment) {
+        loadAreas(selectedGovernment, selectedArea);
+    }
+
+});
+</script>
 
     <div class="form-group">
         <label class="form-label">الشيفت</label>

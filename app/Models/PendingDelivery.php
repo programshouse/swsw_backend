@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
+ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PendingDelivery extends Authenticatable
 {
@@ -45,6 +46,16 @@ class PendingDelivery extends Authenticatable
     {
         return $this->belongsTo(Area::class);
     }
+
+   
+
+public function government(): BelongsTo
+{
+    return $this->belongsTo(
+        Government::class,
+        'government_id'
+    );
+}
 
     public function shift()
     {

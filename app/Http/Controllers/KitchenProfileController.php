@@ -11,9 +11,12 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\KitchenProfileResource;
 use App\Models\Wallet;
+use App\Models\UserAddress;
 use Illuminate\Support\Facades\DB;
 use App\Models\DeliveryUser;
 use App\Helpers\FileHelper;
+use Illuminate\Http\JsonResponse;
+
 
 class KitchenProfileController extends Controller
 {
@@ -75,6 +78,8 @@ class KitchenProfileController extends Controller
             'area_id' =>  $user->area_id
         ]);
 
+
+
         // $profile->load('user', 'work_day');
 
         // create wallet for this kitchen user
@@ -106,10 +111,10 @@ class KitchenProfileController extends Controller
                 'message' => 'Profile not found',
             ], 404);
         }
-
-        $profile->government = $profile->user->government->except('created_at', 'updated_at', 'id');
-        $profile->area = $profile->user->government->areas->first()->except('created_at', 'updated_at', 'id', 'government_id');
-
+        $defaultAddress = UserAddress::with(['government', 'area'])
+            ->where('user_id', $user->id)
+            ->where('is_default', 1)
+            ->first();
 
         return new KitchenProfileResource($profile);
     }
@@ -176,8 +181,22 @@ class KitchenProfileController extends Controller
 
         $kitchenProfile = $request->user()->profile();
 
-        $kitchenProfile->update([
-            'open_status' => $validated['open_status']
+        if (
+            $kitchenProfile->open_status == 'closed'
+            &&
+            $kitchenProfile->close_reason == 'package_limit'
+            &&
+            $validated['open_status'] == 'open'
+        ) {
+
+            return response()->json([
+                'message' => 'Please renew your package first.'
+            ], 422);
+        }
+
+        $kitchen->update([
+            'open_status' => 'closed',
+            'close_reason' => 'package_limit'
         ]);
 
         return response()->json([
@@ -324,6 +343,107 @@ class KitchenProfileController extends Controller
         return view('admin.kitchens.meals', [
             'kitchen' => $kitchen,
             'meals' => $meals,
+        ]);
+    }
+
+
+
+
+
+    public function myPoints(Request $request): JsonResponse
+    {
+        $kitchen = $request->user();
+
+        if (!$kitchen || $kitchen->role !== 'kitchen') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+
+        if ($perPage < 1) {
+            $perPage = 15;
+        }
+
+        if ($perPage > 100) {
+            $perPage = 100;
+        }
+
+        $transactionsQuery = $kitchen
+            ->pointTransactions()
+            ->latest('id');
+
+        $currentBalance = (int) $kitchen
+            ->pointTransactions()
+            ->sum('points');
+
+        $totalAdded = (int) $kitchen
+            ->pointTransactions()
+            ->where('points', '>', 0)
+            ->sum('points');
+
+        $totalDeducted = abs(
+            (int) $kitchen
+                ->pointTransactions()
+                ->where('points', '<', 0)
+                ->sum('points')
+        );
+
+        $transactions = $transactionsQuery
+            ->paginate($perPage);
+
+        $transactions->getCollection()->transform(function ($transaction) {
+            return [
+                'id' => $transaction->id,
+
+                'type' => $transaction->points > 0
+                    ? 'added'
+                    : 'deducted',
+
+                'points' => abs((int) $transaction->points),
+
+                'signed_points' => (int) $transaction->points,
+
+                'source' => $transaction->source,
+
+                'notes' => $transaction->notes,
+
+                'created_at' => optional(
+                    $transaction->created_at
+                )->format('Y-m-d H:i:s'),
+
+                'created_at_human' => optional(
+                    $transaction->created_at
+                )->diffForHumans(),
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Points retrieved successfully',
+
+            'data' => [
+                'summary' => [
+                    'current_balance' => $currentBalance,
+                    'total_added' => $totalAdded,
+                    'total_deducted' => $totalDeducted,
+                    'transactions_count' => $transactions->total(),
+                ],
+
+                'transactions' => $transactions->items(),
+
+                'pagination' => [
+                    'current_page' => $transactions->currentPage(),
+                    'last_page' => $transactions->lastPage(),
+                    'per_page' => $transactions->perPage(),
+                    'total' => $transactions->total(),
+                    'from' => $transactions->firstItem(),
+                    'to' => $transactions->lastItem(),
+                    'has_more_pages' => $transactions->hasMorePages(),
+                ],
+            ],
         ]);
     }
 }

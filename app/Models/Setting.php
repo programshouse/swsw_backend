@@ -8,6 +8,7 @@ class Setting extends Model
 {
     protected $fillable = [
         'whatsapp_number',
+        'hotline',
         'facebook_link',
         'instgram_link',
         'tiktok_link',

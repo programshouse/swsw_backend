@@ -166,9 +166,7 @@
                             <th>هاتف المطبخ</th>
                             <th>اسم الفئة</th>
                             <th>معرف الفئة</th>
-                            {{-- <th>الحالة</th> --}}
-                            {{-- <th>تاريخ الإنشاء</th> --}}
-                            <th>تاريخ التحديث</th>
+                           
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -207,7 +205,7 @@
                                 <td>{{ $meal->price ?? '-' }}</td>
 
                                 <td>
-                                    {{ $meal->availability ? 'نعم' : 'لا' }}
+                                    {{ $meal->available_delivery_today ? 'نعم' : 'لا' }}
                                 </td>
 
                                 <td>{{ $meal->kitchen->name ?? ($meal->kitchenProfile->name ?? '-') }}</td>

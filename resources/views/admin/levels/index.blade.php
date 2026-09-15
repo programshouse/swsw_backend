@@ -4,169 +4,159 @@
 
 @section('content')
 
-<div class="page-title">
-    مستويات الدليفري
-</div>
+    <div class="page-title">
+        مستويات الدليفري
+    </div>
 
-<div class="table-card">
+    <div class="table-card">
 
-    <div class="table-header">
+        <div class="table-header">
 
-        <div class="table-title">
-            قائمة المستويات
+            <div class="table-title">
+                قائمة المستويات
+            </div>
+
+            <a href="{{ route('admin.levels.create') }}" class="add-btn">
+                إضافة مستوى
+            </a>
+
         </div>
 
-        <a href="{{ route('admin.levels.create') }}" class="add-btn">
-            إضافة مستوى
-        </a>
+        <div class="table-wrapper">
 
-    </div>
+            <table>
 
-    <div class="table-wrapper">
-
-        <table>
-
-            <thead>
-                <tr>
-                   
-                    <th>اسم المستوى</th>
-                    <th>حد الكاش</th>
-                    <th>المسافة (KM)</th>
-                    <th>نوع المركبة</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                @forelse ($levels as $level)
-
+                <thead>
                     <tr>
 
-                        <td>
-                            <span class="level-badge">
-                                {{ $level->name }}
-                            </span>
-                        </td>
+                        <th>اسم المستوى</th>
+                        <th>حد الكاش</th>
+                        <th>المسافة (KM)</th>
+                        {{-- <th>نوع المركبة</th> --}}
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
 
-                        <td>
-                            {{ number_format($level->cash_money) }}
-                        </td>
+                <tbody>
 
-                        <td>
-                            {{ $level->km }}
-                        </td>
+                    @forelse ($levels as $level)
+                        <tr>
 
-                        <td>
+                            <td>
+                                <span class="level-badge">
+                                    {{ $level->name }}
+                                </span>
+                            </td>
+
+                            <td>
+                                {{ number_format($level->cash_money) }}
+                            </td>
+
+                            <td>
+                                {{ $level->km }}
+                            </td>
+
+                            {{-- <td>
                           {{ $level->vehicle->name_ar ?? '-' }}
-                        </td>
+                        </td> --}}
 
-                        <td>
+                            <td>
 
-                            <div class="action-buttons">
+                                <div class="action-buttons">
 
-                                <a
-                                    href="{{ route('admin.levels.edit', $level->id) }}"
-                                    class="edit-btn"
-                                >
-                                    تعديل
-                                </a>
+                                    <a href="{{ route('admin.levels.edit', $level->id) }}" class="edit-btn">
+                                        تعديل
+                                    </a>
 
-                                <form
-                                    action="{{ route('admin.levels.destroy', $level->id) }}"
-                                    method="POST"
-                                    onsubmit="return confirm('هل أنت متأكد من حذف المستوى؟')"
-                                >
+                                    <form action="{{ route('admin.levels.destroy', $level->id) }}" method="POST"
+                                        onsubmit="return confirm('هل أنت متأكد من حذف المستوى؟')">
 
-                                    @csrf
-                                    @method('DELETE')
+                                        @csrf
+                                        @method('DELETE')
 
-                                    <button type="submit" class="delete-btn">
-                                        حذف
-                                    </button>
+                                        <button type="submit" class="delete-btn">
+                                            حذف
+                                        </button>
 
-                                </form>
+                                    </form>
 
-                            </div>
+                                </div>
 
-                        </td>
+                            </td>
 
-                    </tr>
+                        </tr>
 
-                @empty
+                    @empty
 
-                    <tr>
-                        <td colspan="6" class="empty">
-                            لا توجد مستويات
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="empty">
+                                لا توجد مستويات
+                            </td>
+                        </tr>
+                    @endforelse
 
-                @endforelse
+                </tbody>
 
-            </tbody>
+            </table>
 
-        </table>
+        </div>
+
+        <div style="margin-top:20px">
+            {{ $levels->links() }}
+        </div>
 
     </div>
-
-    <div style="margin-top:20px">
-        {{ $levels->links() }}
-    </div>
-
-</div>
 
 @endsection
 
 @push('styles')
-<style>
+    <style>
+        .level-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
 
-.level-badge{
-    display:inline-flex;
-    align-items:center;
-    padding:6px 12px;
-    border-radius:999px;
-    background:#dbeafe;
-    color:#1d4ed8;
-    font-weight:700;
-}
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
 
-.action-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
+        .edit-btn {
+            background: #f59e0b;
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+        }
 
-.edit-btn{
-    background:#f59e0b;
-    color:#fff;
-    text-decoration:none;
-    padding:8px 14px;
-    border-radius:8px;
-    font-weight:700;
-    font-size:13px;
-}
+        .edit-btn:hover {
+            background: #d97706;
+            color: #fff;
+        }
 
-.edit-btn:hover{
-    background:#d97706;
-    color:#fff;
-}
+        .table-wrapper table td,
+        .table-wrapper table th {
+            text-align: center;
+            vertical-align: middle;
+        }
 
-.table-wrapper table td,
-.table-wrapper table th{
-    text-align:center;
-    vertical-align:middle;
-}
+        .pagination {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
 
-.pagination{
-    display:flex;
-    gap:6px;
-    justify-content:center;
-}
-
-.pagination .page-link{
-    border-radius:8px;
-}
-
-</style>
+        .pagination .page-link {
+            border-radius: 8px;
+        }
+    </style>
 @endpush

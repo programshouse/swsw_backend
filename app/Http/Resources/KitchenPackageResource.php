@@ -22,6 +22,8 @@ class KitchenPackageResource extends JsonResource
             'price' => (float) $this->price,
             'duration' => $this->duration,
             'active' => (bool) $this->active,
+            'meals_limit' => $this->meals_limit,
+            'orders_limit' => $this->orders_limit,
         ];
     }
 }

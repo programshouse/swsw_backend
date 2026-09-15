@@ -31,8 +31,67 @@ use App\Http\Controllers\Admin\KitchenPackageController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\FirebaseTokenController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrderPaymentController;
+use App\Http\Controllers\KashierWebhookController;
+use App\Http\Controllers\KitchenSubscriptionController;
 
 
+
+
+
+Route::post('/kashier/test-signature', function (
+    \Illuminate\Http\Request $request
+) {
+    $data = $request->input('data', []);
+
+    $signatureKeys = $data['signatureKeys'] ?? [];
+
+    sort($signatureKeys, SORT_STRING);
+
+    $parts = [];
+
+    foreach ($signatureKeys as $key) {
+        if (!array_key_exists($key, $data)) {
+            return response()->json([
+                'status' => false,
+                'message' => "Missing key: {$key}",
+            ], 422);
+        }
+
+        $value = $data[$key];
+
+        if (is_bool($value)) {
+            $value = $value ? 'true' : 'false';
+        } elseif ($value === null) {
+            $value = '';
+        } elseif (is_array($value) || is_object($value)) {
+            $value = json_encode(
+                $value,
+                JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+            );
+        } else {
+            $value = (string) $value;
+        }
+
+        $parts[] = $key . '=' . rawurlencode($value);
+    }
+
+    $signaturePayload = implode('&', $parts);
+
+    $apiKey = trim(
+        (string) config('services.kashier.api_key')
+    );
+
+    return response()->json([
+        'signature_payload' => $signaturePayload,
+        'signature' => hash_hmac(
+            'sha256',
+            $signaturePayload,
+            $apiKey
+        ),
+    ]);
+});
 
 Route::get('/firebase-test', function () {
     try {
@@ -44,7 +103,7 @@ Route::get('/firebase-test', function () {
     }
 });
 
-
+Route::post('/kashier/webhook', [KashierWebhookController::class, 'handle'])->name('kashier.webhook');
 
 Route::get('/app-pages/{appType}/{pageType}', [AppPageApiController::class, 'show']);
 // Public authentication routes
@@ -76,14 +135,61 @@ Route::get('/workdays', [WorkingDayController::class, 'index']);
 
 
 
-
-
+Route::get('/kitchen/packages', [KitchenSubscriptionController::class, 'packages']);
 
 
 Route::middleware('auth:api_user')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout']);
     Route::get('/app-pages', [AppPageController::class, 'appPage']);
+
+
+    Route::get('/kitchen/points', [KitchenProfileController::class, 'myPo-ints']);
+    Route::get('/kitchen/subscription', [KitchenSubscriptionController::class, 'current']);
+    Route::post('/kitchen/packages/{package}/subscribe', [KitchenSubscriptionController::class, 'subscribe']);
+    Route::post('/kitchen/subscription-payments/{payment}/verify', [KitchenSubscriptionController::class, 'verifySubscriptionPayment'])->middleware('throttle:10,1');
+    Route::get('/kitchen/subscription-payments/{payment}/status', [KitchenSubscriptionController::class, 'subscriptionPaymentStatus']);
+
+    Route::post(
+        '/wallet/debit-requests/{debitRequest}/execute',
+        [
+            WalletController::class,
+            'executeApprovedWithdrawal',
+        ]
+    );
+
+    Route::post(
+        '/wallet/debit-requests/{debitRequest}/sync',
+        [
+            WalletController::class,
+            'syncApprovedWithdrawal',
+        ]
+    );
+
+    Route::post(
+        '/wallet/debit-requests/{debitRequest}/execute',
+        [
+            WalletController::class,
+            'executeApprovedWithdrawal',
+        ]
+    )->name('wallet.debit-requests.execute');
+
+    Route::get(
+        '/wallet/summary',
+        [
+            WalletController::class,
+            'myWalletWithDebitRequests',
+        ]
+    );
+
+
+    Route::get(
+        '/wallet/debit-requests/{debitRequest}/status',
+        [
+            WalletController::class,
+            'withdrawalRequestStatus',
+        ]
+    );
 
 
     Route::patch('/update-location', [UserController::class, 'update_location']);
@@ -96,22 +202,25 @@ Route::middleware('auth:api_user')->group(function () {
     Route::get('/{order}/approval-status', [OrderSController::class, 'orderApprovalStatus']);
 
     Route::patch('/meals/{meal}/quantity', [MealController::class, 'updateQuantity']);
+    Route::patch('/meals/{meal}/preparation-time', [MealController::class, 'updatepreparingTime']);
 
     Route::get('/kitchen/packages', [KitchenPackageController::class, 'packages']);
 
-    Route::get('/my-points', [OfferController::class, 'myPoints']);
+    Route::get('/my-points', [OfferController::class, 'myPoints']); //////
 
-    Route::post('/firebase-token',[FirebaseTokenController::class, 'store']);
+    Route::post('/firebase-token', [FirebaseTokenController::class, 'store']);
 
-    Route::post( '/firebase-token/language',[FirebaseTokenController::class, 'updateLanguage']);
+    Route::post('/firebase-token/language', [FirebaseTokenController::class, 'updateLanguage']);
 
-    Route::delete('/firebase-token',[FirebaseTokenController::class, 'destroy'] );
+    Route::delete('/firebase-token', [FirebaseTokenController::class, 'destroy']);
 
-    Route::get('/notifications',[NotificationController::class, 'index']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
 
-    Route::post('/notifications/{notification}/read',[NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+
+    Route::get('/payment-status/{order}', [OrdersController::class, 'paymentStatus']);
 
     Route::middleware(EnsureGovernrateArea::class)->group(function () {
         // kitchen
@@ -132,7 +241,10 @@ Route::middleware('auth:api_user')->group(function () {
 
         Route::get('/orders', [OrdersController::class, 'index']);
         Route::post('/orders', [OrdersController::class, 'store']);                          ///notify
+        Route::post('/orders/{order}/payment-method', [ OrdersController::class,'selectPaymentMethod', ]);
 
+        Route::post('/orders/{order}/apply-cash-code',[OrdersController::class,'applyCashCode',]);
+        
         Route::get('/orders/{order}', [OrdersController::class, 'show']);
         Route::patch('/orders/{order}', [OrdersController::class, 'update']);
         Route::delete('/orders/{order}', [OrdersController::class, 'destroy']);
@@ -167,14 +279,26 @@ Route::middleware('auth:api_user')->group(function () {
         Route::get('/my-debit-requests', [WalletController::class, 'my_debit_requests']);
 
 
+
+
+
+
         ///done
-
-
-
 
 
         Route::get('/kitchens/{kitchen}/rates', [RateController::class, 'kitchenRates']);
         Route::get('/carusel', [CaruselController::class, 'index']);
+
+
+
+
+        Route::get('/orders/{order}/payment-options', [OrderPaymentController::class, 'options']);
+        Route::post('/orders/{order}/payments/kashier', [OrderPaymentController::class, 'createKashierPayment']);
+        Route::get('kashier/{order}/methods', [OrderPaymentController::class, 'kashierMethods']);
+
+        Route::get('/payments/{payment}/status', [OrderPaymentController::class, 'status']);
+        Route::post('/payments/{payment}/verify', [OrderPaymentController::class, 'verify'])->middleware('throttle:10,1');
+        Route::post('/orders/{order}/payments/cash', [OrderPaymentController::class, 'selectCash']);
 
 
         // rates

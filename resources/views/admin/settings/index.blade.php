@@ -49,6 +49,12 @@
             </div>
 
             <div class="form-group">
+                <label class="form-label"> الخط الساخن</label>
+                <input type="text" name="hotline" class="form-input"
+                    value="{{ old('hotline ', $settings->hotline ?? '') }}" placeholder="مثال: 0100">
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">رابط فيسبوك</label>
                 <input type="url" name="facebook_link" class="form-input"
                     value="{{ old('facebook_link', $settings->facebook_link ?? '') }}"

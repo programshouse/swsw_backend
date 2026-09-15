@@ -63,7 +63,7 @@ class LevelController extends Controller
             'name' => 'required|string|max:255',
             'cash_money' => 'required|numeric|min:0',
             'km' => 'required|integer|min:0',
-            'vehicle_type' => 'required|string|max:255',
+            // 'vehicle_type' => 'required|string|max:255',
         ]);
 
         $level->update($data);

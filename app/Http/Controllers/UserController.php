@@ -75,6 +75,7 @@ class UserController extends Controller
                 'password' => Hash::make($validated['password']),
                 'referral_code' => $validated['referral_code'] ?? null,
                 'is_company' => (bool) ($validated['is_company'] ?? 0),
+                'status' => $validated['role'] === 'client' ? 'active' : 'pending',
 
             ]);
 

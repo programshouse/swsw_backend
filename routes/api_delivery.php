@@ -12,15 +12,17 @@ use App\Http\Controllers\Delivery\EmailOtpPasswordController;
 use App\Http\Controllers\Delivery\OfferController;
 use App\Http\Controllers\Delivery\PointController;
 use App\Http\Controllers\Delivery\DeliveryOfferController;
+use App\Http\Controllers\DeliveryCashSettlementController;
 use App\Http\Controllers\orders\OrderHistoryController;
 use App\Http\Controllers\Admin\AppPageController;
 use App\Http\Middleware\EnsureDeliveryWorking;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirebaseTokenController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\WalletController;
 
 
-
+Route::get('/debug/order/{order}/assignment', [OrderController::class, 'debugAssignment']);
 
 Route::post('delivery/password/send-otp', [EmailOtpPasswordController::class, 'sendOtp']);
 Route::post('delivery/password/verify-otp', [EmailOtpPasswordController::class, 'verifyOtp']);
@@ -96,8 +98,7 @@ Route::prefix('delivery')->group(function () {
         Route::get('/my-rewards', [RateStoreController::class, 'myRewards']);
         Route::post('/rates', [RateStoreController::class, 'storeRates']);
         Route::get('/rates', [RateStoreController::class, 'getRates']);
-
-        Route::get('/points', [PointController::class, 'index']);
+        Route::get('/points', [PointController::class, 'myPoints']);
 
         Route::get('/app-pages', [AppPageController::class, 'appPage']);
 
@@ -130,5 +131,60 @@ Route::prefix('delivery')->group(function () {
             '/notifications/read-all',
             [NotificationController::class, 'markAllAsRead']
         );
+
+        Route::post(
+            '/wallet/debit-requests/{debitRequest}/execute',
+            [
+                WalletController::class,
+                'executeApprovedWithdrawal',
+            ]
+        )->name('wallet.debit-requests.execute');
+
+
+        Route::post(
+            '/wallet/debit-requests/{debitRequest}/execute',
+            [
+                WalletController::class,
+                'executeApprovedWithdrawal',
+            ]
+        );
+
+        Route::post(
+            '/wallet/debit-requests/{debitRequest}/sync',
+            [
+                WalletController::class,
+                'syncApprovedWithdrawal',
+            ]
+        );
+
+
+
+        Route::get(
+            '/wallet/summary',
+            [
+                WalletController::class,
+                'myWalletWithDebitRequests',
+            ]
+        );
+
+
+
+        Route::get(
+            '/wallet/debit-requests/{debitRequest}/status',
+            [
+                WalletController::class,
+                'withdrawalRequestStatus',
+            ]
+        );
+
+        Route::get('/my-wallet', [WalletController::class, 'my_wallet']);
+        Route::post('/create-debit-request', [WalletController::class, 'create_debit_request']);
+        Route::get('/my-debit-requests', [WalletController::class, 'my_debit_requests']);
+
+
+
+        Route::get('/cash-settlement/summary',[DeliveryCashSettlementController::class,'summary',]);
+        Route::post('/cash-settlement/session',[DeliveryCashSettlementController::class,'createSession',]);
+        Route::get('/cash-settlement/{settlement}/status',[DeliveryCashSettlementController::class,'status',]);
     });
 });

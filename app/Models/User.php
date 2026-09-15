@@ -16,10 +16,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\traits\HasFirebaseNotifications;
 
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens , HasFirebaseNotifications;
+    use HasFactory, Notifiable, HasApiTokens, HasFirebaseNotifications;
 
     /**
      * The attributes that are mass assignable.
@@ -37,7 +38,13 @@ class User extends Authenticatable
         'password',
         'referral_code',
         'company_id',
-        'sales_id'
+        'sales_id',
+        'admin_type',
+        'admin_area_id',
+        'is_admin_active',
+        'admin_permissions',
+        'code',
+        'referral_code','is_company'
     ];
 
     /**
@@ -60,6 +67,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'admin_permissions' => 'array',
+            'is_admin_active' => 'boolean',
         ];
     }
 
@@ -122,8 +131,57 @@ class User extends Authenticatable
         return $this->hasMany(CashCodeUsage::class);
     }
 
-  public function salesEmployee()
-{
-    return $this->belongsTo(Sale::class, 'sales_id');
-}
+    public function salesEmployee()
+    {
+        return $this->belongsTo(Sale::class, 'sales_id');
+    }
+
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'admin'
+            && $this->admin_type === 'super_admin';
+    }
+
+    public function hasAdminPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $permissions = $this->admin_permissions ?? [];
+
+        if (is_string($permissions)) {
+            $permissions = json_decode($permissions, true) ?: [];
+        }
+
+        if (!is_array($permissions)) {
+            return false;
+        }
+
+        return in_array($permission, $permissions, true);
+    }
+
+    public function hasAnyAdminPermission(array $permissions): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($this->hasAdminPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function adminArea()
+    {
+        return $this->belongsTo(
+            Area::class,
+            'admin_area_id'
+        );
+    }
 }

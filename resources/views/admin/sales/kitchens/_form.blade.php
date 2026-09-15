@@ -1,28 +1,42 @@
 @php
-    $address = $kitchen->defaultAddress ?? null;
+    $kitchen = $kitchen ?? null;
+
+    $address = $kitchen?->defaultAddress ?? null;
 
     $selectedGovernmentId = old(
         'government_id',
-        $kitchen->government_id
-            ?? $address?->government_id
-            ?? ''
+        $kitchen?->government_id ??
+            ($address?->government_id ?? '')
     );
 
     $selectedAreaId = old(
         'area_id',
-        $kitchen->area_id
-            ?? $address?->area_id
-            ?? ''
+        $kitchen?->area_id ??
+            ($address?->area_id ?? '')
+    );
+
+    $selectedLat = old(
+        'lat',
+        $address?->lat ?? ''
+    );
+
+    $selectedLng = old(
+        'lng',
+        $address?->lng ?? ''
     );
 @endphp
 
 @if ($errors->any())
     <div class="validation-alert">
-        <strong>يرجى مراجعة البيانات التالية:</strong>
+        <strong>
+            يرجى مراجعة البيانات التالية:
+        </strong>
 
         <ul>
             @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
+                <li>
+                    {{ $error }}
+                </li>
             @endforeach
         </ul>
     </div>
@@ -30,11 +44,12 @@
 
 <div class="form-section">
     <div class="section-heading">
-        <h2>بيانات المطبخ</h2>
+        <h2>
+            بيانات المطبخ
+        </h2>
 
         <p>
-            سيتم إنشاء الحساب بدور مطبخ وربطه تلقائيًا
-            بحساب السيلز الحالي.
+            أدخل بيانات المطبخ لإنشاء طلب التسجيل.
         </p>
     </div>
 
@@ -49,7 +64,7 @@
                 type="text"
                 id="name"
                 name="name"
-                value="{{ old('name', $kitchen->name ?? '') }}"
+                value="{{ old('name', $kitchen?->name ?? '') }}"
                 placeholder="اكتب اسم المطبخ"
                 required
             >
@@ -65,7 +80,7 @@
                 type="text"
                 id="phone"
                 name="phone"
-                value="{{ old('phone', $kitchen->phone ?? '') }}"
+                value="{{ old('phone', $kitchen?->phone ?? '') }}"
                 placeholder="01xxxxxxxxx"
                 required
             >
@@ -80,7 +95,7 @@
                 type="email"
                 id="email"
                 name="email"
-                value="{{ old('email', $kitchen->email ?? '') }}"
+                value="{{ old('email', $kitchen?->email ?? '') }}"
                 placeholder="example@email.com"
             >
         </div>
@@ -99,7 +114,7 @@
                     @selected(
                         (string) old(
                             'is_company',
-                            (int) ($kitchen->is_company ?? 0)
+                            (int) ($kitchen?->is_company ?? 0)
                         ) === '0'
                     )
                 >
@@ -111,7 +126,7 @@
                     @selected(
                         (string) old(
                             'is_company',
-                            (int) ($kitchen->is_company ?? 0)
+                            (int) ($kitchen?->is_company ?? 0)
                         ) === '1'
                     )
                 >
@@ -124,7 +139,7 @@
             <label for="password">
                 كلمة المرور
 
-                @if (!isset($kitchen))
+                @if (!$kitchen)
                     <span>*</span>
                 @endif
             </label>
@@ -134,15 +149,18 @@
                     type="password"
                     id="password"
                     name="password"
-                    placeholder="{{ isset($kitchen)
+                    placeholder="{{ $kitchen
                         ? 'اتركها فارغة للاحتفاظ بكلمة المرور الحالية'
                         : '8 أحرف على الأقل' }}"
-                    @required(!isset($kitchen))
+                    @required(!$kitchen)
                 >
 
                 <button
                     type="button"
-                    onclick="togglePassword('password', this)"
+                    onclick="togglePassword(
+                        'password',
+                        this
+                    )"
                     class="password-toggle"
                 >
                     إظهار
@@ -154,7 +172,7 @@
             <label for="password_confirmation">
                 تأكيد كلمة المرور
 
-                @if (!isset($kitchen))
+                @if (!$kitchen)
                     <span>*</span>
                 @endif
             </label>
@@ -165,7 +183,7 @@
                     id="password_confirmation"
                     name="password_confirmation"
                     placeholder="أعد كتابة كلمة المرور"
-                    @required(!isset($kitchen))
+                    @required(!$kitchen)
                 >
 
                 <button
@@ -185,10 +203,12 @@
 
 <div class="form-section">
     <div class="section-heading">
-        <h2>العنوان والموقع</h2>
+        <h2>
+            العنوان والموقع
+        </h2>
 
         <p>
-            اختر المحافظة والمنطقة، ثم أدخل موقع المطبخ.
+            اختر المحافظة والمنطقة، ثم اضغط على استخدام موقعي الحالي.
         </p>
     </div>
 
@@ -203,7 +223,7 @@
                 name="government_id"
                 id="government_id"
                 data-areas-url="{{ route(
-                    'admin.sales.governments.areas',
+                    'kitchens.public.areas',
                     '__ID__'
                 ) }}"
                 required
@@ -216,7 +236,8 @@
                     <option
                         value="{{ $government->id }}"
                         @selected(
-                            $selectedGovernmentId == $government->id
+                            (string) $selectedGovernmentId ===
+                                (string) $government->id
                         )
                     >
                         {{ $government->name_ar }}
@@ -234,22 +255,13 @@
             <select
                 name="area_id"
                 id="area_id"
+                data-selected-area="{{ $selectedAreaId }}"
                 required
+                disabled
             >
                 <option value="">
-                    اختر المنطقة
+                    اختر المحافظة أولًا
                 </option>
-
-                @foreach ($areas ?? [] as $area)
-                    <option
-                        value="{{ $area->id }}"
-                        @selected(
-                            $selectedAreaId == $area->id
-                        )
-                    >
-                        {{ $area->name_ar }}
-                    </option>
-                @endforeach
             </select>
         </div>
 
@@ -274,39 +286,19 @@
             </small>
         </div>
 
-        <div class="form-group">
-            <label for="lat">
-                خط العرض
-                <span>*</span>
-            </label>
+        <input
+            type="hidden"
+            id="lat"
+            name="lat"
+            value="{{ $selectedLat }}"
+        >
 
-            <input
-                type="number"
-                step="any"
-                id="lat"
-                name="lat"
-                value="{{ old('lat', $address?->lat ?? '') }}"
-                placeholder="مثال: 30.044420"
-                required
-            >
-        </div>
-
-        <div class="form-group">
-            <label for="lng">
-                خط الطول
-                <span>*</span>
-            </label>
-
-            <input
-                type="number"
-                step="any"
-                id="lng"
-                name="lng"
-                value="{{ old('lng', $address?->lng ?? '') }}"
-                placeholder="مثال: 31.235712"
-                required
-            >
-        </div>
+        <input
+            type="hidden"
+            id="lng"
+            name="lng"
+            value="{{ $selectedLng }}"
+        >
 
         <div class="form-group form-group-full">
             <label for="location_link">
@@ -321,7 +313,8 @@
                     'location_link',
                     $address?->location_link ?? ''
                 ) }}"
-                placeholder="رابط الموقع من Google Maps"
+                placeholder="سيتم إنشاؤه تلقائيًا عند تحديد موقعك"
+                readonly
             >
         </div>
 
@@ -329,109 +322,202 @@
             <button
                 type="button"
                 class="location-button"
-                onclick="getCurrentLocation()"
+                id="currentLocationButton"
             >
                 <i class="fas fa-map-marker-alt"></i>
+
                 استخدام موقعي الحالي
             </button>
 
             <span
                 id="locationStatus"
                 class="location-status"
+                style="
+                    display: block;
+                    margin-top: 10px;
+                "
             ></span>
         </div>
     </div>
 </div>
 
 @push('scripts')
-<script>
-    function togglePassword(inputId, button) {
-        const input = document.getElementById(inputId);
+    <script>
+        function togglePassword(inputId, button) {
+            const input =
+                document.getElementById(inputId);
 
-        if (!input) {
-            return;
-        }
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            button.textContent = 'إخفاء';
-        } else {
-            input.type = 'password';
-            button.textContent = 'إظهار';
-        }
-    }
-
-    function getCurrentLocation() {
-        const statusElement =
-            document.getElementById('locationStatus');
-
-        if (!navigator.geolocation) {
-            statusElement.textContent =
-                'المتصفح لا يدعم تحديد الموقع.';
-
-            return;
-        }
-
-        statusElement.textContent =
-            'جاري تحديد الموقع...';
-
-        navigator.geolocation.getCurrentPosition(
-            function (position) {
-                const latitude =
-                    position.coords.latitude;
-
-                const longitude =
-                    position.coords.longitude;
-
-                document.getElementById('lat').value =
-                    latitude;
-
-                document.getElementById('lng').value =
-                    longitude;
-
-                document.getElementById(
-                    'location_link'
-                ).value =
-                    'https://www.google.com/maps?q='
-                    + latitude
-                    + ','
-                    + longitude;
-
-                statusElement.textContent =
-                    'تم تحديد الموقع بنجاح.';
-            },
-
-            function () {
-                statusElement.textContent =
-                    'تعذر تحديد الموقع. تأكد من السماح بالوصول للموقع.';
-            },
-
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    }
-
-    document.addEventListener(
-        'DOMContentLoaded',
-        function () {
-            const governmentSelect =
-                document.getElementById('government_id');
-
-            const areaSelect =
-                document.getElementById('area_id');
-
-            if (!governmentSelect || !areaSelect) {
+            if (!input) {
                 return;
             }
 
-            governmentSelect.addEventListener(
-                'change',
-                async function () {
-                    const governmentId = this.value;
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'إخفاء';
+            } else {
+                input.type = 'password';
+                button.textContent = 'إظهار';
+            }
+        }
 
+        document.addEventListener(
+            'DOMContentLoaded',
+            function() {
+                /*
+                |--------------------------------------------------------------------------
+                | Current Location
+                |--------------------------------------------------------------------------
+                */
+
+                const latitudeInput =
+                    document.getElementById('lat');
+
+                const longitudeInput =
+                    document.getElementById('lng');
+
+                const locationLinkInput =
+                    document.getElementById(
+                        'location_link'
+                    );
+
+                const locationStatus =
+                    document.getElementById(
+                        'locationStatus'
+                    );
+
+                const currentLocationButton =
+                    document.getElementById(
+                        'currentLocationButton'
+                    );
+
+                currentLocationButton?.addEventListener(
+                    'click',
+                    function() {
+                        if (!navigator.geolocation) {
+                            if (locationStatus) {
+                                locationStatus.textContent =
+                                    'المتصفح لا يدعم تحديد الموقع.';
+                            }
+
+                            return;
+                        }
+
+                        currentLocationButton.disabled = true;
+
+                        if (locationStatus) {
+                            locationStatus.textContent =
+                                'جاري تحديد موقعك الحالي...';
+                        }
+
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const latitude =
+                                    Number(
+                                        position.coords.latitude
+                                    ).toFixed(7);
+
+                                const longitude =
+                                    Number(
+                                        position.coords.longitude
+                                    ).toFixed(7);
+
+                                if (latitudeInput) {
+                                    latitudeInput.value =
+                                        latitude;
+                                }
+
+                                if (longitudeInput) {
+                                    longitudeInput.value =
+                                        longitude;
+                                }
+
+                                if (locationLinkInput) {
+                                    locationLinkInput.value =
+                                        'https://www.google.com/maps?q=' +
+                                        latitude +
+                                        ',' +
+                                        longitude;
+                                }
+
+                                if (locationStatus) {
+                                    locationStatus.textContent =
+                                        'تم تحديد موقع المطبخ بنجاح.';
+                                }
+
+                                currentLocationButton.disabled = false;
+                            },
+
+                            function(error) {
+                                console.error(
+                                    'Geolocation error:',
+                                    error
+                                );
+
+                                let message =
+                                    'تعذر تحديد الموقع. تأكد من السماح للمتصفح بالوصول إلى موقعك.';
+
+                                if (error.code === 1) {
+                                    message =
+                                        'تم رفض إذن الوصول إلى الموقع. يرجى السماح بالوصول من إعدادات المتصفح.';
+                                }
+
+                                if (error.code === 2) {
+                                    message =
+                                        'تعذر الوصول إلى موقعك الحالي.';
+                                }
+
+                                if (error.code === 3) {
+                                    message =
+                                        'استغرق تحديد الموقع وقتًا طويلًا. حاول مرة أخرى.';
+                                }
+
+                                if (locationStatus) {
+                                    locationStatus.textContent =
+                                        message;
+                                }
+
+                                currentLocationButton.disabled = false;
+                            },
+
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 15000,
+                                maximumAge: 0
+                            }
+                        );
+                    }
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Governments And Areas
+                |--------------------------------------------------------------------------
+                */
+
+                const governmentSelect =
+                    document.getElementById(
+                        'government_id'
+                    );
+
+                const areaSelect =
+                    document.getElementById(
+                        'area_id'
+                    );
+
+                if (
+                    !governmentSelect ||
+                    !areaSelect
+                ) {
+                    return;
+                }
+
+                const selectedAreaId =
+                    areaSelect.dataset.selectedArea || '';
+
+                async function loadAreas(
+                    governmentId,
+                    areaId = ''
+                ) {
                     areaSelect.disabled = true;
 
                     areaSelect.innerHTML =
@@ -439,59 +525,131 @@
 
                     if (!governmentId) {
                         areaSelect.innerHTML =
-                            '<option value="">اختر المنطقة</option>';
-
-                        areaSelect.disabled = false;
+                            '<option value="">اختر المحافظة أولًا</option>';
 
                         return;
                     }
 
                     const routeTemplate =
-                        this.dataset.areasUrl;
+                        governmentSelect.dataset.areasUrl;
 
-                    const url = routeTemplate.replace(
-                        '__ID__',
-                        governmentId
-                    );
+                    const url =
+                        routeTemplate.replace(
+                            '__ID__',
+                            governmentId
+                        );
 
                     try {
-                        const response = await fetch(url, {
-                            headers: {
-                                'Accept': 'application/json'
-                            }
-                        });
+                        const response =
+                            await fetch(
+                                url,
+                                {
+                                    method: 'GET',
+
+                                    headers: {
+                                        'Accept':
+                                            'application/json',
+
+                                        'X-Requested-With':
+                                            'XMLHttpRequest'
+                                    }
+                                }
+                            );
 
                         if (!response.ok) {
+                            const errorResponse =
+                                await response.text();
+
+                            console.error(
+                                'Areas request error:',
+                                response.status,
+                                errorResponse
+                            );
+
                             throw new Error(
                                 'Failed to load areas'
                             );
                         }
 
-                        const result = await response.json();
+                        const result =
+                            await response.json();
 
                         areaSelect.innerHTML =
                             '<option value="">اختر المنطقة</option>';
 
-                        result.data.forEach(function (area) {
-                            const option =
-                                document.createElement('option');
+                        const areas =
+                            Array.isArray(result.areas)
+                                ? result.areas
+                                : (
+                                    Array.isArray(result.data)
+                                        ? result.data
+                                        : []
+                                );
 
-                            option.value = area.id;
+                        if (areas.length === 0) {
+                            areaSelect.innerHTML =
+                                '<option value="">لا توجد مناطق لهذه المحافظة</option>';
 
-                            option.textContent =
-                                area.name_ar;
+                            areaSelect.disabled = true;
 
-                            areaSelect.appendChild(option);
-                        });
+                            return;
+                        }
+
+                        areas.forEach(
+                            function(area) {
+                                const option =
+                                    document.createElement(
+                                        'option'
+                                    );
+
+                                option.value =
+                                    area.id;
+
+                                option.textContent =
+                                    area.name_ar;
+
+                                if (
+                                    areaId &&
+                                    String(areaId) ===
+                                    String(area.id)
+                                ) {
+                                    option.selected = true;
+                                }
+
+                                areaSelect.appendChild(
+                                    option
+                                );
+                            }
+                        );
+
+                        areaSelect.disabled = false;
                     } catch (error) {
+                        console.error(
+                            'Unable to load areas:',
+                            error
+                        );
+
                         areaSelect.innerHTML =
                             '<option value="">تعذر تحميل المناطق</option>';
-                    } finally {
-                        areaSelect.disabled = false;
+
+                        areaSelect.disabled = true;
                     }
                 }
-            );
-        }
-    );
-</script>
+
+                governmentSelect.addEventListener(
+                    'change',
+                    function() {
+                        loadAreas(this.value);
+                    }
+                );
+
+                if (governmentSelect.value) {
+                    loadAreas(
+                        governmentSelect.value,
+                        selectedAreaId
+                    );
+                }
+            }
+        );
+    </script>
 @endpush

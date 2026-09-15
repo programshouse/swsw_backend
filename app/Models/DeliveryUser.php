@@ -5,9 +5,10 @@ namespace App\Models;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\traits\HasFirebaseNotifications;
+
 class DeliveryUser extends Authenticatable
 {
-    use HasApiTokens , HasFirebaseNotifications;
+    use HasApiTokens, HasFirebaseNotifications;
 
     protected $fillable = [
         'name',
@@ -66,6 +67,10 @@ class DeliveryUser extends Authenticatable
     {
         return $this->belongsTo(Area::class);
     }
+    public function government()
+    {
+        return $this->belongsTo(Government::class);
+    }
 
     public function shift()
     {
@@ -87,7 +92,7 @@ class DeliveryUser extends Authenticatable
     }
 
 
-   
+
 
     public function deliveryOrders()
     {
@@ -114,26 +119,50 @@ class DeliveryUser extends Authenticatable
     }
 
     public function pointTransactions()
-{
-    return $this->morphMany(PointTransaction::class, 'owner');
-}
+    {
+        return $this->morphMany(PointTransaction::class, 'owner');
+    }
 
-public function getTotalPointsAttribute()
-{
-    return $this->pointTransactions()->sum('points');
-}
+    public function getTotalPointsAttribute()
+    {
+        return $this->pointTransactions()->sum('points');
+    }
 
 
 
-public function shiftLogs()
-{
-    return $this->hasMany(DeliveryShiftLog::class, 'delivery_user_id');
-}
+    public function shiftLogs()
+    {
+        return $this->hasMany(DeliveryShiftLog::class, 'delivery_user_id');
+    }
 
-public function orders()
-{
-    return $this->belongsToMany(Order::class, 'delivery_orders')
-        ->withPivot('status', 'cash_settled')
-        ->withTimestamps();
-}
+    public function orders()
+    {
+        return $this->belongsToMany(Order::class, 'delivery_orders')
+            ->withPivot('status', 'cash_settled')
+            ->withTimestamps();
+    }
+
+
+
+
+    public function registerFail(): void
+    {
+        $this->increment('consecutive_fails');
+
+        if ($this->consecutive_fails >= 2 && !$this->is_break) {
+            $this->update([
+                'is_break' => 1,
+                'break_started_at' => now(),
+                'break_time' => 15,
+                'consecutive_fails' => 0,
+            ]);
+        }
+    }
+
+    public function registerSuccess(): void
+    {
+        if ($this->consecutive_fails !== 0) {
+            $this->update(['consecutive_fails' => 0]);
+        }
+    }
 }

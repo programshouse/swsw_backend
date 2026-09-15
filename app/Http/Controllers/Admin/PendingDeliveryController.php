@@ -14,7 +14,12 @@ class PendingDeliveryController extends Controller
 
     public function pending()
     {
-        $deliveries = PendingDelivery::where('status', 'pending')
+        $deliveries = PendingDelivery::query()
+            ->with([
+                'government:id,name_ar',
+                'area:id,government_id,name_ar',
+            ])
+            ->where('status', 'pending')
             ->latest()
             ->get();
 
@@ -24,83 +29,116 @@ class PendingDeliveryController extends Controller
         );
     }
 
- public function accept($id)
-{
-    DB::beginTransaction();
+    public function accept($id)
+    {
+        DB::beginTransaction();
 
-    try {
-        $delivery = PendingDelivery::findOrFail($id);
+        try {
+            $delivery = PendingDelivery::findOrFail($id);
 
-        if (!$delivery->delivery_user_id) {
-            DB::rollBack();
+            if (!$delivery->delivery_user_id) {
+                DB::rollBack();
 
-            return response()->json([
-                'status' => false,
-                'message' => 'لا يوجد دليفري مرتبط بهذا الطلب',
-            ], 422);
-        }
-
-        $deliveryUser = DeliveryUser::find($delivery->delivery_user_id);
-
-        if (!$deliveryUser) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => false,
-                'message' => 'الدليفري الأصلي غير موجود',
-            ], 404);
-        }
-
-        $updateData = [
-            'name' => $delivery->name,
-            'email' => $delivery->email,
-            'phone' => $delivery->phone,
-            'birthdate' => $delivery->birthdate,
-            'government_id' => $delivery->government_id,
-            'area_id' => $delivery->area_id,
-            'shift_id' => $delivery->shift_id,
-            'type' => $delivery->type,
-            'has_vehicle' => $delivery->has_vehicle,
-            'vehicle_id' => $delivery->vehicle_id,
-            'vehicle_type' => $delivery->vehicle_type,
-        ];
-
-        if (!empty($delivery->image)) {
-
-            if ($deliveryUser->image && $deliveryUser->image !== $delivery->image) {
-                $oldImage = public_path(str_replace('public/', '', $deliveryUser->image));
-
-                if (file_exists($oldImage)) {
-                    @unlink($oldImage);
-                }
+                return response()->json([
+                    'status' => false,
+                    'message' => 'لا يوجد دليفري مرتبط بهذا الطلب',
+                ], 422);
             }
 
-            $updateData['image'] = $delivery->image;
+            $deliveryUser = DeliveryUser::find($delivery->delivery_user_id);
+
+            if (!$deliveryUser) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'الدليفري الأصلي غير موجود',
+                ], 404);
+            }
+
+            $updateData = [
+                'name' => $delivery->name,
+                'email' => $delivery->email,
+                'phone' => $delivery->phone,
+                'birthdate' => $delivery->birthdate,
+                'government_id' => $delivery->government_id,
+                'area_id' => $delivery->area_id,
+                'shift_id' => $delivery->shift_id,
+                'type' => $delivery->type,
+                'has_vehicle' => $delivery->has_vehicle,
+                'vehicle_id' => $delivery->vehicle_id,
+                'vehicle_type' => $delivery->vehicle_type,
+            ];
+
+            if (!empty($delivery->image)) {
+
+                if ($deliveryUser->image && $deliveryUser->image !== $delivery->image) {
+                    $oldImage = public_path(str_replace('public/', '', $deliveryUser->image));
+
+                    if (file_exists($oldImage)) {
+                        @unlink($oldImage);
+                    }
+                }
+
+                $updateData['image'] = $delivery->image;
+            }
+
+            // بدل update عشان لو fillable ناقص
+            $deliveryUser->forceFill($updateData)->save();
+
+            $delivery->update([
+                'status' => 'approved',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تمت الموافقة على تعديل بيانات الدليفري بنجاح',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        // بدل update عشان لو fillable ناقص
-        $deliveryUser->forceFill($updateData)->save();
-
-        $delivery->update([
-            'status' => 'approved',
-        ]);
-
-        DB::commit();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'تمت الموافقة على تعديل بيانات الدليفري بنجاح',
-        ]);
-
-    } catch (\Throwable $e) {
-        DB::rollBack();
-
-        return response()->json([
-            'status' => false,
-            'message' => $e->getMessage(),
-        ], 500);
     }
-}
 
-    
+    public function reject($id)
+    {
+        DB::beginTransaction();
+
+        try {
+            $delivery = PendingDelivery::findOrFail($id);
+
+            if ($delivery->status !== 'pending') {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'هذا الطلب تمت مراجعته من قبل',
+                ], 422);
+            }
+
+            $delivery->update([
+                'status' => 'rejected',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم رفض تعديل بيانات الدليفري بنجاح',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

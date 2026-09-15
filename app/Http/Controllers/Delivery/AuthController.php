@@ -14,24 +14,24 @@ use App\Models\Level;
 
 class AuthController extends Controller
 {
-  private function generateDeliveryCode(): string
-{
-    $lastDelivery = DeliveryUser::whereNotNull('code')
-        ->orderByDesc('id')
-        ->first();
+    private function generateDeliveryCode(): string
+    {
+        $lastDelivery = DeliveryUser::whereNotNull('code')
+            ->orderByDesc('id')
+            ->first();
 
-    $nextNumber = 1;
+        $nextNumber = 1;
 
-    if ($lastDelivery && $lastDelivery->code) {
-        $nextNumber = ((int) preg_replace('/[^0-9]/', '', $lastDelivery->code)) + 1;
+        if ($lastDelivery && $lastDelivery->code) {
+            $nextNumber = ((int) preg_replace('/[^0-9]/', '', $lastDelivery->code)) + 1;
+        }
+
+        return 'DE' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
-
-    return 'DE' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
-}
     public function register(Request $request)
     {
         $request->validate([
-             'code' => $this->generateDeliveryCode(),
+            'code' => $this->generateDeliveryCode(),
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:delivery_users,email',
             'phone' => 'required|unique:delivery_users,phone',
@@ -52,8 +52,8 @@ class AuthController extends Controller
             'vehicle_id' => 'nullable|string|exists:vehicles,id',
             'vehicle_type' => 'nullable|string|max:255',
 
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-              'referral_code' => 'nullable|string|max:50',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
+            'referral_code' => 'nullable|string|max:50',
 
 
         ]);
@@ -108,10 +108,10 @@ class AuthController extends Controller
             'type' => $request->type,
             'has_vehicle' => $request->has_vehicle,
             'vehicle_id' => $request->vehicle_id,
-            'vehicle_type' => $request->vehicle_type ??null,
+            'vehicle_type' => $request->vehicle_type ?? null,
             'image' => $imagePath,
             'status' => 'pending',
-             'referral_code' => $validated['referral_code'] ?? null,
+            'referral_code' => $validated['referral_code'] ?? null,
         ]);
 
         return response()->json([
@@ -206,76 +206,128 @@ class AuthController extends Controller
     }
 
 
-   public function updateProfile(Request $request)
-{
-    $delivery = $request->user();
+    public function updateProfile(Request $request)
+    {
+        $delivery = $request->user();
 
-    $validated = $request->validate([
-        'name' => 'nullable|string|max:255',
-        'email' => 'nullable|email|unique:delivery_users,email,' . $delivery->id,
-        'phone' => 'nullable|unique:delivery_users,phone,' . $delivery->id,
-        'birthdate' => 'nullable|date',
+        $request->merge([
+            'vehicle_type' => match ($request->vehicle_type) {
+                'onFoot', 'onfoot', 'on-foot' => 'on_foot',
+                default => $request->vehicle_type,
+            },
+        ]);
 
-        'government_id' => 'nullable|exists:governments,id',
-        'area_id' => 'nullable|exists:areas,id',
-        'shift_id' => 'nullable|exists:shifts,id',
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:delivery_users,email,' . $delivery->id,
+            'phone' => 'nullable|unique:delivery_users,phone,' . $delivery->id,
+            'birthdate' => 'nullable|date',
 
-        'type' => 'nullable|in:company,freelance',
+            'government_id' => 'nullable|exists:governments,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'shift_id' => 'nullable|exists:shifts,id',
 
-        'has_vehicle' => 'nullable|boolean',
-        'vehicle_id' => 'nullable|exists:vehicles,id',
-        'vehicle_type' => 'nullable|string',
+            'type' => 'nullable|in:company,freelance',
 
-        'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-    ]);
+            'has_vehicle' => 'nullable|boolean',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'vehicle_type' => 'nullable|string',
 
-    $pendingDelivery = PendingDelivery::where('delivery_user_id', $delivery->id)->first();
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
 
-    $data = [
-        'delivery_user_id' => $delivery->id,
-        'name' => $request->filled('name') ? $request->name : ($pendingDelivery->name ?? $delivery->name),
-        'email' => $request->filled('email') ? $request->email : ($pendingDelivery->email ?? $delivery->email),
-        'phone' => $request->filled('phone') ? $request->phone : ($pendingDelivery->phone ?? $delivery->phone),
-        'birthdate' => $request->filled('birthdate') ? $request->birthdate : ($pendingDelivery->birthdate ?? $delivery->birthdate),
-        'government_id' => $request->filled('government_id') ? $request->government_id : ($pendingDelivery->government_id ?? $delivery->government_id),
-        'area_id' => $request->filled('area_id') ? $request->area_id : ($pendingDelivery->area_id ?? $delivery->area_id),
-        'shift_id' => $request->filled('shift_id') ? $request->shift_id : ($pendingDelivery->shift_id ?? $delivery->shift_id),
-        'type' => $request->filled('type') ? $request->type : ($pendingDelivery->type ?? $delivery->type),
-        'has_vehicle' => $request->has('has_vehicle') ? $request->has_vehicle : ($pendingDelivery->has_vehicle ?? $delivery->has_vehicle),
-        'vehicle_id' => $request->filled('vehicle_id') ? $request->vehicle_id : ($pendingDelivery->vehicle_id ?? $delivery->vehicle_id),
-        'vehicle_type' => $request->filled('vehicle_type') ? $request->vehicle_type : ($pendingDelivery->vehicle_type ?? $delivery->vehicle_type),
-        'status' => 'pending',
-    ];
+        $pendingDelivery = PendingDelivery::where(
+            'delivery_user_id',
+            $delivery->id
+        )->first();
 
-    if ($request->hasFile('image')) {
-        $file = $request->file('image');
-        $fileName = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
+        $data = [
+            'delivery_user_id' => $delivery->id,
 
-        $folder = "assets/delivery/images/";
-        $path = public_path($folder);
+            'name' => $request->filled('name')
+                ? $validated['name']
+                : ($pendingDelivery->name ?? $delivery->name),
 
-        if (!file_exists($path)) {
-            mkdir($path, 0777, true);
+            'email' => $request->filled('email')
+                ? $validated['email']
+                : ($pendingDelivery->email ?? $delivery->email),
+
+            'phone' => $request->filled('phone')
+                ? $validated['phone']
+                : ($pendingDelivery->phone ?? $delivery->phone),
+
+            'birthdate' => $request->filled('birthdate')
+                ? $validated['birthdate']
+                : ($pendingDelivery->birthdate ?? $delivery->birthdate),
+
+            'government_id' => $request->filled('government_id')
+                ? $validated['government_id']
+                : ($pendingDelivery->government_id ?? $delivery->government_id),
+
+            'area_id' => $request->filled('area_id')
+                ? $validated['area_id']
+                : ($pendingDelivery->area_id ?? $delivery->area_id),
+
+            'shift_id' => $request->filled('shift_id')
+                ? $validated['shift_id']
+                : ($pendingDelivery->shift_id ?? $delivery->shift_id),
+
+            'type' => $request->filled('type')
+                ? $validated['type']
+                : ($pendingDelivery->type ?? $delivery->type),
+
+            'has_vehicle' => $request->has('has_vehicle')
+                ? $validated['has_vehicle']
+                : ($pendingDelivery->has_vehicle ?? $delivery->has_vehicle),
+
+            'vehicle_id' => $request->filled('vehicle_id')
+                ? $validated['vehicle_id']
+                : ($pendingDelivery->vehicle_id ?? $delivery->vehicle_id),
+
+            'vehicle_type' => $request->filled('vehicle_type')
+                ? $validated['vehicle_type']
+                : ($pendingDelivery->vehicle_type ?? $delivery->vehicle_type),
+
+            'status' => 'pending',
+        ];
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+
+            $fileName = time()
+                . '_'
+                . str_replace(' ', '_', $file->getClientOriginalName());
+
+            $folder = 'assets/delivery/images/';
+            $path = public_path($folder);
+
+            if (!file_exists($path)) {
+                mkdir($path, 0777, true);
+            }
+
+            $file->move($path, $fileName);
+
+            $data['image'] =
+                url('public/' . $folder . $fileName);
+        } else {
+            $data['image'] =
+                $pendingDelivery->image
+                ?? $delivery->image;
         }
 
-        $file->move($path, $fileName);
+        PendingDelivery::updateOrCreate(
+            [
+                'delivery_user_id' => $delivery->id,
+            ],
+            $data
+        );
 
-        $data['image'] = "https://www.programshouse.com/swsw/public/" . $folder . $fileName;
-    } else {
-        $data['image'] = $pendingDelivery->image ?? $delivery->image;
+        return response()->json([
+            'status' => true,
+            'message' => 'Waiting for admin approval.',
+            'data' => null,
+        ]);
     }
-
-    PendingDelivery::updateOrCreate(
-        ['delivery_user_id' => $delivery->id],
-        $data
-    );
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Waiting for admin approval.',
-        'data' => null
-    ]);
-}
 
     public function forgetPassword(Request $request)
     {

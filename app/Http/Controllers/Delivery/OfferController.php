@@ -11,16 +11,27 @@ use Illuminate\Http\JsonResponse;
 
 class OfferController extends Controller
 {
-    public function offers()
+    public function offers(Request $request)
     {
+        $delivery = $request->user();
+
         $offers = Offer::where('is_active', 1)
             ->get()
-            ->map(function ($offer) {
+            ->map(function ($offer) use ($delivery) {
+
+                $status = DeliveryOfferRequest::where(
+                    'delivery_user_id',
+                    $delivery->id
+                )
+                    ->where('offer_id', $offer->id)
+                    ->value('status') ?? 'not_requested';
+
                 return [
                     'id' => $offer->id,
                     'name' => $offer->name,
                     'description' => $offer->description,
                     'points' => $offer->points,
+                    'status' => $status,
                 ];
             });
 
@@ -38,40 +49,46 @@ class OfferController extends Controller
 
 
 
-public function applyOffer(Request $request, Offer $offer): JsonResponse
-{
-    $delivery = auth('api_delivery')->user();
+    public function applyOffer(Request $request, Offer $offer): JsonResponse
+    {
+        $delivery = auth('api_delivery')->user();
 
-    if (!$offer->is_active) {
+        if (!$offer->is_active) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Offer is not active',
+            ], 400);
+        }
+
+        $exists = DeliveryOfferRequest::where('delivery_user_id', $delivery->id)
+            ->where('offer_id', $offer->id)
+            ->first();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You already applied to this offer',
+                'request_status' => $exists->status,
+            ], 400);
+        }
+
+        $requestOffer = DeliveryOfferRequest::create([
+            'delivery_user_id' => $delivery->id,
+            'offer_id' => $offer->id,
+            'status' => 'pending',
+            'points' => $offer->points,
+        ]);
+
+        $lang = $request->header('lang', 'en');
+
+        $message = $lang === 'ar'
+            ? 'تم إرسال العرض بنجاح، وهو الآن في انتظار موافقة الإدارة.'
+            : 'Offer applied successfully. It is now waiting for admin approval.';
+
         return response()->json([
-            'status' => false,
-            'message' => 'Offer is not active',
-        ], 400);
+            'status' => true,
+            'message' =>  $message,
+            'data' => $requestOffer,
+        ]);
     }
-
-    $exists = DeliveryOfferRequest::where('delivery_user_id', $delivery->id)
-        ->where('offer_id', $offer->id)
-        ->first();
-
-    if ($exists) {
-        return response()->json([
-            'status' => false,
-            'message' => 'You already applied to this offer',
-            'request_status' => $exists->status,
-        ], 400);
-    }
-
-    $requestOffer = DeliveryOfferRequest::create([
-        'delivery_user_id' => $delivery->id,
-        'offer_id' => $offer->id,
-        'status' => 'pending',
-        'points' => $offer->points,
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Offer applied successfully and waiting for admin approval',
-        'data' => $requestOffer,
-    ]);
-}
 }

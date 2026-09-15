@@ -4,6 +4,44 @@
 
 @push('styles')
     <style>
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            max-width: 400px;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .search-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #4f46e5;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .clear-search-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            color: #374151;
+            text-decoration: none;
+        }
+
         .client-actions {
             display: flex;
             align-items: center;
@@ -123,12 +161,31 @@
                 كل المستخدمين
             </div>
 
-            <a href="{{ route('admin.clients.index') }}"
-               class="refresh-btn">
+            <a href="{{ route('admin.clients.index') }}" class="refresh-btn">
                 إعادة تحميل البيانات
             </a>
 
         </div>
+
+
+        <form method="GET" action="{{ route('admin.clients.index') }}" class="search-form">
+
+            <input type="text" name="search" value="{{ request('search') }}"
+                placeholder="ابحث باسم العميل أو رقم الهاتف..." class="search-input">
+
+            <button type="submit" class="search-btn">
+                بحث
+            </button>
+
+            @if (request('search'))
+                <a href="{{ route('admin.clients.index') }}" class="clear-search-btn">
+                    إلغاء البحث
+                </a>
+            @endif
+
+        </form>
+
+
 
         @if ($clients->count())
 
@@ -189,20 +246,16 @@
                                 <td>
                                     <div class="client-actions">
 
-                                        <a href="{{ route('admin.clients.show', $client->id) }}"
-                                           class="view-btn">
+                                        <a href="{{ route('admin.clients.show', $client->id) }}" class="view-btn">
                                             عرض التفاصيل
                                         </a>
 
-                                        <form method="POST"
-                                              action="{{ route('admin.clients.add.points', $client->id) }}"
-                                              class="points-form">
+                                        <form method="POST" action="{{ route('admin.clients.add.points', $client->id) }}"
+                                            class="points-form">
 
                                             @csrf
 
-                                            <select name="point_id"
-                                                    class="points-select"
-                                                    required>
+                                            <select name="point_id" class="points-select" required>
 
                                                 <option value="">
                                                     اختر النقاط
@@ -216,8 +269,7 @@
 
                                             </select>
 
-                                            <button type="submit"
-                                                    class="add-points-btn">
+                                            <button type="submit" class="add-points-btn">
                                                 إضافة نقاط
                                             </button>
 
@@ -234,9 +286,7 @@
                 </table>
 
             </div>
-
         @else
-
             <div class="empty">
                 لا توجد بيانات
             </div>

@@ -2,13 +2,11 @@
 
 @section('title', 'الدليفري المعتمد')
 
-
-
 @push('styles')
     <style>
         .avatar {
-            width: 54px;
-            height: 54px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             object-fit: cover;
             object-position: center;
@@ -18,8 +16,8 @@
         }
 
         .avatar-fallback {
-            width: 54px;
-            height: 54px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             background: #2563eb;
             color: #fff;
@@ -44,7 +42,7 @@
 
         .delivery-table tbody tr {
             background: #fff;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
         }
 
         .delivery-table td {
@@ -58,22 +56,12 @@
             color: #111827;
         }
 
-        .avatar {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #e5e7eb;
-        }
-
-        .empty-avatar {
-            color: #94a3b8;
-            font-weight: 800;
-        }
-
         .type-badge,
-        .cash-badge {
+        .cash-badge,
+        .timer-badge {
             display: inline-flex;
+            align-items: center;
+            justify-content: center;
             padding: 6px 12px;
             border-radius: 999px;
             background: #f1f5f9;
@@ -82,12 +70,23 @@
             font-size: 13px;
         }
 
+        .timer-badge {
+            min-width: 75px;
+            direction: ltr;
+        }
+
+        .timer-finished {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
         .status-badge {
             display: inline-flex;
             padding: 7px 14px;
             border-radius: 999px;
             font-size: 13px;
             font-weight: 800;
+            white-space: nowrap;
         }
 
         .status-success {
@@ -95,9 +94,96 @@
             color: #166534;
         }
 
+        .filter-box {
+            background: #fff;
+            padding: 18px 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(15, 23, 42, .06);
+        }
+
+
+        .filter-form {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            direction: rtl;
+        }
+
+
+        .filter-input,
+        .filter-select {
+            height: 42px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 14px;
+            outline: none;
+            background: #fff;
+            transition: .2s;
+        }
+
+
+        .filter-input {
+            width: 260px;
+        }
+
+
+        .filter-select {
+            width: 180px;
+        }
+
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+        }
+
+
+        .filter-btn {
+            height: 42px;
+            padding: 0 25px;
+            border: none;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+
+        .filter-btn:hover {
+            background: #1d4ed8;
+        }
+
+
+        .reset-btn {
+            height: 42px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            border-radius: 10px;
+            background: #f1f5f9;
+            color: #475569;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+
+        .reset-btn:hover {
+            background: #e2e8f0;
+        }
+
         .status-danger {
             background: #fee2e2;
             color: #991b1b;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .actions-td {
@@ -136,7 +222,7 @@
             background: #fff;
             border: 1px solid #e5e7eb;
             border-radius: 16px;
-            box-shadow: 0 20px 45px rgba(15, 23, 42, .18);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
             padding: 14px;
             z-index: 999;
             text-align: right;
@@ -173,6 +259,7 @@
         .action-row select,
         .action-row input {
             flex: 1;
+            min-width: 0;
             height: 38px;
             border: 1px solid #d1d5db;
             border-radius: 10px;
@@ -229,61 +316,176 @@
             font-weight: 900;
             direction: ltr;
         }
+
+        .validation-alert {
+            padding: 12px 16px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            background: #fee2e2;
+            color: #991b1b;
+            font-weight: 700;
+        }
+
+        .validation-alert ul {
+            margin: 0;
+            padding-right: 20px;
+        }
     </style>
 @endpush
 
 @section('content')
 
-    <div class="page-title">الدليفري المعتمد</div>
+    <div class="filter-box">
+
+    <form method="GET" class="filter-form">
+
+        <input 
+            type="text"
+            name="name"
+            class="filter-input"
+            placeholder="اسم الدليفري"
+            value="{{ request('name') }}"
+        >
+
+        <select name="area_id" class="filter-select">
+
+            <option value="">
+                كل المناطق
+            </option>
+
+            @foreach($areas as $area)
+
+                <option 
+                    value="{{ $area->id }}"
+                    @selected(request('area_id') == $area->id)
+                >
+                    {{ $area->name }}
+                </option>
+
+            @endforeach
+
+        </select>
+
+
+        <button class="filter-btn">
+            بحث
+        </button>
+
+
+        <a href="{{ route('admin.delivery.approved') }}" class="reset-btn">
+            إعادة تعيين
+        </a>
+
+    </form>
+
+</div>
+
+    </form>
 
     @if (session('success'))
-        <div class="success-alert">{{ session('success') }}</div>
+        <div class="success-alert">
+            {{ session('success') }}
+        </div>
     @endif
 
+    @if ($errors->any())
+        <div class="validation-alert">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>
+                        {{ $error }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+
+
+
     <div class="table-card">
+
         <div class="table-header">
-            <div class="table-title">قائمة الدليفري</div>
+            <div class="table-title">
+                قائمة الدليفري
+            </div>
         </div>
 
         <div class="table-wrapper">
+
             <table class="delivery-table">
+
                 <thead>
                     <tr>
                         <th>الاسم</th>
                         <th>البريد الإلكتروني</th>
                         <th>الهاتف</th>
                         <th>الكود</th>
-                        <th>الكود تاكيد الهوية </th>
-
+                        <th>كود بداية الشيفت</th>
                         <th>النوع</th>
                         <th>المركبة</th>
                         <th>المستوى</th>
-
+                        <th>المحافظة</th>
+                        <th>المنطقة</th>
                         <th>الصورة</th>
                         <th>الحالة</th>
-                        <th>الكود تاكيد الهوية </th>
-
                         <th>وقت الراحة</th>
-                        {{-- <th>كاش {{ $this_month }}</th> --}}
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    @foreach ($deliveries as $delivery)
+
+                    @forelse ($deliveries as $delivery)
+
                         <tr>
-                            <td class="user-name">{{ $delivery->name }}</td>
-                            <td>{{ $delivery->email }}</td>
-                            <td>{{ $delivery->phone }}</td>
-                            <td>{{ $delivery->code ?? '-' }}</td>
-                            <td>{{ $delivery->shift_code ?? '-' }}</td>
-                            <td>
-                                <span class="type-badge">{{ $delivery->type }}</span>
+
+                            <td class="user-name">
+                                {{ $delivery->name }}
                             </td>
+
                             <td>
-                                {{ $delivery->has_vehicle ? $delivery->vehicle_type : 'لا توجد مركبة' }}
+                                {{ $delivery->email ?? '-' }}
                             </td>
-                            <td>{{ $delivery->level->name ?? '-' }}</td>
+
+                            <td>
+                                {{ $delivery->phone ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $delivery->code ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $delivery->shift_code ?? '-' }}
+                            </td>
+
+                            <td>
+                                <span class="type-badge">
+                                    {{ $delivery->type ?? '-' }}
+                                </span>
+                            </td>
+
+                            <td>
+                                @if ($delivery->has_vehicle)
+                                    {{ $delivery->vehicle_type ?? 'توجد مركبة' }}
+                                @else
+                                    لا توجد مركبة
+                                @endif
+                            </td>
+
+                            <td>
+                                {{ $delivery->level?->name ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $delivery->government?->name ?? '-' }}
+                            </td>
+
+                            <td>
+                                {{ $delivery->area?->name ?? '-' }}
+                            </td>
+
                             <td>
                                 @if ($delivery->image)
                                     @php
@@ -303,109 +505,201 @@
                                     </span>
                                 @endif
                             </td>
+
                             <td>
-                                <span class="status-badge {{ $delivery->is_break ? 'status-danger' : 'status-success' }}">
-                                    {{ $delivery->is_break ? 'في راحة' : 'يعمل الآن' }}
-                                </span>
-                            </td>
-                            <td>
-                                @if ($delivery->is_break && $delivery->break_started_at)
-                                    <span class="timer"
-                                        data-end="{{ $delivery->break_started_at->copy()->addMinutes($delivery->break_time)->timestamp }}">
+                                @if ($delivery->status === 'inactive')
+                                    <span class="status-badge status-warning">
+                                        معطل
+                                    </span>
+                                @elseif ((bool) $delivery->is_break)
+                                    <span class="status-badge status-danger">
+                                        في راحة
                                     </span>
                                 @else
-                                    يعمل الآن
+                                    <span class="status-badge status-success">
+                                        يعمل الآن
+                                    </span>
                                 @endif
                             </td>
+
                             <td>
-                                <span class="cash-badge">{{ $delivery->monthly_points }}</span>
+                                @if ((bool) $delivery->is_break && !empty($delivery->break_started_at) && !empty($delivery->break_time))
+                                    @php
+                                        $breakStartedAt =
+                                            $delivery->break_started_at instanceof \Carbon\Carbon
+                                                ? $delivery->break_started_at
+                                                : \Carbon\Carbon::parse($delivery->break_started_at);
+
+                                        $breakEndsAt = $breakStartedAt->copy()->addMinutes((int) $delivery->break_time);
+
+                                        $remainingSeconds = (int) floor(
+                                            max(0, now()->diffInSeconds($breakEndsAt, false)),
+                                        );
+                                    @endphp
+
+                                    <span class="timer timer-badge" data-remaining="{{ $remainingSeconds }}">
+                                        00:00
+                                    </span>
+                                @else
+                                    <span class="cash-badge">
+                                        -
+                                    </span>
+                                @endif
                             </td>
 
                             <td class="actions-td">
+
                                 <div class="dropdown-action">
+
                                     <button type="button" class="dots-btn" onclick="toggleActionMenu(this)">
                                         ⋮
                                     </button>
 
                                     <div class="action-menu">
 
+                                        {{-- ترقية المستوى --}}
                                         <form method="POST"
                                             action="{{ route('admin.delivery.promotion', $delivery->id) }}">
                                             @csrf
-                                            <div class="action-title">ترقية المستوى</div>
+
+                                            <div class="action-title">
+                                                ترقية المستوى
+                                            </div>
+
                                             <div class="action-row">
-                                                <select name="level_id">
+
+                                                <select name="level_id" required>
+
+                                                    <option value="">
+                                                        اختر المستوى
+                                                    </option>
+
                                                     @foreach ($levels as $level)
-                                                        <option value="{{ $level->id }}">{{ $level->name }}</option>
+                                                        <option value="{{ $level->id }}" @selected($delivery->level_id == $level->id)>
+                                                            {{ $level->name }}
+                                                        </option>
                                                     @endforeach
+
                                                 </select>
-                                                <button class="menu-btn primary">ترقية</button>
+
+                                                <button type="submit" class="menu-btn primary">
+                                                    ترقية
+                                                </button>
+
                                             </div>
                                         </form>
 
+                                        {{-- إنشاء كلمة مرور --}}
                                         <form method="POST"
                                             action="{{ route('admin.delivery.generate.password', $delivery->id) }}">
                                             @csrf
-                                            <button class="menu-btn full warning">إنشاء كلمة مرور</button>
+
+                                            <button type="submit" class="menu-btn full warning">
+                                                إنشاء كلمة مرور
+                                            </button>
                                         </form>
 
+                                        {{-- عرض الكود بعد إنشائه --}}
                                         @if (session('generated_code_user_id') == $delivery->id)
                                             <div class="code-box" id="code-box-{{ $delivery->id }}">
-                                                <span id="code-{{ $delivery->id }}">{{ session('generated_code') }}</span>
+                                                <span id="code-{{ $delivery->id }}">
+                                                    {{ session('generated_code') }}
+                                                </span>
+
                                                 <button type="button" class="menu-btn copy"
-                                                    onclick="copyAndHideCode('code-{{ $delivery->id }}', 'code-box-{{ $delivery->id }}')">
+                                                    onclick="copyAndHideCode(
+                                                        'code-{{ $delivery->id }}',
+                                                        'code-box-{{ $delivery->id }}'
+                                                    )">
                                                     نسخ
                                                 </button>
                                             </div>
                                         @endif
 
+                                        {{-- بدء أو إنهاء الراحة --}}
                                         <form method="POST" action="{{ route('admin.delivery.break', $delivery->id) }}">
                                             @csrf
-                                            <div class="action-title">الراحة</div>
+
+                                            <div class="action-title">
+                                                الراحة
+                                            </div>
+
                                             <div class="action-row">
-                                                @if (!$delivery->is_break)
-                                                    <input type="text" name="break_time" placeholder="الدقائق">
+
+                                                @if (!(bool) $delivery->is_break)
+                                                    <input type="number" name="break_time" min="1" max="1440"
+                                                        required placeholder="المدة بالدقائق">
                                                 @endif
-                                                <button class="menu-btn danger">
-                                                    {{ !$delivery->is_break ? 'بدء الراحة' : 'إنهاء الراحة' }}
+
+                                                <button type="submit"
+                                                    class="menu-btn {{ $delivery->is_break ? 'success' : 'danger' }}">
+                                                    {{ $delivery->is_break ? 'إنهاء الراحة' : 'بدء الراحة' }}
                                                 </button>
+
                                             </div>
                                         </form>
 
-                                       <form method="POST"
-    action="{{ route('admin.delivery.add.points', $delivery->id) }}">
+                                        {{-- تعطيل أو تفعيل الدليفري --}}
+                                        <form method="POST"
+                                            action="{{ route('admin.delivery.toggle.status', $delivery->id) }}">
+                                            @csrf
 
-    @csrf
+                                            <button type="submit"
+                                                class="menu-btn full {{ $delivery->status === 'inactive' ? 'success' : 'danger' }}"
+                                                onclick="return confirm(
+                                                    '{{ $delivery->status === 'inactive' ? 'هل تريد تفعيل هذا الدليفري؟' : 'هل تريد تعطيل هذا الدليفري؟' }}'
+                                                )">
+                                                {{ $delivery->status === 'inactive' ? 'تفعيل الدليفري' : 'تعطيل الدليفري' }}
+                                            </button>
+                                        </form>
 
-    <div class="action-title">
-        إضافة نقاط
-    </div>
+                                        {{-- إضافة نقاط --}}
+                                        <form method="POST"
+                                            action="{{ route('admin.delivery.add.points', $delivery->id) }}">
+                                            @csrf
 
-    <div class="action-row">
+                                            <div class="action-title">
+                                                إضافة نقاط
+                                            </div>
 
-        <select name="point_id" required>
-            <option value="">اختر النقاط</option>
+                                            <div class="action-row">
 
-            @foreach ($points as $point)
-                <option value="{{ $point->id }}">
-                    {{ $point->number }} نقطة
-                </option>
-            @endforeach
-        </select>
+                                                <select name="point_id" required>
 
-        <button type="submit" class="menu-btn success">
-            إضافة
-        </button>
+                                                    <option value="">
+                                                        اختر النقاط
+                                                    </option>
 
-    </div>
+                                                    @foreach ($points as $point)
+                                                        <option value="{{ $point->id }}">
+                                                            {{ $point->number }} نقطة
+                                                        </option>
+                                                    @endforeach
 
-</form>
+                                                </select>
+
+                                                <button type="submit" class="menu-btn success">
+                                                    إضافة
+                                                </button>
+
+                                            </div>
+                                        </form>
 
                                     </div>
                                 </div>
                             </td>
                         </tr>
-                    @endforeach
+
+                    @empty
+
+                        <tr>
+                            <td colspan="12">
+                                لا يوجد دليفري معتمد حاليًا.
+                            </td>
+                        </tr>
+
+                    @endforelse
+
                 </tbody>
             </table>
         </div>
@@ -416,85 +710,106 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.timer').forEach(timer => {
-                const end = parseInt(timer.dataset.end);
+
+            document.querySelectorAll('.timer').forEach(function(timer) {
+
+                let remaining = parseInt(timer.dataset.remaining, 10) || 0;
 
                 function updateTimer() {
-                    const now = Math.floor(Date.now() / 1000);
-                    const remaining = Math.max(0, end - now);
 
-                    const minutes = Math.floor(remaining / 60);
-                    const seconds = remaining % 60;
+                    remaining = Math.max(
+                        0,
+                        Math.floor(remaining)
+                    );
 
-                    timer.innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    if (remaining <= 0) {
+                        timer.innerText = '00:00';
+                        timer.classList.add('timer-finished');
+
+                        return false;
+                    }
+
+                    const totalMinutes = Math.floor(remaining / 60);
+                    const seconds = Math.floor(remaining % 60);
+
+                    timer.innerText =
+                        totalMinutes.toString().padStart(2, '0') +
+                        ':' +
+                        seconds.toString().padStart(2, '0');
+
+                    return true;
                 }
 
-                updateTimer();
-                setInterval(updateTimer, 1000);
-            });
-        });
+                const isRunning = updateTimer();
 
-        function copyAndHideCode(codeId, boxId) {
-            const codeElement = document.getElementById(codeId);
-
-            if (!codeElement) return;
-
-            navigator.clipboard.writeText(codeElement.innerText).then(() => {
-                alert('تم نسخ الكود بنجاح');
-                document.getElementById(boxId).style.display = 'none';
-            });
-        }
-    </script>
-
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.timer').forEach(timer => {
-                const end = parseInt(timer.dataset.end);
-
-                function updateTimer() {
-                    const now = Math.floor(Date.now() / 1000);
-                    const remaining = Math.max(0, end - now);
-
-                    const minutes = Math.floor(remaining / 60);
-                    const seconds = remaining % 60;
-
-                    timer.innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                if (!isRunning) {
+                    return;
                 }
 
-                updateTimer();
-                setInterval(updateTimer, 1000);
+                const interval = setInterval(function() {
+
+                    remaining--;
+
+                    const stillRunning = updateTimer();
+
+                    if (!stillRunning) {
+                        clearInterval(interval);
+                    }
+
+                }, 1000);
+
             });
+
         });
 
         function toggleActionMenu(button) {
+
             const menu = button.nextElementSibling;
 
-            document.querySelectorAll('.action-menu').forEach(item => {
-                if (item !== menu) item.classList.remove('active');
+            document.querySelectorAll('.action-menu').forEach(function(item) {
+
+                if (item !== menu) {
+                    item.classList.remove('active');
+                }
+
             });
 
             menu.classList.toggle('active');
         }
 
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.dropdown-action')) {
-                document.querySelectorAll('.action-menu').forEach(menu => {
+        document.addEventListener('click', function(event) {
+
+            if (!event.target.closest('.dropdown-action')) {
+
+                document.querySelectorAll('.action-menu').forEach(function(menu) {
                     menu.classList.remove('active');
                 });
+
             }
+
         });
 
         function copyAndHideCode(codeId, boxId) {
+
             const codeElement = document.getElementById(codeId);
+            const boxElement = document.getElementById(boxId);
 
-            if (!codeElement) return;
+            if (!codeElement || !boxElement) {
+                return;
+            }
 
-            navigator.clipboard.writeText(codeElement.innerText.trim()).then(() => {
-                alert('تم نسخ الكود بنجاح');
-                document.getElementById(boxId).style.display = 'none';
-            });
+            navigator.clipboard
+                .writeText(codeElement.innerText.trim())
+                .then(function() {
+
+                    alert('تم نسخ الكود بنجاح');
+
+                    boxElement.style.display = 'none';
+
+                })
+                .catch(function() {
+                    alert('تعذر نسخ الكود');
+                });
         }
     </script>
 @endpush

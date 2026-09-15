@@ -26,10 +26,47 @@ class ReserveDeliveryController extends Controller
         return view('admin.delivery.reserve.index', compact('deliveries'));
     }
 
+
     public function create()
     {
-        return view('admin.delivery.reserve.create', $this->formData());
+        $governments = Government::query()
+            ->where('is_active', true)
+            ->with([
+                'areas' => function ($query) {
+                    $query->where('is_active', true)
+                        ->orderBy('name_ar');
+                }
+            ])
+            ->orderBy('name_ar')
+            ->get();
+
+
+
+        $shifts = Shift::query()
+
+            ->orderBy('name_ar')
+            ->get();
+
+        $levels = Level::query()
+            ->orderBy('name')
+            ->get();
+
+        $vehicles = Vehicle::query()
+            ->orderBy('name_ar')
+            ->get();
+
+        $delivery = null;
+
+        return view('admin.delivery.reserve.create', compact(
+            'governments',
+            'shifts',
+            'levels',
+            'vehicles',
+            'delivery'
+        ));
     }
+
+
 
     public function store(Request $request)
     {
@@ -48,7 +85,7 @@ class ReserveDeliveryController extends Controller
             'type' => 'required|in:company,freelance',
             'has_vehicle' => 'required|boolean',
             'vehicle_id' => 'nullable|exists:vehicles,id',
-          
+
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
@@ -61,6 +98,7 @@ class ReserveDeliveryController extends Controller
         $data['status'] = 'approved';
         $data['is_reserve'] = 1;
         $data['code'] = $this->generateDeliveryCode();
+        $data['shift_code'] = $this->generateUniqueShiftCode();
 
         DeliveryUser::create($data);
 
@@ -108,7 +146,7 @@ class ReserveDeliveryController extends Controller
             'type' => 'required|in:company,freelance',
             'has_vehicle' => 'required|boolean',
             'vehicle_id' => 'nullable|exists:vehicles,id',
-          
+
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
@@ -176,5 +214,17 @@ class ReserveDeliveryController extends Controller
         } while (DeliveryUser::where('code', $code)->exists());
 
         return $code;
+    }
+
+
+    private function generateUniqueShiftCode(): string
+    {
+        do {
+            $shiftCode = (string) random_int(100000, 999999);
+        } while (
+            DeliveryUser::where('shift_code', $shiftCode)->exists()
+        );
+
+        return $shiftCode;
     }
 }

@@ -31,6 +31,8 @@ class KitchenPackageController extends Controller
             'price' => 'required|numeric|min:0',
             'duration' => 'required|integer|min:1',
             'active' => 'nullable|boolean',
+            'meals_limit' => 'required|integer|min:0',
+            'orders_limit' => 'required|integer|min:0',
         ]);
 
         $data['features'] = $request->features
@@ -60,6 +62,8 @@ class KitchenPackageController extends Controller
             'price' => 'required|numeric|min:0',
             'duration' => 'required|integer|min:1',
             'active' => 'nullable|boolean',
+            'meals_limit' => 'required|integer|min:0',
+            'orders_limit' => 'required|integer|min:0',
         ]);
 
         $data['features'] = $request->features
@@ -75,8 +79,16 @@ class KitchenPackageController extends Controller
             ->with('success', 'تم تعديل الباقة بنجاح');
     }
 
+
     public function destroy(KitchenPackage $kitchenPackage)
     {
+        // Check if the package has active subscriptions
+        if ($kitchenPackage->subscriptions()->exists()) {
+            return redirect()
+                ->route('admin.kitchen-packages.index')
+                ->with('error', 'لا يمكن حذف هذه الباقة لأنها مرتبطة باشتراكات موجودة بالفعل.');
+        }
+
         $kitchenPackage->delete();
 
         return redirect()
@@ -89,16 +101,18 @@ class KitchenPackageController extends Controller
 
 
 
-    public function packages(): JsonResponse
-{
-    $packages = KitchenPackage::where('active', true)
-        ->latest()
-        ->get();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Packages fetched successfully.',
-        'data' => KitchenPackageResource::collection($packages),
-    ]);
-}
+
+    public function packages(): JsonResponse
+    {
+        $packages = KitchenPackage::where('active', true)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Packages fetched successfully.',
+            'data' => KitchenPackageResource::collection($packages),
+        ]);
+    }
 }

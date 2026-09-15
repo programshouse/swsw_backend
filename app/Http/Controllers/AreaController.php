@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use Illuminate\Http\Request;
+use App\Models\Government;
 
 class AreaController extends Controller
 {
@@ -31,11 +32,17 @@ class AreaController extends Controller
 
     public function index()
     {
+        $areas = Area::with('government')
+            ->latest()
+            ->get();
 
-        $areas = Area::get();
-        $governments = $areas->load('government');
+        $governments = Government::orderBy('name_ar')
+            ->get();
 
-        return view('admin.areas.index', compact('areas', 'governments'));
+        return view(
+            'admin.areas.index',
+            compact('areas', 'governments')
+        );
     }
 
 
@@ -43,27 +50,28 @@ class AreaController extends Controller
     {
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:areas,name',
+            'name_ar' => 'required|string|max:255|unique:areas,name_ar',
+            'name_en' => 'required|string|max:255|unique:areas,name_en',
             'government_id' => 'required|exists:governments,id',
-            'lat' => 'required|numeric|between:-90,90',
-            'lng' => 'required|numeric|between:-180,180',
+            'lat' => 'nullable|numeric|between:-90,90',
+            'lng' => 'nullable|numeric|between:-180,180',
 
 
         ]);
 
         $area = Area::create([
-            'name' => trim($validated['name']),
+            'name_ar' => trim($validated['name_ar']),
+            'name_en' => trim($validated['name_en']),
             'government_id' => $validated['government_id'],
-            'lat' => $validated['lat'],
-            'lng' => $validated['lng'],
+            'lat' => $validated['lat'] ?? null,
+            'lng' => $validated['lng'] ?? null,
         ]);
 
         $area->load('government');
 
-        return response()->json([
-            'message' => 'area created successfully',
-            'area' => $area
-        ], 201);
+        return redirect()
+            ->route('admin.areas.index')
+            ->with('success', 'تم إضافة المنطقة بنجاح.');
     }
 
 
@@ -72,9 +80,9 @@ class AreaController extends Controller
 
         $area->delete();
 
-        return response()->json([
-            'message' => 'area deleted successfully',
-        ], 200);
+        return redirect()
+            ->route('admin.areas.index')
+            ->with('success', 'تم حذف المنطقة بنجاح.');
     }
 
 

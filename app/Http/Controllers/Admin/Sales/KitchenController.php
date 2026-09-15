@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;   
+use App\services\PointService;
+
 
 class KitchenController extends Controller
 {
@@ -50,11 +53,11 @@ class KitchenController extends Controller
             })
             ->when(
                 in_array($status, ['active', 'not_active', 'pending'], true),
-                fn ($query) => $query->where('status', $status)
+                fn($query) => $query->where('status', $status)
             )
             ->when(
                 in_array((string) $isCompany, ['0', '1'], true),
-                fn ($query) => $query->where('is_company', (int) $isCompany)
+                fn($query) => $query->where('is_company', (int) $isCompany)
             )
             ->latest('id')
             ->paginate(15)
@@ -98,7 +101,7 @@ class KitchenController extends Controller
                 'name_ar',
             ]);
 
-        return view('admin.sales.kitchens.create', compact('governments'));
+        return view('admin.sales.kitchens.sales', compact('governments'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -282,7 +285,7 @@ class KitchenController extends Controller
                     'phone' => $validated['phone'],
 
                     'location_link' =>
-                        $validated['location_link'] ?? null,
+                    $validated['location_link'] ?? null,
 
                     'lat' => $validated['lat'],
                     'lng' => $validated['lng'],
@@ -362,8 +365,8 @@ class KitchenController extends Controller
 
         abort_unless(
             $sale
-            && $kitchen->role === 'kitchen'
-            && (int) $kitchen->sales_id === (int) $sale->id,
+                && $kitchen->role === 'kitchen'
+                && (int) $kitchen->sales_id === (int) $sale->id,
             403,
             'غير مسموح لك بالوصول إلى هذا المطبخ.'
         );
@@ -396,7 +399,7 @@ class KitchenController extends Controller
 
                 Rule::unique('users', 'phone')
                     ->where(
-                        fn ($query) => $query->where(
+                        fn($query) => $query->where(
                             'role',
                             'kitchen'
                         )
@@ -420,7 +423,7 @@ class KitchenController extends Controller
                 'integer',
 
                 Rule::exists('areas', 'id')->where(
-                    fn ($query) => $query->where(
+                    fn($query) => $query->where(
                         'government_id',
                         request('government_id')
                     )
@@ -525,4 +528,180 @@ class KitchenController extends Controller
             ' -'
         );
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function public_create(): View
+    {
+        $governments = Government::query()
+            ->where('is_active', 1)
+            ->orderBy('name_ar')
+            ->get([
+                'id',
+                'name_ar',
+            ]);
+
+        return view(
+            'admin.sales.kitchens.create',
+            compact('governments')
+        );
+    }
+
+    public function public_store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate(
+            $this->rules(),
+            $this->validationMessages()
+        );
+
+        DB::transaction(function () use ($validated) {
+            $government = Government::findOrFail(
+                $validated['government_id']
+            );
+
+            $area = Area::findOrFail(
+                $validated['area_id']
+            );
+
+            $user = User::create([
+                'code' => $this->generateKitchenCode(),
+
+                'name' => $validated['name'],
+                'email' => $validated['email'] ?? null,
+                'phone' => $validated['phone'],
+
+                'government_id' => $validated['government_id'],
+                'area_id' => $validated['area_id'],
+
+                'role' => 'kitchen',
+                'status' => 'pending',
+
+                'password' => Hash::make(
+                    $validated['password']
+                ),
+
+                'is_company' => (bool) (
+                    $validated['is_company'] ?? false
+                ),
+
+                'sales_id' => null,
+            ]);
+
+            UserAddress::create([
+                'user_id' => $user->id,
+
+                'government_id' => $validated['government_id'],
+                'area_id' => $validated['area_id'],
+
+                'full_address' => $validated['full_address']
+                    ?? $this->buildFullAddress(
+                        $government,
+                        $area
+                    ),
+
+                'phone' => $validated['phone'],
+
+                'location_link' => $validated['location_link']
+                    ?? null,
+
+                'lat' => $validated['lat'],
+                'lng' => $validated['lng'],
+
+                'is_default' => 1,
+            ]);
+        });
+
+        return redirect()
+            ->route('kitchens.public.create')
+            ->with(
+                'success',
+                'تم إرسال طلب تسجيل المطبخ بنجاح.'
+            );
+    }
+
+
+
+
+
+    public function public_areas(
+        int $governmentId
+    ): JsonResponse {
+        $areas = Area::query()
+            ->where('government_id', $governmentId)
+            ->where('is_active', 1)
+            ->orderBy('name_ar')
+            ->get([
+                'id',
+                'name_ar',
+            ]);
+
+        return response()->json([
+            'status' => true,
+            'areas' => $areas,
+        ]);
+    }
+
+
+
+
+
+
+
+
+
+public function addPoints(
+    Request $request,
+    User $kitchen,
+    PointService $pointService
+) {
+    $validated = $request->validate([
+        'points' => [
+            'required',
+            'integer',
+            'min:1',
+            'max:1000000',
+        ],
+
+        'notes' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+    ], [
+        'points.required' => 'عدد النقاط مطلوب.',
+        'points.integer' => 'عدد النقاط يجب أن يكون رقمًا صحيحًا.',
+        'points.min' => 'عدد النقاط يجب أن يكون أكبر من صفر.',
+        'points.max' => 'عدد النقاط أكبر من الحد المسموح.',
+        'notes.max' => 'الملاحظات يجب ألا تتجاوز 1000 حرف.',
+    ]);
+
+    if ($kitchen->role !== 'kitchen') {
+        abort(404);
+    }
+
+    $pointService->add(
+        owner: $kitchen,
+        points: (int) $validated['points'],
+        source: 'admin_add_points',
+        reference: null,
+        notes: $validated['notes'] ?? 'تمت إضافة النقاط بواسطة الإدارة'
+    );
+
+    return redirect()
+        ->back()
+        ->with('success', 'تمت إضافة النقاط للمطبخ بنجاح.');
+}
 }

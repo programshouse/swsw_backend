@@ -17,6 +17,17 @@
     @stack('styles')
 
     <style>
+        .logo-text {
+            text-decoration: none;
+            color: inherit;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .logo-text:hover {
+            color: inherit;
+        }
+
         .page-head {
             display: flex;
             justify-content: space-between;
@@ -528,353 +539,597 @@
         <aside class="sidebar">
 
             <div class="logo-wrapper">
-                @if (!empty($settings?->logo))
-                    <img src="https://programshouse.com/swsw/public/uploads/settings/1782547392_logo_swsw-logo.jpg"
-                        alt="اللوجو" class="logo-image">
+
+
+                <div class="logo-wrapper">
+                    @if (!empty($settings?->logo))
+                        <img src="https://programshouse.com/swsw/public/uploads/settings/1782547392_logo_swsw-logo.jpg"
+                            alt="اللوجو" class="logo-image">
+                    @endif
+
+                    <a href="{{ route('admin.dashboard') }}" class="logo-text">
+                        لوحة التحكم
+                    </a>
+                </div>
+            </div>
+
+            {{-- لوحة موظف المبيعات --}}
+            @if (auth('sales')->check())
+                <li class="nav-item">
+                    <a href="{{ route('admin.sales.kitchens.index') }}"
+                        class="nav-link {{ request()->routeIs('admin.sales.kitchens.*') ? 'active' : '' }}">
+
+                        <i class="fas fa-store"></i>
+
+                        <span>
+                            المطابخ
+                        </span>
+                    </a>
+                </li>
+            @endif
+
+            {{-- لوحة الأدمن --}}
+            @if (auth('web')->check())
+
+                @php
+                    $currentAdmin = auth('web')->user();
+                @endphp
+
+                {{-- =========================================================
+                    1) الإحصائيات
+                ========================================================== --}}
+                @if ($currentAdmin->hasAdminPermission('dashboard.view'))
+                    <a href="{{ route('admin.dashboard') }}"
+                        class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <span>
+                            الإحصائيات
+                        </span>
+                    </a>
                 @endif
 
-                <div class="logo-text">لوحة التحكم</div>
-            </div>
 
-              @if (auth('sales')->check())
-
-        <li class="nav-item">
-            <a
-                href="{{ route('admin.sales.kitchens.index') }}"
-                class="nav-link {{
-                    request()->routeIs('admin.sales.kitchens.*')
-                        ? 'active'
-                        : ''
-                }}"
-            >
-                <i class="fas fa-store"></i>
-                <span>المطابخ</span>
-            </a>
-        </li>
-
-    @endif
-
-    @if (auth('web')->check())
-
-            <a href="{{ route('admin.dashboard') }}"
-                class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                <span class="nav-icon">📊</span>
-                <span>الإحصائيات</span>
-            </a>
-
-            <a href="{{ route('admin.clients.index') }}"
-                class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
-                <span class="nav-icon">👥</span>
-                <span>المستخدمين</span>
-            </a>
-
-            {{-- المطابخ --}}
-            <div
-                class="nav-group {{ request()->routeIs('admin.kitchens.*') || request()->routeIs('admin.meals.*') || request()->routeIs('admin.meal-offers.*') || request()->routeIs('admin.wallet.*') ? 'open' : '' }}">
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">🍽️</span>
-                    <span>المطابخ</span>
-                    <span class="arrow">⌄</span>
-                </div>
-
-                <div class="submenu">
-                    <a href="{{ route('admin.kitchens.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.kitchens.*') ? 'active' : '' }}">
-                        المطابخ
+                {{-- =========================================================
+                    2) المستخدمون
+                ========================================================== --}}
+                @if ($currentAdmin->hasAdminPermission('clients.view'))
+                    <a href="{{ route('admin.clients.index') }}"
+                        class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
+                        <span>
+                            المستخدمين
+                        </span>
                     </a>
-
-                    <a href="{{ route('admin.meals.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.meals.*') ? 'active' : '' }}">
-                        جميع الوجبات
-                    </a>
-
-                    <a href="{{ route('admin.meal-offers.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.meal-offers.*') ? 'active' : '' }}">
-                        عروض الوجبات
-                    </a>
-
-                    <a href="{{ route('admin.kitchen-packages.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.kitchen-packages.*') ? 'active' : '' }}">
-                        باقات المطابخ
-                    </a>
-
-                  
-
-                    <a href="{{ route('admin.wallet.debit-requests') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.wallet.*') ? 'active' : '' }}">
-                        محفظة المطابخ
-                    </a>
-                </div>
-            </div>
-
-            {{-- الدليفري --}}
-            <div
-                class="nav-group {{ request()->routeIs('admin.delivery.*') || request()->routeIs('admin.delivery.points.*') || request()->routeIs('admin.deliveries.orders.*') || request()->routeIs('admin.reserve-deliveries.*') || request()->routeIs('admin.levels.*') || request()->routeIs('admin.offers.*') || request()->routeIs('admin.vehicles.*') || request()->routeIs('admin.points.*') ? 'open' : '' }}">
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">🏍️</span>
-                    <span>الدليفري</span>
-                    <span class="arrow">⌄</span>
-                </div>
-
-                <div class="submenu">
-                    <a href="{{ route('admin.delivery.pending') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
-                        قيد الانتظار
-                    </a>
-
-                    <a href="{{ route('admin.delivery.profile.pending') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
-                        تعديلات ملفات الدليفري المعلقة
-                    </a>
-
-                    <a href="{{ route('admin.delivery.approved') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
-                        الدليفري المعتمد
-                    </a>
-
-                    <a href="{{ route('admin.deliveries.orders.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.deliveries.orders.*') ? 'active' : '' }}">
-                        طلبات الدليفري
-                    </a>
-
-                    <a href="{{ route('admin.reserve-deliveries.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.reserve-deliveries.*') ? 'active' : '' }}">
-                        الحسابات الاحتياطية
-                    </a>
-
-                    <a href="{{ route('admin.delivery.points.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.delivery.points.*') ? 'active' : '' }}">
-                        نقاط الدليفري
-                    </a>
-
-                    <a href="{{ route('admin.points.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.points.*') ? 'active' : '' }}">
-                        النقاط
-                    </a>
-
-                    <a href="{{ route('admin.offers.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
-                        العروض
-                    </a>
+                @endif
 
 
-                    <a href="{{ route('delivery-offer-requests.index') }}"
-                        class="nav-link sub {{ request()->routeIs('delivery-offer-requests.*') ? 'active' : '' }}">
-                        طلبات عروض الدليفري
-                    </a>
+                {{-- =========================================================
+                    3) المطابخ
+                    تم نقل الشيفتات إلى هذه المجموعة
+                ========================================================== --}}
+                @if (
+                    $currentAdmin->hasAnyAdminPermission([
+                        'kitchens.view',
+                        'meals.view',
+                        'meal_offers.view',
+                        'kitchen_packages.view',
+                        'shifts.view',
+                    ]))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.kitchens.*') ||
+                request()->routeIs('admin.meals.*') ||
+                request()->routeIs('admin.meal-offers.*') ||
+                request()->routeIs('admin.kitchen-packages.*') ||
+                request()->routeIs('admin.shifts.*')
+                    ? 'open'
+                    : '' }}">
 
-                    <a href="{{ route('admin.levels.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.levels.*') ? 'active' : '' }}">
-                        المستويات
-                    </a>
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span>
+                                المطابخ
+                            </span>
 
-                    <a href="{{ route('admin.vehicles.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}">
-                        وسائل التوصيل
-                    </a>
-                </div>
-            </div>
+                            <span class="arrow">⌄</span>
+                        </div>
 
-            {{-- المشاكل --}}
-            <div
-                class="nav-group {{ request()->routeIs('admin.tickets.*') || request()->routeIs('admin.issue-types.*') ? 'open' : '' }}">
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">🎫</span>
-                    <span>المشاكل</span>
-                    <span class="arrow">⌄</span>
-                </div>
+                        <div class="submenu">
 
-                <div class="submenu">
-                    <a href="{{ route('admin.tickets.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
-                        المشاكل
-                    </a>
+                            @if ($currentAdmin->hasAdminPermission('kitchens.view'))
+                                <a href="{{ route('admin.kitchens.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.kitchens.*') ? 'active' : '' }}">
+                                    المطابخ
+                                </a>
+                            @endif
 
-                    <a href="{{ route('admin.issue-types.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.issue-types.*') ? 'active' : '' }}">
-                        أنواع المشاكل
-                    </a>
-                </div>
-            </div>
+                            @if ($currentAdmin->hasAdminPermission('meals.view'))
+                                <a href="{{ route('admin.meals.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.meals.*') ? 'active' : '' }}">
+                                    جميع الوجبات
+                                </a>
+                            @endif
 
-            {{-- المناطق --}}
-            <div
-                class="nav-group {{ request()->routeIs('admin.governments.*') || request()->routeIs('admin.areas.*') ? 'open' : '' }}">
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">📍</span>
-                    <span>المناطق والمحافظات</span>
-                    <span class="arrow">⌄</span>
-                </div>
+                            @if ($currentAdmin->hasAdminPermission('meal_offers.view'))
+                                <a href="{{ route('admin.meal-offers.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.meal-offers.*') ? 'active' : '' }}">
+                                    عروض الوجبات
+                                </a>
+                            @endif
 
-                <div class="submenu">
-                    <a href="{{ route('admin.governments.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
-                        المحافظات
-                    </a>
+                            {{-- @if ($currentAdmin->hasAdminPermission('kitchen_packages.view'))
+                                <a href="{{ route('admin.kitchen-packages.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.kitchen-packages.*') ? 'active' : '' }}">
+                                    باقات المطابخ
+                                </a>
+                            @endif --}}
 
-                    <a href="{{ route('admin.areas.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
-                        المناطق
-                    </a>
-                </div>
-            </div>
+                            @if ($currentAdmin->hasAdminPermission('shifts.view'))
+                                <a href="{{ route('admin.shifts.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
+                                    الشيفتات
+                                </a>
+                            @endif
 
-
-            <a href="{{ route('admin.cash-codes.index') }}"
-                class="nav-link sub {{ request()->routeIs('admin.cash-codes.*') ? 'active' : '' }}">
-
-                 اكواد الخصم
-            </a>
-           
-                <a href="{{ route('admin.sales.index') }}"
-                    class="nav-link {{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-tag"></i>
-
-                    <span>موظفو المبيعات</span>
-                </a>
-          
-
-           
-
-           
-                <a href="{{ route('admin.order-pricing.index') }}"
-                    class="nav-link {{ request()->routeIs('admin.order-pricing.*') ? 'active' : '' }}">
-                    <i class="fas fa-calculator"></i>
-                    <span>تسعير الطلبات</span>
-                </a>
-        
-            {{-- التطبيق --}}
-            <div
-                class="nav-group {{ request()->routeIs('admin.categories.*') || request()->routeIs('admin.sliders.*') || request()->routeIs('admin.rates.*') || request()->routeIs('admin.workdays.*') || request()->routeIs('admin.shifts.*') ? 'open' : '' }}">
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">📱</span>
-                    <span>إعدادات التطبيق</span>
-                    <span class="arrow">⌄</span>
-                </div>
-
-                <div class="submenu">
-                    <a href="{{ route('admin.categories.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                        فئات العناصر
-                    </a>
-
-                    <a href="{{ route('admin.sliders.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
-                        السلايدر
-                    </a>
-
-                    <a href="{{ route('admin.rates.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
-                        أسئلة التقييمات
-                    </a>
-
-                    <a href="{{ route('admin.workdays.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
-                        أيام وساعات العمل
-                    </a>
-
-                    <a href="{{ route('admin.shifts.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.shifts.*') ? 'active' : '' }}">
-                        الشيفتات
-                    </a>
-                </div>
-            </div>
-
-            {{-- عام --}}
-            <div
-                class="nav-group {{ request()->routeIs('admin.referral-point-rules.*') || request()->routeIs('admin.settings.*') || request()->routeIs('app-pages.*') ? 'open' : '' }}">
-                <div class="nav-link parent" onclick="toggleMenu(this)">
-                    <span class="nav-icon">⚙️</span>
-                    <span>إعدادات عامة</span>
-                    <span class="arrow">⌄</span>
-                </div>
-
-                <div class="submenu">
-                    <a href="{{ route('admin.referral-point-rules.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.referral-point-rules.*') ? 'active' : '' }}">
-                        مكافآت الدعوات
-                    </a>
-
-                    <a href="{{ route('admin.settings.index') }}"
-                        class="nav-link sub {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                        الإعدادات
-                    </a>
-
-                    <a href="{{ route('app-pages.index') }}"
-                        class="nav-link sub {{ request()->routeIs('app-pages.*') ? 'active' : '' }}">
-                        صفحات التطبيق
-                    </a>
-                </div>
-            </div>
+                        </div>
+                    </div>
+                @endif
 
 
-            <a href="{{ route('admin.order-financial-reports.index') }}"
-                class="nav-link {{ request()->routeIs('admin.order-financial-reports.*') ? 'active' : '' }}">
-                <span class="nav-icon">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                </span>
+                {{-- =========================================================
+                    4) الدليفري
+                    تم نقل أيام وساعات العمل إلى هذه المجموعة
+                ========================================================== --}}
+                @if (
+                    $currentAdmin->hasAnyAdminPermission([
+                        'deliveries.view',
+                        'deliveries.view_orders',
+                        'reserve_deliveries.view',
+                        'delivery_points.view',
+                        'points.view',
+                        'offers.view',
+                        'delivery_offer_requests.view',
+                        'levels.view',
+                        'vehicles.view',
+                        'workdays.view',
+                    ]))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.delivery.*') ||
+                request()->routeIs('admin.delivery.points.*') ||
+                request()->routeIs('admin.deliveries.orders.*') ||
+                request()->routeIs('admin.reserve-deliveries.*') ||
+                request()->routeIs('admin.levels.*') ||
+                request()->routeIs('admin.offers.*') ||
+                request()->routeIs('admin.vehicles.*') ||
+                request()->routeIs('admin.points.*') ||
+                request()->routeIs('delivery-offer-requests.*') ||
+                request()->routeIs('admin.workdays.*')
+                    ? 'open'
+                    : '' }}">
 
-                <span>التقرير المالي للطلبات</span>
-            </a>
- @endif
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span>
+                                الدليفري
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->hasAdminPermission('deliveries.view'))
+                                <a href="{{ route('admin.delivery.pending') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.delivery.pending') ? 'active' : '' }}">
+                                    قيد الانتظار
+                                </a>
+
+                                <a href="{{ route('admin.delivery.profile.pending') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.delivery.profile.pending') ? 'active' : '' }}">
+                                    تعديلات ملفات الدليفري المعلقة
+                                </a>
+
+                                <a href="{{ route('admin.delivery.approved') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.delivery.approved') ? 'active' : '' }}">
+                                    الدليفري المعتمد
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('deliveries.view_orders'))
+                                <a href="{{ route('admin.deliveries.orders.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.deliveries.orders.*') ? 'active' : '' }}">
+                                    طلبات الدليفري
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('reserve_deliveries.view'))
+                                <a href="{{ route('admin.reserve-deliveries.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.reserve-deliveries.*') ? 'active' : '' }}">
+                                    الحسابات الاحتياطية
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('delivery_points.view'))
+                                <a href="{{ route('admin.delivery.points.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.delivery.points.*') ? 'active' : '' }}">
+                                    نقاط الدليفري
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('points.view'))
+                                <a href="{{ route('admin.points.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.points.*') ? 'active' : '' }}">
+                                    المكافآت
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('offers.view'))
+                                <a href="{{ route('admin.offers.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.offers.*') ? 'active' : '' }}">
+                                    العروض
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('delivery_offer_requests.view'))
+                                <a href="{{ route('delivery-offer-requests.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('delivery-offer-requests.*') ? 'active' : '' }}">
+                                    طلبات عروض الدليفري
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('levels.view'))
+                                <a href="{{ route('admin.levels.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.levels.*') ? 'active' : '' }}">
+                                    المستويات
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('vehicles.view'))
+                                <a href="{{ route('admin.vehicles.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}">
+                                    وسائل التوصيل
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('workdays.view'))
+                                <a href="{{ route('admin.workdays.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.workdays.*') ? 'active' : '' }}">
+                                    أيام وساعات العمل
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+                {{-- =========================================================
+                    5) الإدارة المالية
+                    تسعير الطلبات + التقرير المالي + طلبات السحب
+                ========================================================== --}}
+                @if (
+                    $currentAdmin->hasAnyAdminPermission([
+                        'order_pricing.view',
+                        'financial_reports.view',
+                        'wallet.view',
+                        'cash_codes.view',
+                        'kitchen_packages.view',
+                    ]))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.order-pricing.*') ||
+                request()->routeIs('admin.order-financial-reports.*') ||
+                request()->routeIs('admin.wallet.debit-requests.*') ||
+                request()->routeIs('admin.cash-codes.*') ||
+                request()->routeIs('admin.kitchen-packages.*')
+                    ? 'open'
+                    : '' }}">
+
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span>
+                                الإدارة المالية
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->hasAdminPermission('order_pricing.view'))
+                                <a href="{{ route('admin.order-pricing.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.order-pricing.*') ? 'active' : '' }}">
+                                    تسعير الطلبات
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('financial_reports.view'))
+                                <a href="{{ route('admin.order-financial-reports.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.order-financial-reports.*') ? 'active' : '' }}">
+                                    التقرير المالي للطلبات
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('wallet.view'))
+                                <a href="{{ route('admin.wallet.debit-requests.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.wallet.debit-requests.*') ? 'active' : '' }}">
+                                    طلبات السحب
+                                </a>
+                            @endif
+
+
+                            @if ($currentAdmin->hasAdminPermission('cash_codes.view'))
+                                <a href="{{ route('admin.cash-codes.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.cash-codes.*') ? 'active' : '' }}">
+                                    أكواد الخصم
+                                </a>
+                            @endif
+
+
+                            @if ($currentAdmin->hasAdminPermission('kitchen_packages.view'))
+                                <a href="{{ route('admin.kitchen-packages.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.kitchen-packages.*') ? 'active' : '' }}">
+                                    باقات المطابخ
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+
+                {{-- =========================================================
+                    6) المشاكل والدعم
+                ========================================================== --}}
+                @if ($currentAdmin->hasAnyAdminPermission(['tickets.view', 'issue_types.view']))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.tickets.*') || request()->routeIs('admin.issue-types.*') ? 'open' : '' }}">
+
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span>
+                                المشاكل
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->hasAdminPermission('tickets.view'))
+                                <a href="{{ route('admin.tickets.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
+                                    الشكاوى
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('issue_types.view'))
+                                <a href="{{ route('admin.issue-types.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.issue-types.*') ? 'active' : '' }}">
+                                    أنواع المشاكل
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+
+                {{-- =========================================================
+                    7) المناطق والمحافظات
+                ========================================================== --}}
+                @if ($currentAdmin->hasAnyAdminPermission(['governments.view', 'areas.view']))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.governments.*') || request()->routeIs('admin.areas.*') ? 'open' : '' }}">
+
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span>
+                                المناطق والمحافظات
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->hasAdminPermission('governments.view'))
+                                <a href="{{ route('admin.governments.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.governments.*') ? 'active' : '' }}">
+                                    المحافظات
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('areas.view'))
+                                <a href="{{ route('admin.areas.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.areas.*') ? 'active' : '' }}">
+                                    المناطق
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+
+                {{-- =========================================================
+                    8) أكواد الخصم
+                ========================================================== --}}
+                
+
+
+                {{-- =========================================================
+                    9) إعدادات التطبيق
+                    فئات العناصر + السلايدر + التقييمات + مكافآت الدعوات
+                ========================================================== --}}
+                @if ($currentAdmin->hasAnyAdminPermission(['categories.view', 'sliders.view', 'rates.view', 'referral_rules.view']))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.categories.*') ||
+                request()->routeIs('admin.sliders.*') ||
+                request()->routeIs('admin.rates.*') ||
+                request()->routeIs('admin.referral-point-rules.*')
+                    ? 'open'
+                    : '' }}">
+
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+
+
+                            <span>
+                                إعدادات التطبيق
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->hasAdminPermission('categories.view'))
+                                <a href="{{ route('admin.categories.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                                    فئات العناصر
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('sliders.view'))
+                                <a href="{{ route('admin.sliders.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
+                                    السلايدر
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('rates.view'))
+                                <a href="{{ route('admin.rates.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
+                                    أسئلة التقييمات
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('referral_rules.view'))
+                                <a href="{{ route('admin.referral-point-rules.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.referral-point-rules.*') ? 'active' : '' }}">
+                                    مكافآت الدعوات
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+
+                {{-- =========================================================
+                    10) الإدارة والموظفون
+                    إدارة الأدمنز + موظفو المبيعات
+                ========================================================== --}}
+                @if ($currentAdmin->isSuperAdmin() || $currentAdmin->hasAdminPermission('sales.view'))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.admins.*') || request()->routeIs('admin.sales.*') ? 'open' : '' }}">
+
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span>
+                                الإدارة والموظفون
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->isSuperAdmin())
+                                <a href="{{ route('admin.admins.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.admins.*') ? 'active' : '' }}">
+                                    إدارة الأدمنز
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('sales.view'))
+                                <a href="{{ route('admin.sales.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">
+                                    موظفو المبيعات
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+
+                {{-- =========================================================
+                    11) إعدادات عامة
+                ========================================================== --}}
+                @if ($currentAdmin->hasAnyAdminPermission(['settings.view', 'app_pages.view']))
+                    <div
+                        class="nav-group
+                {{ request()->routeIs('admin.settings.*') || request()->routeIs('app-pages.*') ? 'open' : '' }}">
+
+                        <div class="nav-link parent" onclick="toggleMenu(this)">
+                            <span class="nav-icon">⚙️</span>
+
+                            <span>
+                                إعدادات عامة
+                            </span>
+
+                            <span class="arrow">⌄</span>
+                        </div>
+
+                        <div class="submenu">
+
+                            @if ($currentAdmin->hasAdminPermission('settings.view'))
+                                <a href="{{ route('admin.settings.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                                    الإعدادات
+                                </a>
+                            @endif
+
+                            @if ($currentAdmin->hasAdminPermission('app_pages.view'))
+                                <a href="{{ route('app-pages.index') }}"
+                                    class="nav-link sub {{ request()->routeIs('app-pages.*') ? 'active' : '' }}">
+                                     الاداره القانونيه
+                                </a>
+                            @endif
+
+                        </div>
+                    </div>
+                @endif
+
+            @endif
+
         </aside>
 
-        
+
         <main class="main-wrapper">
 
-           <header class="topbar">
+            <header class="topbar">
 
-    <div class="admin-info">
-        @if (auth('sales')->check())
-            {{ auth('sales')->user()->name }}
-            -
-            {{ auth('sales')->user()->email
-                ?? auth('sales')->user()->code
-                ?? '' }}
+                <div class="admin-info">
+                    @if (auth('sales')->check())
+                        {{ auth('sales')->user()->name }}
+                        -
+                        {{ auth('sales')->user()->email ?? (auth('sales')->user()->code ?? '') }}
+                    @elseif (auth('web')->check())
+                        {{ auth('web')->user()->name ?? 'Admin' }}
+                        -
+                        {{ auth('web')->user()->email ?? '' }}
+                    @endif
+                </div>
 
-        @elseif (auth('web')->check())
-            {{ auth('web')->user()->name ?? 'Admin' }}
-            -
-            {{ auth('web')->user()->email ?? '' }}
-        @endif
-    </div>
+                @if (auth('sales')->check())
+                    <form action="{{ route('sales.logout') }}" method="POST" class="logout-form">
+                        @csrf
 
-    @if (auth('sales')->check())
-        <form
-            action="{{ route('sales.logout') }}"
-            method="POST"
-            class="logout-form"
-        >
-            @csrf
+                        <button type="submit" class="nav-link logout-button">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                @elseif (auth('web')->check())
+                    <form action="{{ route('admin.logout') }}" method="POST" class="logout-form">
+                        @csrf
 
-            <button
-                type="submit"
-                class="nav-link logout-button"
-            >
-                <i class="fas fa-sign-out-alt"></i>
-                <span>تسجيل الخروج</span>
-            </button>
-        </form>
+                        <button type="submit" class="nav-link logout-button">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                @endif
 
-    @elseif (auth('web')->check())
-        <form
-            action="{{ route('admin.logout') }}"
-            method="POST"
-            class="logout-form"
-        >
-            @csrf
-
-            <button
-                type="submit"
-                class="nav-link logout-button"
-            >
-                <i class="fas fa-sign-out-alt"></i>
-                <span>تسجيل الخروج</span>
-            </button>
-        </form>
-    @endif
-
-</header>
+            </header>
 
             <section class="content">
                 @yield('content')

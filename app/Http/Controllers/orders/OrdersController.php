@@ -21,16 +21,23 @@ use App\Models\DeliveryUser;
 use App\Models\CashCode;
 use App\Models\CashCodeUsage;
 use App\Models\Meal;
+use App\Models\PaymentTransaction;
 use Illuminate\Validation\ValidationException;
 use App\Models\UserAddress;
 use App\Models\OrderFeeRule;
 use App\services\OrderNotificationService;
 use Illuminate\Support\Facades\Log;
+use App\Services\KitchenPackageService;
 
 
 
 class OrdersController extends Controller
 {
+
+    // public function __construct(
+    //     protected KitchenPackageService $kitchenPackageService
+    // ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -54,11 +61,31 @@ class OrdersController extends Controller
 
     public function kitchen_orders(Request $request)
     {
-        $user = $request->user()->profile;
-        $orders = Order::where('kitchen_id', $user->id)->with('items.meal', 'userAddress')->get();
-        return response()->json([
-            'orders' => OrderResource::collection($orders)
-        ]);
+        try {
+
+            $kitchen = $request->user()->profile;
+
+            $orders = Order::query()
+                ->where('kitchen_id', $kitchen->id)
+                ->with([
+                    'items.meal',
+                    'userAddress',
+                ])
+                ->latest('created_at')
+                ->get();
+
+            return response()->json([
+                'orders' => OrderResource::collection($orders),
+            ]);
+        } catch (\Throwable $e) {
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ], 500);
+        }
     }
 
     public function client_orders(Request $request)
@@ -73,42 +100,83 @@ class OrdersController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'kitchen_id' => 'required|exists:kitchen_profiles,id',
-            'address_id' => 'nullable|integer',
+            'kitchen_id' => [
+                'required',
+                'exists:kitchen_profiles,id',
+            ],
 
-            'items' => 'required|array|min:1',
-            'items.*.meal_id' => 'required|exists:meals,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'address_id' => [
+                'nullable',
+                'integer',
+            ],
 
-            'receive_date' => 'nullable|date|before_or_equal:today + 7 days',
-            'receive_time' => 'required_with:receive_date',
-            'book_for_later' => 'required_with:receive_date|boolean',
+            'items' => [
+                'required',
+                'array',
+                'min:1',
+            ],
 
-            'cash_code' => 'nullable|string|max:100',
+            'items.*.meal_id' => [
+                'required',
+                'exists:meals,id',
+            ],
+
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+
+            'receive_date' => [
+                'nullable',
+                'date',
+                'before_or_equal:today + 7 days',
+            ],
+
+            'receive_time' => [
+                'required_with:receive_date',
+            ],
+
+            'book_for_later' => [
+                'required_with:receive_date',
+                'boolean',
+            ],
         ]);
 
         $user = $request->user();
 
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
         $settings = Setting::first();
 
         /*
-    |--------------------------------------------------------------------------
-    | Check application working time
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Check application working time
+        |--------------------------------------------------------------------------
+        */
 
         $start = $settings?->work_start_time;
         $end = $settings?->work_end_time;
 
         if ($start && $end) {
-            $now = Carbon::now('Africa/Cairo')->format('H:i:s');
+            $now = Carbon::now(
+                'Africa/Cairo'
+            )->format('H:i:s');
 
-            /*
-         * يدعم كذلك ساعات العمل التي تتخطى منتصف الليل.
-         */
             $isOpen = $start <= $end
-                ? ($now >= $start && $now <= $end)
-                : ($now >= $start || $now <= $end);
+                ? (
+                    $now >= $start
+                    && $now <= $end
+                )
+                : (
+                    $now >= $start
+                    || $now <= $end
+                );
 
             if (!$isOpen) {
                 return response()->json([
@@ -122,96 +190,115 @@ class OrdersController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | Kitchen
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Kitchen
+        |--------------------------------------------------------------------------
+        */
 
-        $kitchen = KitchenProfile::find($validated['kitchen_id']);
+        $kitchen = KitchenProfile::query()
+            ->find($validated['kitchen_id']);
 
         if (!$kitchen) {
             return response()->json([
+                'status' => false,
                 'message' => 'Kitchen not found',
             ], 404);
         }
 
-        // check if kitchen is open now
-        if (in_array($kitchen->open_status, ['closed', 'busy'])) {
+       $packageCheck = app(KitchenPackageService::class)
+    ->checkOrderLimit($kitchen);
+
+
+        if (!$packageCheck['allowed']) {
+
             return response()->json([
+                'status' => false,
+                'message' => $packageCheck['message'],
+            ], 422);
+        }
+
+        if (
+            in_array(
+                $kitchen->open_status,
+                [
+                    'closed',
+                    'busy',
+                ],
+                true
+            )
+        ) {
+            return response()->json([
+                'status' => false,
                 'message' =>
-                'this kitchen may closed or busy right now you can order latter',
+                'This kitchen may be closed or busy right now. You can order later.',
             ], 422);
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | Check meals availability
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Check meals and calculate subtotal
+        |--------------------------------------------------------------------------
+        */
+
+        $subtotal = 0;
+        $meals = [];
 
         foreach ($validated['items'] as $item) {
-            $meal = \App\Models\Meal::find($item['meal_id']);
+            $meal = \App\Models\Meal::query()
+                ->find($item['meal_id']);
 
             if (!$meal) {
                 return response()->json([
-                    'message' => 'one of your items does not exist',
+                    'status' => false,
+                    'message' =>
+                    'One of your items does not exist',
                 ], 422);
             }
 
-            /*
-         * لا يوجد فحص meal->kitchen_id هنا؛
-         * لأن الفانكشن الأصلية في البرودكشن لم تكن تعتمد عليه.
-         */
-
             if (!$meal->availability) {
                 return response()->json([
-                    'message' => 'one of your items is unavailable now',
+                    'status' => false,
+                    'message' =>
+                    'One of your items is unavailable now',
+
                     'item' => [
-                        'name' => $meal->name,
                         'id' => $meal->id,
+                        'name' => $meal->name,
+
                         'image' => $meal->image
-                            ? config('app.url') .
-                            '/storage/' .
-                            $meal->image
+                            ? config('app.url')
+                            . '/storage/'
+                            . $meal->image
                             : null,
                     ],
                 ], 422);
             }
-        }
 
-        /*
-    |--------------------------------------------------------------------------
-    | Calculate items subtotal
-    |--------------------------------------------------------------------------
-    */
-
-        $subtotal = 0;
-
-        foreach ($validated['items'] as $item) {
-            $meal = \App\Models\Meal::find($item['meal_id']);
+            $meals[$meal->id] = $meal;
 
             $subtotal +=
-                (float) $meal->price *
-                (int) $item['quantity'];
+                (float) $meal->price
+                * (int) $item['quantity'];
         }
 
         $subtotal = round($subtotal, 2);
 
         /*
-    |--------------------------------------------------------------------------
-    | Client address
-    |--------------------------------------------------------------------------
-    */
-
-        $clientAddress = null;
+        |--------------------------------------------------------------------------
+        | Client address
+        |--------------------------------------------------------------------------
+        */
 
         if (!empty($validated['address_id'])) {
-            /*
-         * التأكد أن العنوان يخص نفس العميل بدون تغيير Validation البرودكشن.
-         */
             $clientAddress = UserAddress::query()
-                ->where('id', $validated['address_id'])
-                ->where('user_id', $user->id)
+                ->where(
+                    'id',
+                    $validated['address_id']
+                )
+                ->where(
+                    'user_id',
+                    $user->id
+                )
                 ->first();
 
             if (!$clientAddress) {
@@ -222,36 +309,45 @@ class OrdersController extends Controller
             }
         } else {
             $clientAddress = UserAddress::query()
-                ->where('user_id', $user->id)
-                ->where('is_default', 1)
+                ->where(
+                    'user_id',
+                    $user->id
+                )
+                ->where(
+                    'is_default',
+                    1
+                )
                 ->first();
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | Kitchen address
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Kitchen address
+        |--------------------------------------------------------------------------
+        */
 
-        $kitchen->load('user.defaultAddress');
+        $kitchen->load(
+            'user.defaultAddress'
+        );
 
-        $kitchenAddress = $kitchen->user?->defaultAddress;
+        $kitchenAddress =
+            $kitchen->user?->defaultAddress;
 
         /*
-    |--------------------------------------------------------------------------
-    | Calculate distance and delivery
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Calculate distance and delivery price
+        |--------------------------------------------------------------------------
+        */
 
         $distanceKm = 0;
 
         if (
-            $clientAddress &&
-            $kitchenAddress &&
-            $clientAddress->lat !== null &&
-            $clientAddress->lng !== null &&
-            $kitchenAddress->lat !== null &&
-            $kitchenAddress->lng !== null
+            $clientAddress
+            && $kitchenAddress
+            && $clientAddress->lat !== null
+            && $clientAddress->lng !== null
+            && $kitchenAddress->lat !== null
+            && $kitchenAddress->lng !== null
         ) {
             $distanceKm = $this->calculateDistance(
                 (float) $clientAddress->lat,
@@ -261,12 +357,11 @@ class OrdersController extends Controller
             );
         }
 
-        /*
-     * الاسم في الجدول delivery_meter_price،
-     * ولكنه مستخدم حاليًا كسعر لكل كيلومتر.
-     */
         $deliveryMeterPrice = round(
-            (float) ($settings?->delivery_meter_price ?? 0),
+            (float) (
+                $settings?->delivery_meter_price
+                ?? 0
+            ),
             2
         );
 
@@ -276,13 +371,16 @@ class OrdersController extends Controller
         );
 
         /*
-    |--------------------------------------------------------------------------
-    | VAT
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | VAT
+        |--------------------------------------------------------------------------
+        */
 
         $vatPercentage = round(
-            (float) ($settings?->vat_percentage ?? 0),
+            (float) (
+                $settings?->vat_percentage
+                ?? 0
+            ),
             2
         );
 
@@ -292,41 +390,57 @@ class OrdersController extends Controller
         );
 
         /*
-    |--------------------------------------------------------------------------
-    | Order fee rule
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Order fee rule
+        |--------------------------------------------------------------------------
+        */
 
         $feeRule = \App\Models\OrderFeeRule::query()
             ->where('is_active', true)
-            ->where('min_order_amount', '<=', $subtotal)
-            ->where(function ($query) use ($subtotal) {
+            ->where(
+                'min_order_amount',
+                '<=',
+                $subtotal
+            )
+            ->where(function ($query) use (
+                $subtotal
+            ) {
                 $query
-                    ->whereNull('max_order_amount')
+                    ->whereNull(
+                        'max_order_amount'
+                    )
                     ->orWhere(
                         'max_order_amount',
                         '>=',
                         $subtotal
                     );
             })
-            ->orderByDesc('min_order_amount')
+            ->orderByDesc(
+                'min_order_amount'
+            )
             ->first();
 
         $clientServiceFee = round(
-            (float) ($feeRule?->client_service_fee ?? 0),
+            (float) (
+                $feeRule?->client_service_fee
+                ?? 0
+            ),
             2
         );
 
         $kitchenServiceFee = round(
-            (float) ($feeRule?->kitchen_service_fee ?? 0),
+            (float) (
+                $feeRule?->kitchen_service_fee
+                ?? 0
+            ),
             2
         );
 
         /*
-    |--------------------------------------------------------------------------
-    | Kitchen amount
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Kitchen net amount
+        |--------------------------------------------------------------------------
+        */
 
         $kitchenNetAmount = round(
             max(
@@ -337,40 +451,24 @@ class OrdersController extends Controller
         );
 
         /*
-    |--------------------------------------------------------------------------
-    | Customer total
-    |--------------------------------------------------------------------------
-    |
-    | رسوم المطبخ لا تضاف على العميل.
-    | رسوم المطبخ يتم خصمها فقط من مستحق المطبخ.
-    |
-    */
+        |--------------------------------------------------------------------------
+        | Customer total
+        |--------------------------------------------------------------------------
+        */
 
         $totalBeforeDiscount = round(
-            $subtotal +
-                $vatValue +
-                $deliveryPrice +
-                $clientServiceFee,
+            $subtotal
+                + $vatValue
+                + $deliveryPrice
+                + $clientServiceFee,
             2
         );
 
         /*
-    |--------------------------------------------------------------------------
-    | Cash code
-    |--------------------------------------------------------------------------
-    */
-
-        $cashCode = null;
-        $discountValue = 0;
-        $finalTotal = $totalBeforeDiscount;
-        $balanceBefore = null;
-        $balanceAfter = null;
-
-        /*
-    |--------------------------------------------------------------------------
-    | Create order and deduct cash-code balance
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Create order
+        |--------------------------------------------------------------------------
+        */
 
         $order = DB::transaction(function () use (
             $validated,
@@ -387,122 +485,15 @@ class OrdersController extends Controller
             $kitchenServiceFee,
             $kitchenNetAmount,
             $totalBeforeDiscount,
-            &$cashCode,
-            &$discountValue,
-            &$finalTotal,
-            &$balanceBefore,
-            &$balanceAfter
+            $meals
         ) {
-            /*
-        |--------------------------------------------------------------------------
-        | Cash code validation
-        |--------------------------------------------------------------------------
-        */
+            $lastOrderId = Order::query()
+                ->max('id');
 
-            if (!empty($validated['cash_code'])) {
-                $normalizedCode = strtoupper(
-                    trim($validated['cash_code'])
-                );
+            $nextId = ((int) $lastOrderId) + 1;
 
-                $cashCode = CashCode::query()
-                    ->where('code', $normalizedCode)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$cashCode) {
-                    throw ValidationException::withMessages([
-                        'cash_code' => [
-                            'الكود النقدي غير صحيح',
-                        ],
-                    ]);
-                }
-
-                if ((int) $cashCode->user_id !== (int) $user->id) {
-                    throw ValidationException::withMessages([
-                        'cash_code' => [
-                            'هذا الكود غير مخصص لحسابك',
-                        ],
-                    ]);
-                }
-
-                if (!$cashCode->is_active) {
-                    throw ValidationException::withMessages([
-                        'cash_code' => [
-                            'هذا الكود غير مفعل',
-                        ],
-                    ]);
-                }
-
-                if (
-                    !$cashCode->expires_at ||
-                    now()->greaterThan($cashCode->expires_at)
-                ) {
-                    throw ValidationException::withMessages([
-                        'cash_code' => [
-                            'انتهت صلاحية هذا الكود',
-                        ],
-                    ]);
-                }
-
-                if (
-                    $cashCode->max_uses !== null &&
-                    (int) $cashCode->used_count >=
-                    (int) $cashCode->max_uses
-                ) {
-                    throw ValidationException::withMessages([
-                        'cash_code' => [
-                            'تم استهلاك الحد الأقصى لاستخدام هذا الكود',
-                        ],
-                    ]);
-                }
-
-                /*
-             * الكاش كود يغطي كامل ما يجب على العميل دفعه:
-             *
-             * subtotal
-             * + VAT
-             * + delivery
-             * + client service fee
-             */
-                if (
-                    (float) $cashCode->remaining_balance <
-                    (float) $totalBeforeDiscount
-                ) {
-                    throw ValidationException::withMessages([
-                        'cash_code' => [
-                            'رصيد الكود غير كافٍ لتغطية قيمة الطلب بالكامل',
-                        ],
-                    ]);
-                }
-
-                $balanceBefore =
-                    (float) $cashCode->remaining_balance;
-
-                $discountValue =
-                    (float) $totalBeforeDiscount;
-
-                $balanceAfter = round(
-                    $balanceBefore - $discountValue,
-                    2
-                );
-
-                // The order becomes free for the client
-                $finalTotal = 0;
-            }
-
-            /*
-        |--------------------------------------------------------------------------
-        | Order number
-        |--------------------------------------------------------------------------
-        */
-
-            $lastOrder = Order::latest('id')->first();
-
-            $nextId = $lastOrder
-                ? $lastOrder->id + 1
-                : 1;
-
-            $orderNumber = 'ORD-'
+            $orderNumber =
+                'ORD-'
                 . now()->format('Ymd')
                 . '-'
                 . str_pad(
@@ -512,110 +503,115 @@ class OrdersController extends Controller
                     STR_PAD_LEFT
                 );
 
-            /*
-        |--------------------------------------------------------------------------
-        | Create order
-        |--------------------------------------------------------------------------
-        */
-
             $order = Order::create([
-                'user_id' => $user->id,
-                'kitchen_id' => $validated['kitchen_id'],
-                'number' => $orderNumber,
+                'user_id' =>
+                $user->id,
+
+                'kitchen_id' =>
+                $validated['kitchen_id'],
+
+                'number' =>
+                $orderNumber,
+
+                'subtotal' =>
+                $subtotal,
+
+                'vat_percentage' =>
+                $vatPercentage,
+
+                'vat_value' =>
+                $vatValue,
+
+                'distance_km' =>
+                $distanceKm,
+
+                'delivery_meter_price' =>
+                $deliveryMeterPrice,
+
+                'delivery_price' =>
+                $deliveryPrice,
+
+                'order_fee_rule_id' =>
+                $feeRule?->id,
+
+                'client_service_fee' =>
+                $clientServiceFee,
+
+                'kitchen_service_fee' =>
+                $kitchenServiceFee,
+
+                'kitchen_net_amount' =>
+                $kitchenNetAmount,
 
                 /*
-             * Financial snapshot
+             * لا يوجد خصم وقت إنشاء الطلب.
              */
-                'subtotal' => $subtotal,
-
-                'vat_percentage' => $vatPercentage,
-                'vat_value' => $vatValue,
-
-                'distance_km' => $distanceKm,
-                'delivery_meter_price' => $deliveryMeterPrice,
-                'delivery_price' => $deliveryPrice,
-
-                'order_fee_rule_id' => $feeRule?->id,
-
-                'client_service_fee' => $clientServiceFee,
-                'kitchen_service_fee' => $kitchenServiceFee,
-
-                'kitchen_net_amount' => $kitchenNetAmount,
-
                 'total_before_discount' =>
                 $totalBeforeDiscount,
 
-                'discount_value' => $discountValue,
-                'total' => $finalTotal,
+                'discount_value' =>
+                0,
 
-                'cash_code_id' => $cashCode?->id,
-                'payment_method' => null,
-                'payment_status' => 'unpaid',
-                'paid_at' => null,
-                'payment_expires_at' => null,
+                'total' =>
+                $totalBeforeDiscount,
 
-                /*
-             * الاحتفاظ بنفس السلوك القديم:
-             * لو لم يرسل العنوان، نستخدم العنوان الافتراضي إن وجد.
-             */
+                'cash_code_id' =>
+                null,
+
+                'payment_method' =>
+                null,
+
+                'payment_status' =>
+                'unpaid',
+
+                'paid_at' =>
+                null,
+
+                'payment_reference' =>
+                null,
+
+                'payment_expires_at' =>
+                null,
+
                 'user_address_id' =>
                 $clientAddress?->id
-                    ?? ($validated['address_id'] ?? null),
+                    ?? (
+                        $validated['address_id']
+                        ?? null
+                    ),
 
                 'receive_date' =>
-                $validated['receive_date'] ?? null,
+                $validated['receive_date']
+                    ?? null,
 
                 'receive_time' =>
-                $validated['receive_time'] ?? null,
+                $validated['receive_time']
+                    ?? null,
 
                 'book_for_later' =>
-                $validated['book_for_later'] ?? false,
+                $validated['book_for_later']
+                    ?? false,
             ]);
 
-            /*
-        |--------------------------------------------------------------------------
-        | Create order items
-        |--------------------------------------------------------------------------
-        */
-
-            foreach ($validated['items'] as $item) {
-                $meal = \App\Models\Meal::find(
-                    $item['meal_id']
-                );
+            foreach (
+                $validated['items']
+                as $item
+            ) {
+                $meal =
+                    $meals[$item['meal_id']];
 
                 OrderItem::create([
-                    'order_id' => $order->id,
-                    'meal_id' => $item['meal_id'],
-                    'quantity' => $item['quantity'],
+                    'order_id' =>
+                    $order->id,
 
-                    /*
-                 * تخزين سعر الوجبة وقت الطلب.
-                 */
-                    'price' => $meal->price,
-                ]);
-            }
+                    'meal_id' =>
+                    $meal->id,
 
-            /*
-        |--------------------------------------------------------------------------
-        | Deduct balance and save usage
-        |--------------------------------------------------------------------------
-        */
+                    'quantity' =>
+                    $item['quantity'],
 
-            if ($cashCode) {
-                $cashCode->update([
-                    'remaining_balance' => $balanceAfter,
-
-                    'used_count' =>
-                    (int) $cashCode->used_count + 1,
-                ]);
-
-                CashCodeUsage::create([
-                    'cash_code_id' => $cashCode->id,
-                    'user_id' => $user->id,
-                    'order_id' => $order->id,
-                    'amount' => $discountValue,
-                    'balance_before' => $balanceBefore,
-                    'balance_after' => $balanceAfter,
+                    'price' =>
+                    $meal->price,
                 ]);
             }
 
@@ -623,25 +619,25 @@ class OrdersController extends Controller
         });
 
         /*
-    |--------------------------------------------------------------------------
-    | Calculate estimated time
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Estimated time
+        |--------------------------------------------------------------------------
+        */
 
         $quantities = array_column(
             $validated['items'],
             'quantity'
         );
 
-        $estimated_time = !empty($quantities)
+        $estimatedTime = !empty($quantities)
             ? max($quantities)
             : 0;
 
         /*
-    |--------------------------------------------------------------------------
-    | Load response relations
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Load relations
+        |--------------------------------------------------------------------------
+        */
 
         $order->load([
             'user',
@@ -651,30 +647,55 @@ class OrdersController extends Controller
         ]);
 
         /*
-    |--------------------------------------------------------------------------
-    | Fire event
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Notifications
+        |--------------------------------------------------------------------------
+        */
 
-        broadcast(new CreateOrder($order));
+        broadcast(
+            new CreateOrder($order)
+        );
 
-        app(\App\services\OrderNotificationService::class)
-            ->notifyKitchenNewOrder($order);
-
-        /*
-    |--------------------------------------------------------------------------
-    | Keep the production response unchanged
-    |--------------------------------------------------------------------------
-    */
+        app(
+            \App\services\OrderNotificationService::class
+        )->notifyKitchenNewOrder($order);
 
         return response()->json([
-            'message' => 'Order created successfully',
-            'order' => new OrderResource($order),
-            'estimated_time' => $estimated_time,
+            'status' => true,
+            'message' =>
+            'Order created successfully',
+
+            'order' =>
+            new OrderResource($order),
+
+            'estimated_time' =>
+            $estimatedTime,
+
+            'payment_summary' => [
+                'total_before_discount' =>
+                round(
+                    (float) $order
+                        ->total_before_discount,
+                    2
+                ),
+
+                'discount_value' =>
+                0,
+
+                'remaining_amount' =>
+                round(
+                    (float) $order->total,
+                    2
+                ),
+
+                'currency' =>
+                'EGP',
+
+                'cash_code_applied' =>
+                false,
+            ],
         ], 201);
     }
-
-
 
     public function show(Request $request, Order $order): JsonResponse
     {
@@ -908,18 +929,15 @@ class OrdersController extends Controller
     //     ]);
     // }
 
-    public function accept_order(
-        Request $request,
-        Order $order,
-        OrderNotificationService $notificationService
-    ): JsonResponse {
+    public function accept_order(Request $request, Order $order, OrderNotificationService $notificationService): JsonResponse
+    {
         $user = $request->user();
 
         /*
-    |--------------------------------------------------------------------------
-    | Authorization
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Authorization
+        |--------------------------------------------------------------------------
+        */
 
         if ($user->role === 'kitchen') {
             if (
@@ -941,10 +959,10 @@ class OrdersController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | Validation
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Validation
+        |--------------------------------------------------------------------------
+        */
 
         $validated = $request->validate([
             'status' => [
@@ -962,10 +980,10 @@ class OrdersController extends Controller
         ]);
 
         /*
-    |--------------------------------------------------------------------------
-    | Convert Flutter status to database status
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Convert Flutter status to database status
+        |--------------------------------------------------------------------------
+        */
 
         $databaseStatus = match ($validated['status']) {
             'accepted' => 'accepted_by_kitchen',
@@ -981,14 +999,56 @@ class OrdersController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | Update order
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Update order
+        |--------------------------------------------------------------------------
+        */
 
         $updateData = [
             'status' => $databaseStatus,
         ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment state after kitchen acceptance
+        |--------------------------------------------------------------------------
+        |
+        | لو الأوردر مدفوع بالكامل بالكاش كود:
+        | payment_status ستظل paid ولن نعيدها إلى awaiting_payment.
+        |
+        | لو يوجد مبلغ متبقٍ:
+        | نفتح فترة دفع للعميل لمدة 15 دقيقة.
+        |
+        */
+
+        if ($databaseStatus === 'accepted_by_kitchen') {
+            if ($order->payment_status !== 'paid') {
+                $updateData['payment_status'] = 'awaiting_payment';
+                $updateData['payment_expires_at'] = now()->addMinutes(15);
+            } else {
+                $updateData['payment_expires_at'] = null;
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment state after rejection
+        |--------------------------------------------------------------------------
+        |
+        | لو الأوردر غير مدفوع يتم إلغاء حالة الدفع.
+        |
+        | لو الأوردر مدفوع بالكامل بالكاش كود، لا نغيره هنا إلى cancelled
+        | لأن التعامل مع إعادة رصيد الكاش كود سيكون في خطوة منفصلة.
+        |
+        */
+
+        if ($databaseStatus === 'rejected') {
+            if ($order->payment_status !== 'paid') {
+                $updateData['payment_status'] = 'cancelled';
+            }
+
+            $updateData['payment_expires_at'] = null;
+        }
 
         if ($databaseStatus === 'ready_to_deliver') {
             $updateData['delivery_count'] = (int) $validated['delivery_count'];
@@ -998,10 +1058,10 @@ class OrdersController extends Controller
         $order->refresh();
 
         /*
-    |--------------------------------------------------------------------------
-    | Notify client
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Notify client
+        |--------------------------------------------------------------------------
+        */
 
         $notificationService->notifyClientStatusChanged(
             $order,
@@ -1012,10 +1072,10 @@ class OrdersController extends Controller
         $assignedDeliveriesResponse = [];
 
         /*
-    |--------------------------------------------------------------------------
-    | Assign deliveries
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Assign deliveries
+        |--------------------------------------------------------------------------
+        */
 
         if ($databaseStatus === 'ready_to_deliver') {
             $freshOrder = $order->fresh([
@@ -1096,6 +1156,8 @@ class OrdersController extends Controller
                     'status' => true,
                     'message' => 'Order ready_to_deliver successfully, but no delivery matched filters',
                     'order_status' => $databaseStatus,
+                    'payment_status' => $order->payment_status,
+                    'payment_expires_at' => $order->payment_expires_at,
                     'delivery_count' => $deliveryCount,
                     'assigned_deliveries' => [],
                 ]);
@@ -1108,6 +1170,8 @@ class OrdersController extends Controller
             'status' => true,
             'message' => 'Order ' . $databaseStatus . ' successfully',
             'order_status' => $databaseStatus,
+            'payment_status' => $freshOrder->payment_status,
+            'payment_expires_at' => $freshOrder->payment_expires_at,
             'delivery_count' => $freshOrder->delivery_count,
             'assigned_deliveries' => $assignedDeliveriesResponse,
         ]);
@@ -1544,6 +1608,1017 @@ class OrdersController extends Controller
                 'is_approved' => $isApproved,
                 'is_rejected' => $isRejected,
                 'is_pending' => !$isApproved && !$isRejected,
+            ],
+        ]);
+    }
+
+
+
+
+    public function selectPaymentMethod(
+        Request $request,
+        Order $order
+    ): JsonResponse {
+        $user = $request->user();
+
+        /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Authorization
+    |--------------------------------------------------------------------------
+    */
+
+        if (
+            (int) $order->user_id !==
+            (int) $user->id
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+        $validated = $request->validate([
+            'payment_method' => [
+                'required',
+                'in:cash,online',
+            ],
+        ]);
+
+        try {
+            $updatedOrder = DB::transaction(
+                function () use (
+                    $validated,
+                    $order,
+                    $user
+                ) {
+                    /*
+                |--------------------------------------------------------------------------
+                | Lock order
+                |--------------------------------------------------------------------------
+                */
+
+                    $lockedOrder = Order::query()
+                        ->lockForUpdate()
+                        ->findOrFail($order->id);
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Authorization
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        (int) $lockedOrder->user_id !==
+                        (int) $user->id
+                    ) {
+                        throw new \RuntimeException(
+                            'Unauthorized'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Prevent changing paid order
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $lockedOrder->payment_status ===
+                        'paid'
+                    ) {
+                        throw new \RuntimeException(
+                            'Order is already paid'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Prevent changing completed order
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        in_array(
+                            $lockedOrder->status,
+                            [
+                                'delivered',
+                                'cancelled',
+                                'cancelled_by_admin',
+                                'cancelled_by_kitchen',
+                                'rejected',
+                            ],
+                            true
+                        )
+                    ) {
+                        throw new \RuntimeException(
+                            'Payment method cannot be changed after order completion'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate allowed order statuses
+                |--------------------------------------------------------------------------
+                */
+
+                    $allowedStatuses = [
+                        'accepted_by_kitchen',
+                        'preparing',
+                        'ready_to_deliver',
+                        'accepted_by_delivery',
+                        'received_by_delivery',
+                    ];
+
+                    if (
+                        !in_array(
+                            $lockedOrder->status,
+                            $allowedStatuses,
+                            true
+                        )
+                    ) {
+                        throw new \RuntimeException(
+                            'Payment method cannot be selected in the current order status'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Remaining amount after cash-code discount
+                |--------------------------------------------------------------------------
+                */
+
+                    $remainingAmount = round(
+                        max(
+                            (float) $lockedOrder->total,
+                            0
+                        ),
+                        2
+                    );
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Fully paid by cash code
+                |--------------------------------------------------------------------------
+                |
+                | المفروض applyCashCode تكون بالفعل حولت الحالة إلى paid،
+                | لكن الشرط موجود كحماية إضافية.
+                |
+                */
+
+                    if ($remainingAmount <= 0) {
+                        $lockedOrder->update([
+                            'payment_method' =>
+                            'cash_code',
+
+                            'payment_status' =>
+                            'paid',
+
+                            'payment_reference' =>
+                            null,
+
+                            'payment_expires_at' =>
+                            null,
+
+                            'paid_at' =>
+                            $lockedOrder->paid_at
+                                ?? now(),
+                        ]);
+
+                        return $lockedOrder->fresh();
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Active Kashier payment session
+                |--------------------------------------------------------------------------
+                */
+
+                    $activeOnlinePayment =
+                        PaymentTransaction::query()
+                        ->where(
+                            'order_id',
+                            $lockedOrder->id
+                        )
+                        ->where(
+                            'provider',
+                            'kashier'
+                        )
+                        ->where(
+                            'status',
+                            'pending'
+                        )
+                        ->where(function (
+                            $query
+                        ) {
+                            $query
+                                ->whereNull(
+                                    'expires_at'
+                                )
+                                ->orWhere(
+                                    'expires_at',
+                                    '>',
+                                    now()
+                                );
+                        })
+                        ->latest('id')
+                        ->first();
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Prevent changing online to cash while session is active
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $activeOnlinePayment
+                        && $validated['payment_method'] ===
+                        'cash'
+                    ) {
+                        throw new \RuntimeException(
+                            'An active online payment session already exists'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Select cash
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $validated['payment_method'] ===
+                        'cash'
+                    ) {
+                        $lockedOrder->update([
+                            'payment_method' =>
+                            'cash',
+
+                            'payment_status' =>
+                            'cash_pending',
+
+                            'payment_reference' =>
+                            null,
+
+                            'payment_expires_at' =>
+                            null,
+
+                            'paid_at' =>
+                            null,
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Select online
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $validated['payment_method'] ===
+                        'online'
+                    ) {
+                        $lockedOrder->update([
+                            'payment_method' =>
+                            'online',
+
+                            'payment_status' =>
+                            'awaiting_payment',
+
+                            /*
+                         * المدة الفعلية يتم تثبيتها أيضًا
+                         * عند إنشاء جلسة Kashier.
+                         */
+                            'payment_expires_at' =>
+                            now()->addMinutes(15),
+
+                            'paid_at' =>
+                            null,
+                        ]);
+                    }
+
+                    return $lockedOrder->fresh();
+                }
+            );
+
+            $remainingAmount = round(
+                max(
+                    (float) $updatedOrder->total,
+                    0
+                ),
+                2
+            );
+
+            return response()->json([
+                'status' => true,
+                'message' =>
+                'Payment method selected successfully',
+
+                'data' => [
+                    'order_id' =>
+                    $updatedOrder->id,
+
+                    'order_number' =>
+                    $updatedOrder->number,
+
+                    'total_before_discount' =>
+                    round(
+                        (float) $updatedOrder
+                            ->total_before_discount,
+                        2
+                    ),
+
+                    'discount_value' =>
+                    round(
+                        (float) $updatedOrder
+                            ->discount_value,
+                        2
+                    ),
+
+                    'remaining_amount' =>
+                    $remainingAmount,
+
+                    'currency' =>
+                    'EGP',
+
+                    'cash_code_id' =>
+                    $updatedOrder->cash_code_id,
+
+                    'cash_code_applied' =>
+                    $updatedOrder->cash_code_id !==
+                        null,
+
+                    'payment_method' =>
+                    $updatedOrder->payment_method,
+
+                    'payment_status' =>
+                    $updatedOrder->payment_status,
+
+                    'is_fully_paid' =>
+                    $updatedOrder->payment_status ===
+                        'paid',
+
+                    'is_payment_required' =>
+                    $updatedOrder->payment_status !==
+                        'paid'
+                        && $remainingAmount > 0,
+
+                    'payment_expires_at' =>
+                    $updatedOrder
+                        ->payment_expires_at
+                        ?->toISOString(),
+
+                    'can_create_kashier_session' =>
+                    $updatedOrder->payment_method ===
+                        'online'
+                        && $remainingAmount > 0
+                        && in_array(
+                            $updatedOrder->payment_status,
+                            [
+                                'awaiting_payment',
+                                'failed',
+                                'expired',
+                            ],
+                            true
+                        ),
+                ],
+            ]);
+        } catch (\RuntimeException $exception) {
+            $statusCode =
+                $exception->getMessage() ===
+                'Unauthorized'
+                ? 403
+                : 422;
+
+            return response()->json([
+                'status' => false,
+                'message' =>
+                $exception->getMessage(),
+            ], $statusCode);
+        } catch (\Throwable $exception) {
+            Log::error(
+                'Select payment method failed',
+                [
+                    'order_id' =>
+                    $order->id,
+
+                    'user_id' =>
+                    $user->id,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'exception_class' =>
+                    get_class($exception),
+                ]
+            );
+
+            return response()->json([
+                'status' => false,
+                'message' =>
+                'Unable to select payment method',
+
+                'error' =>
+                $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
+
+    public function applyCashCode(
+        Request $request,
+        Order $order
+    ): JsonResponse {
+        $user = $request->user();
+
+        /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Authorization
+    |--------------------------------------------------------------------------
+    */
+
+        if (
+            (int) $order->user_id !==
+            (int) $user->id
+        ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+        $validated = $request->validate([
+            'cash_code' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+        ]);
+
+        try {
+            $updatedOrder = DB::transaction(
+                function () use (
+                    $order,
+                    $user,
+                    $validated
+                ) {
+                    /*
+                |--------------------------------------------------------------------------
+                | Lock order
+                |--------------------------------------------------------------------------
+                */
+
+                    $lockedOrder = Order::query()
+                        ->lockForUpdate()
+                        ->findOrFail($order->id);
+
+                    if (
+                        (int) $lockedOrder->user_id !==
+                        (int) $user->id
+                    ) {
+                        throw new \RuntimeException(
+                            'Unauthorized'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate order payment
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $lockedOrder->payment_status ===
+                        'paid'
+                    ) {
+                        throw new \RuntimeException(
+                            'Order is already paid'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate order status
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        in_array(
+                            $lockedOrder->status,
+                            [
+                                'delivered',
+                                'cancelled',
+                                'cancelled_by_admin',
+                                'cancelled_by_kitchen',
+                                'rejected',
+                            ],
+                            true
+                        )
+                    ) {
+                        throw new \RuntimeException(
+                            'Cash code cannot be applied to this order'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Prevent applying code after payment method selection
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        in_array(
+                            $lockedOrder->payment_status,
+                            [
+                                'pending',
+                                'cash_pending',
+                            ],
+                            true
+                        )
+                    ) {
+                        throw new \RuntimeException(
+                            'Cash code cannot be applied after payment has started'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Prevent applying more than one cash code
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $lockedOrder->cash_code_id
+                        || (float) $lockedOrder
+                            ->discount_value > 0
+                    ) {
+                        throw new \RuntimeException(
+                            'A cash code has already been applied to this order'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Prevent applying code while Kashier session is active
+                |--------------------------------------------------------------------------
+                */
+
+                    $hasActiveOnlinePayment =
+                        PaymentTransaction::query()
+                        ->where(
+                            'order_id',
+                            $lockedOrder->id
+                        )
+                        ->where(
+                            'provider',
+                            'kashier'
+                        )
+                        ->where(
+                            'status',
+                            'pending'
+                        )
+                        ->where(function (
+                            $query
+                        ) {
+                            $query
+                                ->whereNull(
+                                    'expires_at'
+                                )
+                                ->orWhere(
+                                    'expires_at',
+                                    '>',
+                                    now()
+                                );
+                        })
+                        ->exists();
+
+                    if ($hasActiveOnlinePayment) {
+                        throw new \RuntimeException(
+                            'Cash code cannot be applied while an online payment session is active'
+                        );
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Find and lock cash code
+                |--------------------------------------------------------------------------
+                */
+
+                    $normalizedCode = strtoupper(
+                        trim(
+                            $validated['cash_code']
+                        )
+                    );
+
+                    $cashCode = CashCode::query()
+                        ->where(
+                            'code',
+                            $normalizedCode
+                        )
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$cashCode) {
+                        throw ValidationException::withMessages([
+                            'cash_code' => [
+                                'الكود النقدي غير صحيح',
+                            ],
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate cash code owner
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        (int) $cashCode->user_id !==
+                        (int) $user->id
+                    ) {
+                        throw ValidationException::withMessages([
+                            'cash_code' => [
+                                'هذا الكود غير مخصص لحسابك',
+                            ],
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate cash code status
+                |--------------------------------------------------------------------------
+                */
+
+                    if (!$cashCode->is_active) {
+                        throw ValidationException::withMessages([
+                            'cash_code' => [
+                                'هذا الكود غير مفعل',
+                            ],
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate expiration
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        !$cashCode->expires_at
+                        || now()->greaterThan(
+                            $cashCode->expires_at
+                        )
+                    ) {
+                        throw ValidationException::withMessages([
+                            'cash_code' => [
+                                'انتهت صلاحية هذا الكود',
+                            ],
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate maximum uses
+                |--------------------------------------------------------------------------
+                */
+
+                    if (
+                        $cashCode->max_uses !== null
+                        && (int) $cashCode->used_count >=
+                        (int) $cashCode->max_uses
+                    ) {
+                        throw ValidationException::withMessages([
+                            'cash_code' => [
+                                'تم استهلاك الحد الأقصى لاستخدام هذا الكود',
+                            ],
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Validate remaining balance
+                |--------------------------------------------------------------------------
+                */
+
+                    $balanceBefore = round(
+                        (float) $cashCode
+                            ->remaining_balance,
+                        2
+                    );
+
+                    if ($balanceBefore <= 0) {
+                        throw ValidationException::withMessages([
+                            'cash_code' => [
+                                'رصيد الكود غير كافٍ',
+                            ],
+                        ]);
+                    }
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Calculate discount
+                |--------------------------------------------------------------------------
+                */
+
+                    $totalBeforeDiscount = round(
+                        (float) $lockedOrder
+                            ->total_before_discount,
+                        2
+                    );
+
+                    $discountValue = round(
+                        min(
+                            $balanceBefore,
+                            $totalBeforeDiscount
+                        ),
+                        2
+                    );
+
+                    $balanceAfter = round(
+                        max(
+                            $balanceBefore
+                                - $discountValue,
+                            0
+                        ),
+                        2
+                    );
+
+                    $finalTotal = round(
+                        max(
+                            $totalBeforeDiscount
+                                - $discountValue,
+                            0
+                        ),
+                        2
+                    );
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Check if fully paid by cash code
+                |--------------------------------------------------------------------------
+                */
+
+                    $isFullyPaid =
+                        $finalTotal <= 0;
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Update order
+                |--------------------------------------------------------------------------
+                */
+
+                    $lockedOrder->update([
+                        'cash_code_id' =>
+                        $cashCode->id,
+
+                        'discount_value' =>
+                        $discountValue,
+
+                        'total' =>
+                        $finalTotal,
+
+                        'payment_method' =>
+                        $isFullyPaid
+                            ? 'cash_code'
+                            : null,
+
+                        'payment_status' =>
+                        $isFullyPaid
+                            ? 'paid'
+                            : 'unpaid',
+
+                        'paid_at' =>
+                        $isFullyPaid
+                            ? (
+                                $lockedOrder->paid_at
+                                ?? now()
+                            )
+                            : null,
+
+                        'payment_reference' =>
+                        null,
+
+                        'payment_expires_at' =>
+                        null,
+                    ]);
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Deduct cash code balance
+                |--------------------------------------------------------------------------
+                */
+
+                    $cashCode->update([
+                        'remaining_balance' =>
+                        $balanceAfter,
+
+                        'used_count' =>
+                        (int) $cashCode
+                            ->used_count + 1,
+                    ]);
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Record cash code usage
+                |--------------------------------------------------------------------------
+                */
+
+                    CashCodeUsage::create([
+                        'cash_code_id' =>
+                        $cashCode->id,
+
+                        'user_id' =>
+                        $user->id,
+
+                        'order_id' =>
+                        $lockedOrder->id,
+
+                        'amount' =>
+                        $discountValue,
+
+                        'balance_before' =>
+                        $balanceBefore,
+
+                        'balance_after' =>
+                        $balanceAfter,
+                    ]);
+
+                    return $lockedOrder->fresh();
+                }
+            );
+
+            $remainingAmount = round(
+                max(
+                    (float) $updatedOrder->total,
+                    0
+                ),
+                2
+            );
+
+            return response()->json([
+                'status' => true,
+
+                'message' =>
+                $remainingAmount <= 0
+                    ? 'Cash code applied and order fully paid'
+                    : 'Cash code applied successfully',
+
+                'data' => [
+                    'order_id' =>
+                    $updatedOrder->id,
+
+                    'order_number' =>
+                    $updatedOrder->number,
+
+                    'total_before_discount' =>
+                    round(
+                        (float) $updatedOrder
+                            ->total_before_discount,
+                        2
+                    ),
+
+                    'discount_value' =>
+                    round(
+                        (float) $updatedOrder
+                            ->discount_value,
+                        2
+                    ),
+
+                    'remaining_amount' =>
+                    $remainingAmount,
+
+                    'currency' =>
+                    'EGP',
+
+                    'cash_code_id' =>
+                    $updatedOrder->cash_code_id,
+
+                    'cash_code_applied' =>
+                    true,
+
+                    'is_fully_paid' =>
+                    $updatedOrder
+                        ->payment_status ===
+                        'paid',
+
+                    'is_payment_required' =>
+                    $updatedOrder
+                        ->payment_status !==
+                        'paid'
+                        && $remainingAmount > 0,
+
+                    'payment_method' =>
+                    $updatedOrder
+                        ->payment_method,
+
+                    'payment_status' =>
+                    $updatedOrder
+                        ->payment_status,
+
+                    'paid_at' =>
+                    $updatedOrder
+                        ->paid_at
+                        ?->toISOString(),
+                ],
+            ]);
+        } catch (\RuntimeException $exception) {
+            $statusCode =
+                $exception->getMessage() ===
+                'Unauthorized'
+                ? 403
+                : 422;
+
+            return response()->json([
+                'status' => false,
+                'message' =>
+                $exception->getMessage(),
+            ], $statusCode);
+        } catch (\Throwable $exception) {
+            Log::error(
+                'Apply cash code failed',
+                [
+                    'order_id' =>
+                    $order->id,
+
+                    'user_id' =>
+                    $user->id,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'exception_class' =>
+                    get_class($exception),
+                ]
+            );
+
+            return response()->json([
+                'status' => false,
+                'message' =>
+                'Unable to apply cash code',
+
+                'error' =>
+                $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+    public function paymentStatus(Order $order)
+    {
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'order_id' => $order->id,
+                'number' => $order->number,
+                'payment_status' => $order->payment_status,
+                'payment_method' => $order->payment_method,
             ],
         ]);
     }

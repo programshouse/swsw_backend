@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Models\User;
+use App\Models\DeliveryUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -31,6 +33,7 @@ class SettingsController extends Controller
             'work_start_time' => 'required|date_format:H:i',
             'work_end_time'   => 'required|date_format:H:i',
             'whatsapp_number' => 'nullable|string',
+            'hotline' => 'nullable|string',
             'facebook_link'   => 'nullable|url',
             'instgram_link'   => 'nullable|url',
             'tiktok_link'     => 'nullable|url',
@@ -151,4 +154,156 @@ class SettingsController extends Controller
 
         return $folder . '/' . $fileName;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function privacyPolicyclient()
+    {
+
+        return view(
+            'privacy',
+
+        );
+    }
+
+    public function privacyPolicykitchen()
+    {
+
+        return view(
+            'privacykitchen',
+
+        );
+    }
+
+    public function privacyPolicydriver()
+    {
+
+        return view(
+            'privacydriver',
+
+        );
+    }
+
+
+
+    public function terms()
+    {
+
+        return view(
+            'terms',
+
+        );
+    }
+
+    public function termskitchen()
+    {
+
+        return view(
+            'termskitchen',
+
+        );
+    }
+
+    public function termsdriver()
+    {
+
+        return view(
+            'termsdriver',
+
+        );
+    }
+
+
+    public function deleteUserByEmailPage()
+    {
+        return view('deleteuseraccount');
+    }
+
+    public function deleteUserByEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ], [
+            'email.required' => 'من فضلك أدخل البريد الإلكتروني.',
+            'email.email' => 'البريد الإلكتروني غير صحيح.',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()
+                ->withInput()
+                ->with('error', 'لا يوجد مستخدم مسجل بهذا البريد الإلكتروني.');
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        $user->delete();
+
+        return back()->with(
+            'success',
+            "تم حذف المستخدم {$userName} صاحب البريد {$userEmail} بنجاح."
+        );
+    }
+
+    public function deletedriveraccount()
+    {
+
+        return view(
+            'deletedriveraccount',
+
+        );
+    }
+
+
+
+
+
+
+
+
+    public function deletedriverByEmailPage()
+    {
+        return view('deletedriveraccount');
+    }
+
+    public function deletedriverByEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ], [
+            'email.required' => 'من فضلك أدخل البريد الإلكتروني.',
+            'email.email' => 'البريد الإلكتروني غير صحيح.',
+        ]);
+
+        $user = DeliveryUser::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()
+                ->withInput()
+                ->with('error', 'لا يوجد مستخدم مسجل بهذا البريد الإلكتروني.');
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        $user->delete();
+
+        return back()->with(
+            'success',
+            "تم حذف المستخدم {$userName} صاحب البريد {$userEmail} بنجاح."
+        );
+    }
+
 }

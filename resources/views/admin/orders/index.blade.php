@@ -50,8 +50,6 @@
                         <th>Client</th>
                         <th>Kitchen</th>
                         <th>Created at</th>
-                        <th>Updated at</th>
-                        <th>Receive Time</th>
                         <th>Receive Date</th>
                         <th>Delivery Name</th>
                         <th>Delivery Phone</th>
@@ -78,25 +76,27 @@
                             <td>{{ $history->order->kitchen->name ?? '-' }}</td>
 
                             <td>
-                                {{ optional($history->order->created_at)->format('Y-m-d') }}
+                                {{ $history->order?->created_at?->format('Y-m-d') ?? '-' }}
                             </td>
+
+
                             <td>
-                                {{ optional($history->order->updated_at)->format('Y-m-d') }}
+                                {{ $history->order?->receive_date ?? '-' }}
                             </td>
 
                             <td>
-                                {{ $history->order->receive_date }} </td>
-                            <td>
-                                {{ $history->order->receive_time }} </td>
-                            <td>
-                                @foreach ($history->order->deliveryUsers as $delivery)
+                                @forelse ($history->order?->deliveryUsers ?? [] as $delivery)
                                     {{ $delivery->name }}
-                                @endforeach
+                                @empty
+                                    -
+                                @endforelse
                             </td>
                             <td>
-                                @foreach ($history->order->deliveryUsers as $delivery)
+                                @forelse ($history->order?->deliveryUsers ?? [] as $delivery)
                                     {{ $delivery->phone }}
-                                @endforeach
+                                @empty
+                                    -
+                                @endforelse
                             </td>
                         </tr>
                     @endforeach

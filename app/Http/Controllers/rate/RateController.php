@@ -9,6 +9,7 @@ use App\Models\RateStore;
 use App\Models\Order;
 use App\Models\UserRate;
 use App\Models\DeliveryOrder;
+use App\Models\KitchenProfile;
 
 class RateController extends Controller
 {
@@ -239,29 +240,39 @@ class RateController extends Controller
 
 
 
-
-    public function kitchenRates($kitchenId)
+    public function kitchenRates($kitchenProfileId)
     {
-        $rates = RateStore::with('user:id,name')
+
+
+        // نجيب صاحب المطبخ من الـ profile
+        $kitchenUserId = KitchenProfile::where('id', $kitchenProfileId)
+            ->value('user_id');
+
+
+        $rates = RateStore::with('User:id,name')
             ->where('rated_type', 'kitchen')
             ->where('rater_type', 'client')
-            ->where('user_id', $kitchenId)
+            ->where('user_id', $kitchenUserId)
             ->latest()
             ->get();
+
 
         return response()->json([
             'status' => true,
             'average_rate' => round($rates->avg('score'), 1),
             'total_rates' => $rates->count(),
+
             'rates' => $rates->map(function ($rate) {
                 return [
                     'id' => $rate->id,
                     'order_id' => $rate->order_id,
+
                     'client' => [
-                        'id' => $rate->client?->id,
-                        'name' => $rate->client?->name,
-                        'image' => $rate->client?->image,
+                        'id' => $rate->user?->id,
+                        'name' => $rate->user?->name,
+                        'image' => $rate->user?->image,
                     ],
+
                     'score' => (int) $rate->score,
                     'details' => $rate->details,
                     'created_at' => $rate->created_at?->format('Y-m-d H:i'),

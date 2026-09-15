@@ -27,7 +27,7 @@ class KitchenProfileResource extends JsonResource
 
             'id' => $this->id,
             'name' => $this->name,
-            'code ' => $this->code ?? null,
+            'code ' => $this->user->code ?? null,
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
             'facebook' => $this->facebook,

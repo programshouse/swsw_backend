@@ -24,6 +24,7 @@ class SettingsApiController extends Controller
             'status' => true,
             'data' => [
                 'whatsapp_number' => $settings->whatsapp_number,
+                'hotline' => $settings->hotline ,
                 'facebook_link'   => $settings->facebook_link,
                 'instgram_link'   => $settings->instgram_link,
                 'tiktok_link'     => $settings->tiktok_link,

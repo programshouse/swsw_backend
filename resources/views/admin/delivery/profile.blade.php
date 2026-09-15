@@ -4,164 +4,167 @@
 
 @section('content')
 
-<div class="page-title">
-    تعديلات ملفات الدليفري المعلقة
-</div>
-
-<div class="table-card">
-
-    <div class="table-header">
-        <div class="table-title">
-            قائمة التعديلات المعلقة
-        </div>
+    <div class="page-title">
+        تعديلات ملفات الدليفري المعلقة
     </div>
 
-    @if($deliveries->count())
+    <div class="table-card">
 
-        <div class="table-wrapper">
+        <div class="table-header">
+            <div class="table-title">
+                قائمة التعديلات المعلقة
+            </div>
+        </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>الاسم</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الهاتف</th>
-                        <th>النوع</th>
-                        <th>المركبة</th>
-                        <th>الصورة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
+        @if ($deliveries->count())
 
-                <tbody>
-                    @foreach ($deliveries as $delivery)
-                        <tr id="row-{{ $delivery->id }}">
-                            <td>{{ $delivery->name }}</td>
-                            <td>{{ $delivery->email }}</td>
-                            <td>{{ $delivery->phone }}</td>
-                            <td>{{ $delivery->type }}</td>
+            <div class="table-wrapper">
 
-                            <td>
-                                @if ($delivery->has_vehicle)
-                                    {{ $delivery->vehicle_type }}
-                                @else
-                                    لا توجد مركبة
-                                @endif
-                            </td>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الهاتف</th>
+                            <th>النوع</th>
+                            <th>المحافظة</th>
+                            <th>المدينة</th>
+                            <th>المركبة</th>
+                            <th>الصورة</th>
+                            <th>الإجراءات</th>
 
-                            <td>
-                                @if ($delivery->image)
-                                    <img
-                                        src="{{ asset('storage/' . $delivery->image) }}"
-                                        width="50"
-                                        height="50"
-                                        style="border-radius:50%; object-fit:cover;"
-                                    >
-                                @else
-                                    -
-                                @endif
-                            </td>
 
-                            <td>
-                                <button
-                                    type="button"
-                                    class="save-btn"
-                                    onclick="updateStatus({{ $delivery->id }}, 'accept')"
-                                >
-                                    قبول
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="delete-btn"
-                                    onclick="updateStatus({{ $delivery->id }}, 'reject')"
-                                >
-                                    رفض
-                                </button>
-                            </td>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
 
-        </div>
+                    <tbody>
+                        @foreach ($deliveries as $delivery)
+                            <tr id="row-{{ $delivery->id }}">
+                                <td>{{ $delivery->name }}</td>
+                                <td>{{ $delivery->email }}</td>
+                                <td>{{ $delivery->phone }}</td>
+                                <td>{{ $delivery->type }}</td>
+                                <td>{{ $delivery->government->name_ar }}</td>
+                                <td>{{ $delivery->area->name_ar }}</td>
+                                <td>
+                                    @if ($delivery->has_vehicle)
+                                        {{ $delivery->vehicle_type }}
+                                    @else
+                                        لا توجد مركبة
+                                    @endif
+                                </td>
 
-    @else
+                                 <td>
+                                @if ($delivery->image)
+                                    @php
+                                        if (str_starts_with($delivery->image, 'http')) {
+                                            $image = $delivery->image;
+                                        } elseif (str_starts_with($delivery->image, 'public/')) {
+                                            $image = url($delivery->image);
+                                        } else {
+                                            $image = asset('storage/' . $delivery->image);
+                                        }
+                                    @endphp
 
-        <div class="empty">
-            لا توجد تعديلات معلقة
-        </div>
+                                    <img class="avatar" src="{{ $image }}" alt="{{ $delivery->name }}">
+                                @else
+                                    <span class="avatar-fallback">
+                                        {{ mb_substr($delivery->name, 0, 1) }}
+                                    </span>
+                                @endif
+                            </td>
 
-    @endif
+                                <td>
+                                    <button type="button" class="save-btn"
+                                        onclick="updateStatus({{ $delivery->id }}, 'accept')">
+                                        قبول
+                                    </button>
 
-</div>
+                                    <button type="button" class="delete-btn"
+                                        onclick="updateStatus({{ $delivery->id }}, 'reject')">
+                                        رفض
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+            </div>
+        @else
+            <div class="empty">
+                لا توجد تعديلات معلقة
+            </div>
+
+        @endif
+
+    </div>
 
 @endsection
 
 @push('scripts')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<script>
-function updateStatus(id, action) {
-    let url = '/admin/delivery/profile/' + id + '/' + action;
+    <script>
+        function updateStatus(id, action) {
+            let url = '/admin/delivery/profile/' + id + '/' + action;
 
-    $.ajax({
-        url: url,
-        type: 'POST',
-        data: {
-            _token: '{{ csrf_token() }}'
-        },
-        success: function(response) {
-            if (response.status) {
-                $('#row-' + id).remove();
-                alert(response.message);
-            }
-        },
-        error: function() {
-            alert('حدث خطأ، حاول مرة أخرى');
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.status) {
+                        $('#row-' + id).remove();
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert('حدث خطأ، حاول مرة أخرى');
+                }
+            });
         }
-    });
-}
-</script>
+    </script>
 
 
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<script>
-function updateStatus(id, action) {
-    let url = "{{ url('/admin/delivery/profile') }}" + "/" + id + "/" + action;
+    <script>
+        function updateStatus(id, action) {
+            let url = "{{ url('/admin/delivery/profile') }}" + "/" + id + "/" + action;
 
-    $.ajax({
-        url: url,
-        type: 'POST',
-        data: {
-            _token: '{{ csrf_token() }}'
-        },
-        success: function(response) {
-            alert(response.message);
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    alert(response.message);
 
-            if (response.status) {
-                $('#row-' + id).remove();
-            }
-        },
-        error: function(xhr) {
-            console.log(xhr.responseText);
+                    if (response.status) {
+                        $('#row-' + id).remove();
+                    }
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText);
 
-            let message = 'حدث خطأ، حاول مرة أخرى';
+                    let message = 'حدث خطأ، حاول مرة أخرى';
 
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                message = xhr.responseJSON.message;
-            }
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
 
-            if (xhr.responseJSON && xhr.responseJSON.error) {
-                message += "\n" + xhr.responseJSON.error;
-            }
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        message += "\n" + xhr.responseJSON.error;
+                    }
 
-            alert(message);
+                    alert(message);
+                }
+            });
         }
-    });
-}
-</script>
-
+    </script>
 @endpush
