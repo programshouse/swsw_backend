@@ -44,7 +44,7 @@
 
             <div class="info-row">
                 <span>رقم الطلب</span>
-                <strong>{{ $order->number ?? '-' }}</strong>
+                <strong>{{ $order->id ?? '-' }}</strong>
             </div>
 
             <div class="info-row">
@@ -85,6 +85,20 @@
                 <span>البريد</span>
                 <strong>{{ $order->user->email ?? '-' }}</strong>
             </div>
+            <div class="info-row">
+                <span>الإحداثيات</span>
+                <strong>
+                    {{ $order->userAddress->lat ?? '-' }},
+                    {{ $order->userAddress->lng ?? '-' }}
+
+                    @if ($order->userAddress)
+                        <button type="button"
+                            onclick="copyText('{{ $order->userAddress->lat }},{{ $order->userAddress->lng }}')">
+                            Copy
+                        </button>
+                    @endif
+                </strong>
+            </div>
         </div>
 
         <div class="info-card">
@@ -99,6 +113,23 @@
                 <span>الهاتف</span>
                 <strong>{{ $order->kitchen->phone ?? ($order->kitchen->user->phone ?? '-') }}</strong>
             </div>
+
+            <div class="info-row">
+                <span>الإحداثيات</span>
+                <strong>
+                    {{ $order->kitchen->user->address->first()->lat ?? '-' }},
+                    {{ $order->kitchen->user->address->first()->lng ?? '-' }}
+
+                    @if ($order->kitchen && $order->kitchen->user && $order->kitchen->user->address->first())
+                        <button type="button"
+                            onclick="copyText('{{ $order->kitchen->user->address->first()->lat }},{{ $order->kitchen->user->address->first()->lng }}')">
+                            Copy
+                        </button>
+                    @endif
+                </strong>
+            </div>
+
+
         </div>
 
         <div class="info-card">
@@ -118,6 +149,9 @@
                 <span>المحافظة</span>
                 <strong>{{ $order->userAddress->government->name_ar ?? '-' }}</strong>
             </div>
+
+
+
         </div>
 
     </div>
@@ -430,4 +464,12 @@
             }
         }
     </style>
+
+
+    <script>
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            alert('Coordinates copied');
+        }
+    </script>
 @endpush

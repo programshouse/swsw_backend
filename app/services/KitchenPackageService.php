@@ -11,7 +11,6 @@ class KitchenPackageService
 
     public function checkOrderLimit(KitchenProfile $kitchen): array
     {
-
         $subscription = KitchenPackageSubscription::with('package')
             ->where('kitchen_id', $kitchen->id)
             ->where('status', 'active')
@@ -31,37 +30,42 @@ class KitchenPackageService
         $package = $subscription->package;
 
 
-        // لو 0 معناها unlimited
-        if ($package->orders_limit == 0) {
+        $ordersQuery = Order::where(
+            'kitchen_id',
+            $kitchen->id
+        );
 
-            return [
-                'allowed' => true,
-            ];
 
+        if ($subscription->starts_at && $subscription->expires_at) {
+
+            $ordersQuery->whereBetween('created_at', [
+                $subscription->starts_at,
+                $subscription->expires_at
+            ]);
         }
 
 
-        $ordersCount = Order::where('kitchen_id', $kitchen->id)
-            ->whereBetween('created_at', [
-                $subscription->starts_at,
-                $subscription->expires_at
-            ])
-            ->count();
+        $ordersCount = $ordersQuery->count();
+       
 
 
-
+        // هنا مكان الكود
         if ($ordersCount >= $package->orders_limit) {
+
+            $subscription->update([
+                'status' => 'expired',
+            ]);
 
 
             $kitchen->update([
                 'open_status' => 'closed',
+                'close_reason' => 'package_limit',
             ]);
 
 
             return [
                 'allowed' => false,
-                'message' =>
-                 'Your package order limit has been reached. Please renew your package.',
+                'message' => 'Your package order limit has been reached. Please renew your package.',
                 'orders_limit' => $package->orders_limit,
                 'used_orders' => $ordersCount,
             ];
@@ -70,8 +74,7 @@ class KitchenPackageService
 
         return [
             'allowed' => true,
-            'remaining_orders' =>
-                $package->orders_limit - $ordersCount,
+            'remaining_orders' => $package->orders_limit - $ordersCount,
         ];
     }
 }

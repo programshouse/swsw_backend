@@ -20,38 +20,41 @@ class Meal extends Model
         'recipe',
         'approved',
         'preparation_time',
-        'availability'
+        'availability',
+        'kitchen_package_subscription_id',
     ];
 
-    public function kitchen() {
-        return $this->belongsTo(KitchenProfile::class , 'kitchen_profile_id');
+    public function kitchen()
+    {
+        return $this->belongsTo(KitchenProfile::class, 'kitchen_profile_id');
     }
-    public function category() {
-        return $this->belongsTo(Category::class );
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function offer()
-{
-    return $this->hasOne(MealOffer::class)
-        ->where('status', 1)
-        ->where(function ($q) {
-            $q->whereNull('start_date')
-              ->orWhereDate('start_date', '<=', now());
-        })
-        ->where(function ($q) {
-            $q->whereNull('end_date')
-              ->orWhereDate('end_date', '>=', now());
-        });
-}
-
-public function getFinalPriceAttribute()
-{
-    $offer = $this->offer;
-
-    if (!$offer) {
-        return $this->price;
+    {
+        return $this->hasOne(MealOffer::class)
+            ->where('status', 1)
+            ->where(function ($q) {
+                $q->whereNull('start_date')
+                    ->orWhereDate('start_date', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhereDate('end_date', '>=', now());
+            });
     }
 
-    return round($this->price - (($this->price * $offer->percentage) / 100), 2);
-}
+    public function getFinalPriceAttribute()
+    {
+        $offer = $this->offer;
+
+        if (!$offer) {
+            return $this->price;
+        }
+
+        return round($this->price - (($this->price * $offer->percentage) / 100), 2);
+    }
 }

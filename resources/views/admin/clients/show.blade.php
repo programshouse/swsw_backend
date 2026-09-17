@@ -132,9 +132,8 @@
 
             <form method="GET" action="{{ route('admin.clients.show', $user->id) }}" class="order-filter-form">
 
-                <input type="text" name="order_number" value="{{ request('order_number') }}"
-                    placeholder="ابحث برقم الطلب" class="order-filter-input">
-
+                <input type="text" name="id" value="{{ request('id') }}" placeholder="ابحث برقم الطلب ID"
+                    class="order-filter-input">
                 <button type="submit" class="order-filter-btn">
                     بحث
                 </button>

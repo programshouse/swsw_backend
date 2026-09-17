@@ -47,7 +47,12 @@ class MealController extends Controller
         }
 
 
-        $mealsCount = Meal::where('kitchen_profile_id', $user->id)->count();
+        $mealsCount = Meal::where('kitchen_profile_id', $user->id)
+            ->where(
+                'kitchen_package_subscription_id',
+                $subscription->id
+            )
+            ->count();
 
 
         if (
@@ -80,6 +85,18 @@ class MealController extends Controller
             'assets/uploads/kitchens-meals'
         );
 
+        $subscription = KitchenPackageSubscription::where('kitchen_id', $user->id)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+
+        if (!$subscription) {
+            return response()->json([
+                'message' => 'No active package found.'
+            ], 422);
+        }
+
         $meal = Meal::create([
             'category_id' => $validated['category_id'],
             'name' => $validated['name'],
@@ -91,6 +108,7 @@ class MealController extends Controller
             'image' => $path,
             'kitchen_profile_id' => $user->id,
             'preparation_time' => $validated['preparation_time'],
+            'kitchen_package_subscription_id' => $subscription->id,
         ]);
 
         return response()->json([

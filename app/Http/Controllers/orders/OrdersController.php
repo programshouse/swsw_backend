@@ -205,8 +205,9 @@ class OrdersController extends Controller
             ], 404);
         }
 
-       $packageCheck = app(KitchenPackageService::class)
-    ->checkOrderLimit($kitchen);
+        $packageCheck = [
+            'allowed' => true
+        ];
 
 
         if (!$packageCheck['allowed']) {
@@ -1202,7 +1203,7 @@ class OrdersController extends Controller
                 ], 422);
             } else {
                 $order->update([
-                    'status' => 'cancelled',
+                    'status' => 'cancelled_by_client',
                     'cancel_date' => now()
                 ]);
             }
@@ -1214,7 +1215,7 @@ class OrdersController extends Controller
                 ], 422);
             } else {
                 $order->update([
-                    'status' => 'cancelled',
+                    'status' => 'cancelled_by_client',
                     'cancel_date' => now()
                 ]);
             }
@@ -1228,7 +1229,7 @@ class OrdersController extends Controller
 
         return response()->json([
             'message' => "order canceled successfully"
-        ], 201);
+        ], 200);
     }
 
 

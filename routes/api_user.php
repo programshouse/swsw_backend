@@ -36,7 +36,7 @@ use App\Http\Controllers\KashierWebhookController;
 use App\Http\Controllers\KitchenSubscriptionController;
 
 
-
+Route::get('/app-pages', [AppPageApiController::class, 'show']);
 
 
 Route::post('/kashier/test-signature', function (
@@ -105,7 +105,7 @@ Route::get('/firebase-test', function () {
 
 Route::post('/kashier/webhook', [KashierWebhookController::class, 'handle'])->name('kashier.webhook');
 
-Route::get('/app-pages/{appType}/{pageType}', [AppPageApiController::class, 'show']);
+
 // Public authentication routes
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
@@ -141,7 +141,7 @@ Route::get('/kitchen/packages', [KitchenSubscriptionController::class, 'packages
 Route::middleware('auth:api_user')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout']);
-    Route::get('/app-pages', [AppPageController::class, 'appPage']);
+ 
 
 
     Route::get('/kitchen/points', [KitchenProfileController::class, 'myPo-ints']);

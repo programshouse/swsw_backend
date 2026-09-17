@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\DeliveryUser;
 use App\Helpers\FileHelper;
 use Illuminate\Http\JsonResponse;
+use App\services\KitchenPackageService;
+
 
 
 class KitchenProfileController extends Controller
@@ -172,37 +174,65 @@ class KitchenProfileController extends Controller
 
     //     return MealResource::collection($kitchen->meals);
     // }
-
-    public function open_status(Request $request, KitchenProfile $kitchen)
+    public function open_status(Request $request)
     {
         $validated = $request->validate([
             'open_status' => 'required|in:open,closed,busy'
         ]);
 
-        $kitchenProfile = $request->user()->profile();
 
-        if (
-            $kitchenProfile->open_status == 'closed'
-            &&
-            $kitchenProfile->close_reason == 'package_limit'
-            &&
-            $validated['open_status'] == 'open'
-        ) {
+        $kitchenProfile = $request->user()->profile;
 
+
+        if (!$kitchenProfile) {
             return response()->json([
-                'message' => 'Please renew your package first.'
-            ], 422);
+                'message' => 'Kitchen profile not found'
+            ], 404);
         }
 
-        $kitchen->update([
-            'open_status' => 'closed',
-            'close_reason' => 'package_limit'
+
+        // لو يحاول يفتح المطبخ نتحقق من الباقة
+        if ($validated['open_status'] === 'open') {
+
+
+            $packageCheck = app(KitchenPackageService::class)
+                ->checkOrderLimit($kitchenProfile);
+
+
+            if (!$packageCheck['allowed']) {
+
+
+                $kitchenProfile->update([
+                    'open_status' => 'closed',
+                    'close_reason' => 'package_limit'
+                ]);
+
+
+                return response()->json([
+                    'message' => 'Please renew your package first.'
+                ], 422);
+            }
+        }
+
+
+
+        $kitchenProfile->update([
+
+            'open_status' => $validated['open_status'],
+
+            // عند الفتح نمسح سبب الإغلاق الخاص بالباقة فقط
+            'close_reason' =>
+            $validated['open_status'] === 'open'
+                ? null
+                : $kitchenProfile->close_reason
         ]);
 
+
+
         return response()->json([
-            'message' => "open status updated successfully",
+            'message' => 'open status updated successfully',
             'open_status' => $validated['open_status']
-        ], 201);
+        ], 200);
     }
 
     // public function add_star(Request $request, KitchenProfile $kitchen)
@@ -303,7 +333,7 @@ class KitchenProfileController extends Controller
             abort(404);
         }
 
-        $code = rand(100000, 999999);
+        $code = rand(1000000, 9999999);
 
         $user->forceFill([
             'code' => $code,

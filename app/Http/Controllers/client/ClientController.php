@@ -195,59 +195,59 @@ class ClientController extends Controller
     // }
 
 
-    
-public function all_clients(Request $request)
-{
-    $search = $request->input('search');
 
-    $clients = User::query()
-        ->where('role', 'client')
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
-        })
-        ->withSum(
-            'pointTransactions as total_points',
-            'points'
-        )
-        ->latest()
-        ->get()
-        ->map(function ($client) {
+    public function all_clients(Request $request)
+    {
+        $search = $request->input('search');
 
-            if (empty($client->code)) {
-                $client->referrals_count = 0;
+        $clients = User::query()
+            ->where('role', 'client')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->withSum(
+                'pointTransactions as total_points',
+                'points'
+            )
+            ->latest()
+            ->get()
+            ->map(function ($client) {
+
+                if (empty($client->code)) {
+                    $client->referrals_count = 0;
+                    $client->total_points = (int) ($client->total_points ?? 0);
+
+                    return $client;
+                }
+
+                $usersCount = User::query()
+                    ->whereNotNull('referral_code')
+                    ->where('referral_code', $client->code)
+                    ->count();
+
+                $deliveryCount = DeliveryUser::query()
+                    ->whereNotNull('referral_code')
+                    ->where('referral_code', $client->code)
+                    ->count();
+
+                $client->referrals_count = $usersCount + $deliveryCount;
                 $client->total_points = (int) ($client->total_points ?? 0);
 
                 return $client;
-            }
+            });
 
-            $usersCount = User::query()
-                ->whereNotNull('referral_code')
-                ->where('referral_code', $client->code)
-                ->count();
+        $points = Point::query()
+            ->orderBy('number')
+            ->get();
 
-            $deliveryCount = DeliveryUser::query()
-                ->whereNotNull('referral_code')
-                ->where('referral_code', $client->code)
-                ->count();
-
-            $client->referrals_count = $usersCount + $deliveryCount;
-            $client->total_points = (int) ($client->total_points ?? 0);
-
-            return $client;
-        });
-
-    $points = Point::query()
-        ->orderBy('number')
-        ->get();
-
-    return view('admin.clients.index', compact(
-        'clients',
-        'points'
-    ));
-}
+        return view('admin.clients.index', compact(
+            'clients',
+            'points'
+        ));
+    }
 
 
 
@@ -263,8 +263,8 @@ public function all_clients(Request $request)
         ]);
 
         $orders = $user->orders()
-            ->when($request->filled('order_number'), function ($query) use ($request) {
-                $query->where('number', 'like', '%' . $request->order_number . '%');
+            ->when($request->filled('id'), function ($query) use ($request) {
+                $query->where('id', 'like', '%' . $request->id . '%');
             })
             ->latest()
             ->get();

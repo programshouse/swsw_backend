@@ -21,7 +21,7 @@ use App\Http\Controllers\FirebaseTokenController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\WalletController;
 
-
+  Route::get('delivery/app-pages', [AppPageController::class, 'appPage']);
 Route::get('/debug/order/{order}/assignment', [OrderController::class, 'debugAssignment']);
 
 Route::post('delivery/password/send-otp', [EmailOtpPasswordController::class, 'sendOtp']);
@@ -100,7 +100,7 @@ Route::prefix('delivery')->group(function () {
         Route::get('/rates', [RateStoreController::class, 'getRates']);
         Route::get('/points', [PointController::class, 'myPoints']);
 
-        Route::get('/app-pages', [AppPageController::class, 'appPage']);
+      
 
         Route::post(
             '/firebase-token',
