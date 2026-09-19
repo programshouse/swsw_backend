@@ -318,12 +318,7 @@
         </div>
 
         <div class="kitchens-tools">
-            <input
-                type="text"
-                id="kitchenSearch"
-                class="search-input"
-                placeholder="بحث بالاسم أو البريد أو الهاتف"
-            >
+            <input type="text" id="kitchenSearch" class="search-input" placeholder="بحث بالاسم أو البريد أو الهاتف">
         </div>
 
         <div class="table-wrapper">
@@ -334,6 +329,7 @@
                         <th>البريد الإلكتروني</th>
                         <th>الهاتف</th>
                         <th>الكود</th>
+                        <th>الباقة</th>
                         <th>عدد التسجيلات</th>
                         <th>المحافظة</th>
                         <th>المنطقة</th>
@@ -358,6 +354,21 @@
                             <td>{{ $kitchenUser->phone ?? '-' }}</td>
 
                             <td>{{ $kitchenUser->code ?? '-' }}</td>
+
+                            <td>
+                                @php
+                                    $subscription = $kitchenUser->profile?->packageSubscriptions
+                                        ->where('status', 'active')
+                                        ->where('expires_at', '>=', now())
+                                        ->first();
+                                @endphp
+
+                                @if ($subscription)
+                                    {{ $subscription->package_name }}
+                                @else
+                                    بدون باقة
+                                @endif
+                            </td>
 
                             <td>
                                 <span class="referral-badge">
@@ -411,25 +422,16 @@
 
                             <td>
                                 @if (session('generated_code_user_id') == $kitchenUser->id)
-                                    <div
-                                        class="code-box"
-                                        id="code-box-{{ $kitchenUser->id }}"
-                                    >
-                                        <span
-                                            class="code-value"
-                                            id="code-{{ $kitchenUser->id }}"
-                                        >
+                                    <div class="code-box" id="code-box-{{ $kitchenUser->id }}">
+                                        <span class="code-value" id="code-{{ $kitchenUser->id }}">
                                             {{ session('generated_code') }}
                                         </span>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-copy"
+                                        <button type="button" class="btn btn-copy"
                                             onclick="copyAndHideCode(
                                                 'code-{{ $kitchenUser->id }}',
                                                 'code-box-{{ $kitchenUser->id }}'
-                                            )"
-                                        >
+                                            )">
                                             نسخ
                                         </button>
                                     </div>
@@ -441,69 +443,44 @@
                             <td>
                                 <div class="actions">
 
-                                    <a
-                                        href="{{ route('admin.kitchens.show', $kitchenUser->id) }}"
-                                        class="btn btn-view"
-                                    >
+                                    <a href="{{ route('admin.kitchens.show', $kitchenUser->id) }}" class="btn btn-view">
                                         عرض التفاصيل
                                     </a>
 
-                                    <form
-                                        method="POST"
-                                        action="{{ route('admin.kitchens.generate-code', $kitchenUser->id) }}"
-                                    >
+                                    <form method="POST"
+                                        action="{{ route('admin.kitchens.generate-code', $kitchenUser->id) }}">
                                         @csrf
 
-                                        <button
-                                            type="submit"
-                                            class="btn btn-code"
-                                        >
+                                        <button type="submit" class="btn btn-code">
                                             تغيير الباسورد
                                         </button>
                                     </form>
 
-                                    <form
-                                        method="POST"
-                                        action="{{ route('admin.kitchens.active', $kitchenUser->id) }}"
-                                    >
+                                    <form method="POST" action="{{ route('admin.kitchens.active', $kitchenUser->id) }}">
                                         @csrf
 
-                                        <input
-                                            type="hidden"
-                                            name="status"
-                                            value="{{ $kitchenUser->status === 'active' ? 'not_active' : 'active' }}"
-                                        >
+                                        <input type="hidden" name="status"
+                                            value="{{ $kitchenUser->status === 'active' ? 'not_active' : 'active' }}">
 
-                                        <button
-                                            type="submit"
-                                            class="btn {{ $kitchenUser->status === 'active' ? 'btn-inactive' : 'btn-active' }}"
-                                        >
+                                        <button type="submit"
+                                            class="btn {{ $kitchenUser->status === 'active' ? 'btn-inactive' : 'btn-active' }}">
                                             {{ $kitchenUser->status === 'active' ? 'تعطيل الحساب' : 'تفعيل الحساب' }}
                                         </button>
                                     </form>
 
-                                    <a
-                                        href="{{ route('admin.kitchens.rate', $kitchenUser->id) }}"
-                                        class="btn btn-rate"
-                                    >
+                                    <a href="{{ route('admin.kitchens.rate', $kitchenUser->id) }}" class="btn btn-rate">
                                         إضافة تقييم
                                     </a>
 
-                                    <a
-                                        href="{{ route('admin.kitchens.rates', $kitchenUser->id) }}"
-                                        class="btn btn-rate"
-                                    >
+                                    <a href="{{ route('admin.kitchens.rates', $kitchenUser->id) }}" class="btn btn-rate">
                                         التقييمات
                                     </a>
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-points"
+                                    <button type="button" class="btn btn-points"
                                         onclick="openPointsModal(
                                             @js($kitchenUser->name ?? 'المطبخ'),
                                             @js(route('admin.kitchens.points.add', $kitchenUser->id))
-                                        )"
-                                    >
+                                        )">
                                         إضافة نقاط
                                     </button>
 
@@ -526,10 +503,7 @@
 
     <div class="points-modal" id="pointsModal">
 
-        <div
-            class="points-modal-overlay"
-            onclick="closePointsModal()"
-        ></div>
+        <div class="points-modal-overlay" onclick="closePointsModal()"></div>
 
         <div class="points-modal-content" dir="rtl">
 
@@ -538,11 +512,7 @@
                     إضافة نقاط للمطبخ
                 </h3>
 
-                <button
-                    type="button"
-                    class="points-modal-close"
-                    onclick="closePointsModal()"
-                >
+                <button type="button" class="points-modal-close" onclick="closePointsModal()">
                     ×
                 </button>
             </div>
@@ -556,55 +526,29 @@
                 @csrf
 
                 <div class="points-form-group">
-                    <label
-                        for="pointsInput"
-                        class="points-form-label"
-                    >
+                    <label for="pointsInput" class="points-form-label">
                         عدد النقاط
                     </label>
 
-                    <input
-                        type="number"
-                        name="points"
-                        id="pointsInput"
-                        class="points-form-input"
-                        min="1"
-                        step="1"
-                        required
-                        placeholder="مثال: 100"
-                    >
+                    <input type="number" name="points" id="pointsInput" class="points-form-input" min="1"
+                        step="1" required placeholder="مثال: 100">
                 </div>
 
                 <div class="points-form-group">
-                    <label
-                        for="pointsNotes"
-                        class="points-form-label"
-                    >
+                    <label for="pointsNotes" class="points-form-label">
                         الملاحظات
                     </label>
 
-                    <textarea
-                        name="notes"
-                        id="pointsNotes"
-                        class="points-form-textarea"
-                        placeholder="سبب إضافة النقاط"
-                    ></textarea>
+                    <textarea name="notes" id="pointsNotes" class="points-form-textarea" placeholder="سبب إضافة النقاط"></textarea>
                 </div>
 
                 <div class="points-modal-actions">
 
-                    <button
-                        type="button"
-                        class="btn btn-cancel-points"
-                        onclick="closePointsModal()"
-                    >
+                    <button type="button" class="btn btn-cancel-points" onclick="closePointsModal()">
                         إلغاء
                     </button>
 
-                    <button
-                        type="submit"
-                        class="btn btn-save-points"
-                    >
+                    <button type="submit" class="btn btn-save-points">
                         حفظ النقاط
                     </button>
 
@@ -645,9 +589,9 @@
 
                 rows.forEach(row => {
                     row.style.display =
-                        row.innerText.toLowerCase().includes(value)
-                            ? ''
-                            : 'none';
+                        row.innerText.toLowerCase().includes(value) ?
+                        '' :
+                        'none';
                 });
             });
         }

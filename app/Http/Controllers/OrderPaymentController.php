@@ -146,23 +146,23 @@ class OrderPaymentController extends Controller
             'allowed_methods' => [
                 'nullable',
                 'string',
-                Rule::in([
-                    'CARD',
-                    'WALLET',
-                    'APPLEPAY',
-                ]),
             ],
         ]);
 
-        $requestedMethod = strtoupper(
-            trim($validated['allowed_methods'] ?? 'CARD')
-        );
+        $paymentMethod = $validated['allowed_methods']
+            ?? $order->payment_method
+           ;
 
-        $kashierAllowedMethod = match ($requestedMethod) {
-            'WALLET' => 'wallet',
-            'APPLEPAY' => 'applepay',
-            default => 'card',
-        };
+        if (!$paymentMethod) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Payment method must be selected first',
+            ], 422);
+        }
+
+        $paymentMethod = strtolower(trim($paymentMethod));
+
+        $kashierAllowedMethod = $paymentMethod;
 
         /*
         |--------------------------------------------------------------------------
@@ -215,16 +215,16 @@ class OrderPaymentController extends Controller
         }
 
         if ($order->payment_method === 'cash') {
-    return response()->json([
-        'status' => false,
-        'message' =>
-        'This order is set to cash payment and cannot be paid online.',
-        'data' => [
-            'order_id' => $order->id,
-            'payment_method' => $order->payment_method,
-        ],
-    ], 422);
-}
+            return response()->json([
+                'status' => false,
+                'message' =>
+                'This order is set to cash payment and cannot be paid online.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'payment_method' => $order->payment_method,
+                ],
+            ], 422);
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -488,6 +488,13 @@ class OrderPaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
+
+        Log::info('Payment Debug', [
+            'order_payment_method' => $order->payment_method,
+            'allowed_methods' => $validated['allowed_methods'] ?? null,
+            'paymentMethod' => $paymentMethod,
+        ]);
+
         $merchantReference =
             $this->generateMerchantReference(
                 $order
@@ -500,12 +507,24 @@ class OrderPaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
+            $debugData = [
+                'request_all' => $request->all(),
+                'allowed_methods' => $validated['allowed_methods'] ?? null,
+                'paymentMethod' => $paymentMethod,
+                'order_payment_method' => $order->payment_method,
+            ];
+
+            Log::info('Before PaymentTransaction Create', $debugData);
+
             $payment = DB::transaction(function () use (
                 $order,
                 $user,
                 $amount,
                 $merchantReference,
-                $expiresAt
+                $expiresAt,
+                $paymentMethod,
+                $request
+
             ) {
                 $lockedOrder =
                     Order::query()
@@ -550,7 +569,14 @@ class OrderPaymentController extends Controller
                         'A pending payment session already exists'
                     );
                 }
+                $debugData = [
+                    'request_all' => $request->all(),
+                    'allowed_methods' => $validated['allowed_methods'] ?? null,
+                    'paymentMethod' => $paymentMethod,
+                    'order_payment_method' => $order->payment_method,
+                ];
 
+                Log::info('Before PaymentTransaction Create', $debugData);
                 $payment =
                     PaymentTransaction::create([
                         'order_id' =>
@@ -588,7 +614,7 @@ class OrderPaymentController extends Controller
                         'pending',
 
                         'payment_method' =>
-                        'online',
+                        $paymentMethod,
 
                         'refunded_amount' =>
                         0,
@@ -614,10 +640,9 @@ class OrderPaymentController extends Controller
                         'verification_response' =>
                         null,
                     ]);
-//////////////////////////هنا
+                //////////////////////////هنا
                 $lockedOrder->update([
-                    'payment_method' =>
-                    'cash',
+                   // 'payment_method' => $paymentMethod,
 
                     'payment_status' =>
                     'pending',
@@ -809,7 +834,7 @@ class OrderPaymentController extends Controller
                     $payment->id,
 
                     'requested_method' =>
-                    $requestedMethod,
+                    $paymentMethod,
 
                     'kashier_allowed_method' =>
                     $kashierAllowedMethod,
@@ -912,6 +937,8 @@ class OrderPaymentController extends Controller
 
                 'message' =>
                 'Payment session created successfully',
+
+                'debug' => $debugData,
 
                 'data' => [
                     'payment_id' =>
@@ -2303,7 +2330,7 @@ class OrderPaymentController extends Controller
                     [
                         'code' => 'card',
                         'name_ar' => 'بطاقة بنكية',
-                        'name_en' => 'Card',                                                  
+                        'name_en' => 'Card',
                         'enabled' => true,
                     ],
                     [

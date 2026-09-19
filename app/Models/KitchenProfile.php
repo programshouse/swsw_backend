@@ -76,4 +76,12 @@ class KitchenProfile extends Model
     {
         return $this->hasMany(Rate::class, 'kitchen_profile_id');
     }
+
+    public function packageSubscriptions()
+{
+    return $this->hasMany(
+        KitchenPackageSubscription::class,
+        'kitchen_id'
+    );
+}
 }

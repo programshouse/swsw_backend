@@ -1849,15 +1849,15 @@ class OrdersController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                    if (
-                        $activeOnlinePayment
-                        && $validated['payment_method'] ===
-                        'cash'
-                    ) {
-                        throw new \RuntimeException(
-                            'An active online payment session already exists'
-                        );
-                    }
+                    // if (
+                    //     $activeOnlinePayment
+                    //     && $validated['payment_method'] ===
+                    //     'cash'
+                    // ) {
+                    //     throw new \RuntimeException(
+                    //         'An active online payment session already exists'
+                    //     );
+                    // }
 
                     /*
                 |--------------------------------------------------------------------------
@@ -1866,12 +1866,22 @@ class OrdersController extends Controller
                 */
 
                     if (
-                        $validated['payment_method'] ===
-                        'cash'
+                        $validated['payment_method'] === 'cash'
                     ) {
+
+                        // Cancel existing Kashier pending session
+                        PaymentTransaction::where('order_id', $lockedOrder->id)
+                            ->where('provider', 'kashier')
+                            ->where('status', 'pending')
+                            ->update([
+                                'status' => 'cancelled',
+                                'provider_status' => 'METHOD_CHANGED',
+                            ]);
+
+
+                        // Change order payment method to cash
                         $lockedOrder->update([
-                            'payment_method' =>
-                            'cash',
+                            'payment_method' => 'cash',
 
                             'payment_status' =>
                             'cash_pending',

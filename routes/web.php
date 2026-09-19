@@ -1021,10 +1021,10 @@ Route::middleware([
 | Wallet & Kashier Payout
 |--------------------------------------------------------------------------
 */
-Route::get(
-    'wallet/debit-requests/export',
-    [WalletController::class, 'export_debit_requests']
-)->name('admin.wallet.debit-requests.export');
+    Route::get(
+        'wallet/debit-requests/export',
+        [WalletController::class, 'export_debit_requests']
+    )->name('admin.wallet.debit-requests.export');
     Route::prefix('admin/wallet')
         ->name('admin.wallet.')
         ->group(function () {

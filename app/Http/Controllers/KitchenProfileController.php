@@ -281,7 +281,11 @@ class KitchenProfileController extends Controller
     public function kitchens(Request $request)
     {
         $kitchens = User::where('role', 'kitchen')
-            ->with(['profile.government', 'profile.area'])
+           ->with([
+    'profile.government',
+    'profile.area',
+    'profile.packageSubscriptions'
+])
             ->latest()
             ->get()
             ->map(function ($kitchen) {
