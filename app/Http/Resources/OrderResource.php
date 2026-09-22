@@ -26,30 +26,30 @@ class OrderResource extends JsonResource
 
         $vatPercentage =
             $this->vat_percentage !== null
-                ? (float) $this->vat_percentage
-                : (float) ($settings?->vat_percentage ?? 0);
+            ? (float) $this->vat_percentage
+            : (float) ($settings?->vat_percentage ?? 0);
 
         $vatValue =
             $this->vat_value !== null
-                ? (float) $this->vat_value
-                : ($itemsTotal * $vatPercentage) / 100;
+            ? (float) $this->vat_value
+            : ($itemsTotal * $vatPercentage) / 100;
 
         $deliveryMeterPrice =
             $this->delivery_meter_price !== null
-                ? (float) $this->delivery_meter_price
-                : (float) (
-                    $settings?->delivery_meter_price ?? 0
-                );
+            ? (float) $this->delivery_meter_price
+            : (float) (
+                $settings?->delivery_meter_price ?? 0
+            );
 
         $distanceKm =
             $this->distance_km !== null
-                ? (float) $this->distance_km
-                : $this->getLegacyDistance();
+            ? (float) $this->distance_km
+            : $this->getLegacyDistance();
 
         $deliveryPrice =
             $this->delivery_price !== null
-                ? (float) $this->delivery_price
-                : $distanceKm * $deliveryMeterPrice;
+            ? (float) $this->delivery_price
+            : $distanceKm * $deliveryMeterPrice;
 
         $discountValue =
             (float) ($this->discount_value ?? 0);
@@ -63,13 +63,13 @@ class OrderResource extends JsonResource
 
         $totalBeforeDiscount =
             $this->total_before_discount !== null
-                ? (float) $this->total_before_discount
-                : (
-                    $itemsTotal +
-                    $vatValue +
-                    $deliveryPrice +
-                    $clientServiceFee
-                );
+            ? (float) $this->total_before_discount
+            : (
+                $itemsTotal +
+                $vatValue +
+                $deliveryPrice +
+                $clientServiceFee
+            );
 
         /*
          * استخدام total المحفوظ بدل إعادة حسابه.
@@ -131,8 +131,8 @@ class OrderResource extends JsonResource
             'number' => $this->number,
             'status' => $this->status,
             'created_at' => $this->created_at
-    ?->timezone('Africa/Cairo')
-    ?->format('Y-m-d H:i:s'),
+                ?->timezone('Africa/Cairo')
+                ?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at,
 
             'client_name' => $this->user?->name,
@@ -142,8 +142,8 @@ class OrderResource extends JsonResource
 
             'kitchen_logo' => $this->kitchen?->logo
                 ? config('app.url') .
-                    '/storage/' .
-                    $this->kitchen->logo
+                '/storage/' .
+                $this->kitchen->logo
                 : null,
 
             'items' => OrderItemsResource::collection(
@@ -151,15 +151,15 @@ class OrderResource extends JsonResource
             ),
 
             'estimated_time' =>
-                $this->getEstimatedTimeAttribute(
-                    $this->items
-                ),
+            $this->getEstimatedTimeAttribute(
+                $this->items
+            ),
 
             'receive_date' => $this->receive_date,
             'receive_time' => $this->receive_time,
 
             'book_for_later' =>
-                (bool) $this->book_for_later,
+            (bool) $this->book_for_later,
 
             'cancel_date' => $this->cancel_date,
             'payment_method' => $this->payment_method,

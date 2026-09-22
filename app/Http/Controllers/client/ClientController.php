@@ -380,4 +380,15 @@ class ClientController extends Controller
             'data' => KitchenProfileResource::collection($kitchens),
         ]);
     }
+
+
+
+    public function destroy(User $client)
+    {
+        $client->delete();
+
+        return redirect()
+            ->route('admin.clients.index')
+            ->with('success', 'تم حذف العميل بنجاح');
+    }
 }

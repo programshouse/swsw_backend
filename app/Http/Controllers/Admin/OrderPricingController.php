@@ -44,22 +44,22 @@ class OrderPricingController extends Controller
             ],
         ], [
             'delivery_meter_price.required' =>
-                'سعر التوصيل لكل كيلومتر مطلوب.',
+            'سعر التوصيل لكل كيلومتر مطلوب.',
 
             'delivery_meter_price.numeric' =>
-                'سعر التوصيل يجب أن يكون رقمًا.',
+            'سعر التوصيل يجب أن يكون رقمًا.',
 
             'delivery_meter_price.min' =>
-                'سعر التوصيل لا يمكن أن يكون أقل من صفر.',
+            'سعر التوصيل لا يمكن أن يكون أقل من صفر.',
 
             'vat_percentage.required' =>
-                'نسبة القيمة المضافة مطلوبة.',
+            'نسبة القيمة المضافة مطلوبة.',
 
             'vat_percentage.numeric' =>
-                'نسبة القيمة المضافة يجب أن تكون رقمًا.',
+            'نسبة القيمة المضافة يجب أن تكون رقمًا.',
 
             'vat_percentage.max' =>
-                'نسبة القيمة المضافة لا يمكن أن تتجاوز 100%.',
+            'نسبة القيمة المضافة لا يمكن أن تتجاوز 100%.',
         ]);
 
         $settings = Setting::query()->first();
@@ -67,18 +67,18 @@ class OrderPricingController extends Controller
         if (!$settings) {
             $settings = Setting::create([
                 'delivery_meter_price' =>
-                    $validated['delivery_meter_price'],
+                $validated['delivery_meter_price'],
 
                 'vat_percentage' =>
-                    $validated['vat_percentage'],
+                $validated['vat_percentage'],
             ]);
         } else {
             $settings->update([
                 'delivery_meter_price' =>
-                    $validated['delivery_meter_price'],
+                $validated['delivery_meter_price'],
 
                 'vat_percentage' =>
-                    $validated['vat_percentage'],
+                $validated['vat_percentage'],
             ]);
         }
 
@@ -103,19 +103,19 @@ class OrderPricingController extends Controller
 
         OrderFeeRule::create([
             'min_order_amount' =>
-                $validated['min_order_amount'],
+            $validated['min_order_amount'],
 
             'max_order_amount' =>
-                $validated['max_order_amount'],
+            $validated['max_order_amount'],
 
             'kitchen_service_fee' =>
-                $validated['kitchen_service_fee'],
+            $validated['kitchen_service_fee'],
 
             'client_service_fee' =>
-                $validated['client_service_fee'],
+            $validated['client_service_fee'],
 
             'is_active' =>
-                $request->boolean('is_active'),
+            $request->boolean('is_active'),
         ]);
 
         return redirect()
@@ -142,19 +142,19 @@ class OrderPricingController extends Controller
 
         $rule->update([
             'min_order_amount' =>
-                $validated['min_order_amount'],
+            $validated['min_order_amount'],
 
             'max_order_amount' =>
-                $validated['max_order_amount'],
+            $validated['max_order_amount'],
 
             'kitchen_service_fee' =>
-                $validated['kitchen_service_fee'],
+            $validated['kitchen_service_fee'],
 
             'client_service_fee' =>
-                $validated['client_service_fee'],
+            $validated['client_service_fee'],
 
             'is_active' =>
-                $request->boolean('is_active'),
+            $request->boolean('is_active'),
         ]);
 
         return redirect()
@@ -228,22 +228,22 @@ class OrderPricingController extends Controller
             ],
         ], [
             'min_order_amount.required' =>
-                'الحد الأدنى لسعر الطلب مطلوب.',
+            'الحد الأدنى لسعر الطلب مطلوب.',
 
             'min_order_amount.numeric' =>
-                'الحد الأدنى يجب أن يكون رقمًا.',
+            'الحد الأدنى يجب أن يكون رقمًا.',
 
             'max_order_amount.numeric' =>
-                'الحد الأقصى يجب أن يكون رقمًا.',
+            'الحد الأقصى يجب أن يكون رقمًا.',
 
             'max_order_amount.gt' =>
-                'الحد الأقصى يجب أن يكون أكبر من الحد الأدنى.',
+            'الحد الأقصى يجب أن يكون أكبر من الحد الأدنى.',
 
             'kitchen_service_fee.required' =>
-                'رسوم خدمة المطبخ مطلوبة.',
+            'رسوم خدمة المطبخ مطلوبة.',
 
             'client_service_fee.required' =>
-                'رسوم خدمة العميل مطلوبة.',
+            'رسوم خدمة العميل مطلوبة.',
         ]);
     }
 

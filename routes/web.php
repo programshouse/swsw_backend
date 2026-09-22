@@ -218,6 +218,10 @@ Route::middleware([
         ->name('admin.clients.add.points');
 
 
+        Route::delete('clients/{client}', [ClientController::class, 'destroy'])
+    ->name('admin.clients.destroy');
+
+
     /*
     |--------------------------------------------------------------------------
     | Orders

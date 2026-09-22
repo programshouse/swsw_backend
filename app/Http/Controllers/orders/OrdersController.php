@@ -987,7 +987,7 @@ class OrdersController extends Controller
         */
 
         $databaseStatus = match ($validated['status']) {
-            'accepted' => 'accepted_by_kitchen',
+            'accepted' => 'preparing',
             default => $validated['status'],
         };
 
@@ -1022,7 +1022,7 @@ class OrdersController extends Controller
         |
         */
 
-        if ($databaseStatus === 'accepted_by_kitchen') {
+        if ($databaseStatus === 'preparing') {
             if ($order->payment_status !== 'paid') {
                 $updateData['payment_status'] = 'awaiting_payment';
                 $updateData['payment_expires_at'] = now()->addMinutes(15);

@@ -14,66 +14,31 @@ class OfferController extends Controller
         $user = $request->user();
 
         $offers = MealOffer::with([
+            'meal',
+            'meal.kitchen',
             'meal.category',
-            'meal.kitchen.user'
         ])
             ->where('status', 1)
-            ->whereHas('meal.kitchen', function ($q) use ($user) {
-                $q->where('area_id', $user->area_id);
-            })
-            ->where(function ($q) {
-                $q->whereNull('start_date')
-                    ->orWhereDate('start_date', '<=', now());
-            })
-            ->where(function ($q) {
-                $q->whereNull('end_date')
-                    ->orWhereDate('end_date', '>=', now());
-            })
-            ->latest()
             ->get();
 
         return response()->json([
-            'status' => true,
+            'user_id' => $user->id,
+            'user_area_id' => $user->area_id,
+
             'offers' => $offers->map(function ($offer) {
-
-                $meal = $offer->meal;
-
-                if (!$meal) {
-                    return null;
-                }
-
-                $price = (float) $meal->price;
-                $discount = round(($price * $offer->percentage) / 100, 2);
-                $finalPrice = round($price - $discount, 2);
-
                 return [
-                    'id' => $offer->id,
-
+                    'offer_id' => $offer->id,
+                    'meal_id' => $offer->meal_id,
+                    'meal_image' => $offer->meal->image,
                     'percentage' => $offer->percentage,
+                    'meal_exists' => $offer->meal ? true : false,
+
+                    'kitchen_id' => $offer->meal?->kitchen?->id,
+                    'kitchen_area_id' => $offer->meal?->kitchen?->area_id,
 
                     'start_date' => $offer->start_date,
-
                     'end_date' => $offer->end_date,
-
-                    'meal' => [
-                        'id' => $meal->id,
-                        'name' => $meal->name,
-                        'description' => $meal->description,
-                        'image' => asset($meal->image),
-
-                        'price' => $price,
-                        'price_after_discount' => $finalPrice,
-
-                        'category' => [
-                            'id' => $meal->category?->id,
-                            'name' => $meal->category?->name,
-                        ],
-
-                        'kitchen' => [
-                            'id' => $meal->kitchen?->id,
-                            'name' => $meal->kitchen?->user?->name,
-                        ],
-                    ],
+                    'status' => $offer->status,
                 ];
             }),
         ]);

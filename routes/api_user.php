@@ -141,7 +141,7 @@ Route::get('/kitchen/packages', [KitchenSubscriptionController::class, 'packages
 Route::middleware('auth:api_user')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout']);
- 
+
 
 
     Route::get('/kitchen/points', [KitchenProfileController::class, 'myPo-ints']);
@@ -241,10 +241,10 @@ Route::middleware('auth:api_user')->group(function () {
 
         Route::get('/orders', [OrdersController::class, 'index']);
         Route::post('/orders', [OrdersController::class, 'store']);                          ///notify
-        Route::post('/orders/{order}/payment-method', [ OrdersController::class,'selectPaymentMethod', ]);
+        Route::post('/orders/{order}/payment-method', [OrdersController::class, 'selectPaymentMethod',]);
 
-        Route::post('/orders/{order}/apply-cash-code',[OrdersController::class,'applyCashCode',]);
-        
+        Route::post('/orders/{order}/apply-cash-code', [OrdersController::class, 'applyCashCode',]);
+
         Route::get('/orders/{order}', [OrdersController::class, 'show']);
         Route::patch('/orders/{order}', [OrdersController::class, 'update']);
         Route::delete('/orders/{order}', [OrdersController::class, 'destroy']);

@@ -4,6 +4,22 @@
 
 @push('styles')
     <style>
+        .delete-btn {
+            height: 38px;
+            padding: 0 13px;
+            border: 0;
+            border-radius: 9px;
+            background: #dc2626;
+            color: #ffffff;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+
         .search-form {
             display: flex;
             gap: 10px;
@@ -273,7 +289,25 @@
                                                 إضافة نقاط
                                             </button>
 
+
+
+
+
                                         </form>
+
+                                        <form method="POST" action="{{ route('admin.clients.destroy', $client->id) }}"
+                                            class="delete-form"
+                                            onsubmit="return confirm('هل أنت متأكدة من حذف العميل {{ $client->name }} نهائياً؟ لا يمكن التراجع عن هذا الإجراء.');">
+
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit" class="delete-btn">
+                                                حذف
+                                            </button>
+
+                                        </form>
+
 
                                     </div>
                                 </td>
