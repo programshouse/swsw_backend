@@ -168,7 +168,7 @@ class OrderController extends Controller
         Request $request,
         Order $order,
         FinancialTransactionService $financialService
-    ) {
+      ) {
         $delivery = $request->user();
 
         $deliveryOrder = DeliveryOrder::where('order_id', $order->id)
@@ -183,11 +183,11 @@ class OrderController extends Controller
             ], 400);
         }
 
-        /*
-    |--------------------------------------------------------------------------
-    | 1) Received from kitchen
-    |--------------------------------------------------------------------------
-    */
+            /*
+        |--------------------------------------------------------------------------
+        | 1) Received from kitchen
+        |--------------------------------------------------------------------------
+        */
 
         if ($deliveryOrder->status === 'accepted') {
             if ($order->status !== 'accepted_by_delivery') {
@@ -242,10 +242,10 @@ class OrderController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | 2) Delivered
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | 2) Delivered
+        |--------------------------------------------------------------------------
+        */
 
         if ($deliveryOrder->status === 'picked_up') {
             if ($order->status !== 'received_by_delivery') {
