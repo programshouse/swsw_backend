@@ -293,7 +293,7 @@ Route::middleware('auth:api_user')->group(function () {
 
 
         Route::get('/orders/{order}/payment-options', [OrderPaymentController::class, 'options']);
-        Route::post('/orders/{order}/payments/kashier', [OrderPaymentController::class, 'createKashierPayment']);
+        Route::post('/orders/{order}/payments/kashier', [OrderPaymentController::class, 'createKashFierPayment']);
         Route::get('kashier/{order}/methods', [OrderPaymentController::class, 'kashierMethods']);
 
         Route::get('/payments/{payment}/status', [OrderPaymentController::class, 'status']);

@@ -34,6 +34,12 @@ class KitchenProfile extends Model
         'have_delivery',
         'have_star',
         'open_status',
+        'has_tax_record'
+    ];
+
+
+    protected $casts = [
+        'has_tax_record' => 'boolean',
     ];
 
     // create local scope query to get all kitchen that verified
@@ -78,10 +84,10 @@ class KitchenProfile extends Model
     }
 
     public function packageSubscriptions()
-{
-    return $this->hasMany(
-        KitchenPackageSubscription::class,
-        'kitchen_id'
-    );
-}
+    {
+        return $this->hasMany(
+            KitchenPackageSubscription::class,
+            'kitchen_id'
+        );
+    }
 }

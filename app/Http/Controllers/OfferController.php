@@ -29,7 +29,9 @@ class OfferController extends Controller
                 return [
                     'offer_id' => $offer->id,
                     'meal_id' => $offer->meal_id,
-                    'meal_image' => $offer->meal->image,
+                    'meal_image' => $offer->meal?->image
+                        ? url($offer->meal->image)
+                        : null,
                     'percentage' => $offer->percentage,
                     'meal_exists' => $offer->meal ? true : false,
 

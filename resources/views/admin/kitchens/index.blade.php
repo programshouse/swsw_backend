@@ -138,6 +138,67 @@
             background: #f9fafb;
         }
 
+        /* Filters */
+
+        .kitchens-filters {
+            display: grid;
+            grid-template-columns: 2fr repeat(6, 1fr) auto;
+            gap: 10px;
+            margin-bottom: 18px;
+            align-items: center;
+        }
+
+        .filter-select {
+            height: 46px;
+            border: 1px solid #dbe2ea;
+            border-radius: 12px;
+            padding: 0 12px;
+            font-size: 14px;
+            background: #fff;
+            color: #111827;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .filter-submit-btn {
+            height: 46px;
+            padding: 0 20px;
+            border-radius: 12px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .filter-clear-btn {
+            height: 46px;
+            padding: 0 16px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1200px) {
+            .kitchens-filters {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .kitchens-filters {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Points Modal */
 
         .points-modal {
@@ -317,19 +378,106 @@
             </div>
         </div>
 
-        <div class="kitchens-tools">
-            <input type="text" id="kitchenSearch" class="search-input" placeholder="بحث بالاسم أو البريد أو الهاتف">
-        </div>
+        <form method="GET" action="{{ route('admin.kitchens.index') }}" class="kitchens-filters">
+
+            <input type="text" name="search" value="{{ request('search') }}" class="search-input"
+                placeholder="بحث بالاسم أو البريد أو الهاتف أو الكود">
+
+            <select name="status" class="filter-select">
+                <option value="">كل حالات الحساب</option>
+                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>
+                    نشط
+                </option>
+                <option value="not_active" {{ request('status') === 'not_active' ? 'selected' : '' }}>
+                    غير نشط
+                </option>
+            </select>
+
+            <select name="kitchen_status" class="filter-select">
+                <option value="">كل حالات المطبخ</option>
+                <option value="approved" {{ request('kitchen_status') === 'approved' ? 'selected' : '' }}>
+                    مقبول
+                </option>
+                <option value="rejected" {{ request('kitchen_status') === 'rejected' ? 'selected' : '' }}>
+                    مرفوض
+                </option>
+                <option value="pending" {{ request('kitchen_status') === 'pending' ? 'selected' : '' }}>
+                    قيد المراجعة
+                </option>
+            </select>
+
+            <select name="has_tax_record" class="filter-select">
+                <option value="">السجل الضريبى (الكل)</option>
+                <option value="1" {{ request('has_tax_record') === '1' ? 'selected' : '' }}>
+                    لديه
+                </option>
+                <option value="0" {{ request('has_tax_record') === '0' ? 'selected' : '' }}>
+                    لا يوجد
+                </option>
+            </select>
+
+            <select name="government_id" class="filter-select">
+                <option value="">كل المحافظات</option>
+                @foreach ($governments as $government)
+                    <option value="{{ $government->id }}"
+                        {{ (string) request('government_id') === (string) $government->id ? 'selected' : '' }}>
+                        {{ $government->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select name="area_id" class="filter-select">
+                <option value="">كل المناطق</option>
+                @foreach ($areas as $area)
+                    <option value="{{ $area->id }}"
+                        {{ (string) request('area_id') === (string) $area->id ? 'selected' : '' }}>
+                        {{ $area->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select name="package" class="filter-select">
+                <option value="">كل الباقات</option>
+                <option value="none" {{ request('package') === 'none' ? 'selected' : '' }}>
+                    بدون باقة
+                </option>
+                @foreach ($packageNames as $packageName)
+                    <option value="{{ $packageName }}" {{ request('package') === $packageName ? 'selected' : '' }}>
+                        {{ $packageName }}
+                    </option>
+                @endforeach
+            </select>
+
+            <button type="submit" class="btn filter-submit-btn">
+                فلترة
+            </button>
+
+            @if (request()->anyFilled([
+                    'search',
+                    'status',
+                    'kitchen_status',
+                    'has_tax_record',
+                    'government_id',
+                    'area_id',
+                    'package',
+                ]))
+                <a href="{{ route('admin.kitchens.index') }}" class="filter-clear-btn">
+                    مسح الفلاتر
+                </a>
+            @endif
+
+        </form>
 
         <div class="table-wrapper">
             <table id="kitchensTable">
                 <thead>
                     <tr>
                         <th>الاسم</th>
-                        <th>البريد الإلكتروني</th>
+                        {{-- <th>البريد الإلكتروني</th> --}}
                         <th>الهاتف</th>
                         <th>الكود</th>
                         <th>الباقة</th>
+                        <th>السجل الضريبى</th>
                         <th>عدد التسجيلات</th>
                         <th>المحافظة</th>
                         <th>المنطقة</th>
@@ -349,7 +497,7 @@
                                 <strong>{{ $kitchenUser->name ?? '-' }}</strong>
                             </td>
 
-                            <td>{{ $kitchenUser->email ?? '-' }}</td>
+                            {{-- <td>{{ $kitchenUser->email ?? '-' }}</td> --}}
 
                             <td>{{ $kitchenUser->phone ?? '-' }}</td>
 
@@ -367,6 +515,14 @@
                                     {{ $subscription->package_name }}
                                 @else
                                     بدون باقة
+                                @endif
+                            </td>
+
+                            <td>
+                                @if ($kitchenUser->profile?->has_tax_record)
+                                    <span class="badge badge-active">لديه</span>
+                                @else
+                                    <span class="badge badge-inactive">لا يوجد</span>
                                 @endif
                             </td>
 
@@ -490,8 +646,8 @@
 
                     @empty
                         <tr>
-                            <td colspan="13" class="empty">
-                                لا توجد مطابخ
+                            <td colspan="15" class="empty">
+                                لا توجد مطابخ مطابقة لبحثك
                             </td>
                         </tr>
                     @endforelse
@@ -562,12 +718,6 @@
 
 @push('scripts')
     <script>
-        const kitchenSearch =
-            document.getElementById('kitchenSearch');
-
-        const rows =
-            document.querySelectorAll('#kitchensTable tbody tr');
-
         const pointsModal =
             document.getElementById('pointsModal');
 
@@ -582,19 +732,6 @@
 
         const pointsNotes =
             document.getElementById('pointsNotes');
-
-        if (kitchenSearch) {
-            kitchenSearch.addEventListener('keyup', function() {
-                const value = this.value.toLowerCase();
-
-                rows.forEach(row => {
-                    row.style.display =
-                        row.innerText.toLowerCase().includes(value) ?
-                        '' :
-                        'none';
-                });
-            });
-        }
 
         function copyAndHideCode(codeId, boxId) {
             const code =

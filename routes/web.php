@@ -218,8 +218,8 @@ Route::middleware([
         ->name('admin.clients.add.points');
 
 
-        Route::delete('clients/{client}', [ClientController::class, 'destroy'])
-    ->name('admin.clients.destroy');
+    Route::delete('clients/{client}', [ClientController::class, 'destroy'])
+        ->name('admin.clients.destroy');
 
 
     /*
@@ -1460,6 +1460,20 @@ Route::middleware([
         ->name('admin.companies.toggle-status');
 
 
+
+
+    Route::post(
+        '/kitchens/{kitchen}/package/activate',
+        [KitchenProfileController::class, 'activatePackage']
+    )->name('admin.kitchens.package.activate');
+
+
+    Route::post(
+        '/kitchens/{kitchen}/package/expire',
+        [KitchenProfileController::class, 'expirePackage']
+    )->name('admin.kitchens.package.expire');
+
+
     /*
     |--------------------------------------------------------------------------
     | Cash Codes
@@ -1506,16 +1520,37 @@ Route::middleware([
         });
 
 
+
+    Route::post(
+        'kitchens/{id}/tax-record',
+        [KitchenProfileController::class, 'updateTaxRecord']
+    )->name('admin.kitchens.tax-record');
+
     /*
     |--------------------------------------------------------------------------
     | Order Pricing
     |--------------------------------------------------------------------------
     */
 
+
+    Route::post('order-pricing/distance-rules', [OrderPricingController::class, 'storeDistanceRule'])
+        ->name('admin.order-pricing.distance-rules.store');
+
+    Route::put('order-pricing/distance-rules/{distanceRule}', [OrderPricingController::class, 'updateDistanceRule'])
+        ->name('admin.order-pricing.distance-rules.update');
+
+    Route::delete('order-pricing/distance-rules/{distanceRule}', [OrderPricingController::class, 'destroyDistanceRule'])
+        ->name('admin.order-pricing.distance-rules.destroy');
+
     Route::get('/admin/order-pricing', [
         OrderPricingController::class,
         'index',
     ])
+
+
+
+
+
         ->middleware('admin.permission:order_pricing.view')
         ->name('admin.order-pricing.index');
 

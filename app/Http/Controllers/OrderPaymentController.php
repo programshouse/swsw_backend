@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Setting;
 use App\Models\PaymentTransaction;
 use App\services\FinancialTransactionService;
 use App\services\Payments\KashierService;
@@ -150,8 +151,7 @@ class OrderPaymentController extends Controller
         ]);
 
         $paymentMethod = $validated['allowed_methods']
-            ?? $order->payment_method
-           ;
+            ?? $order->payment_method;
 
         if (!$paymentMethod) {
             return response()->json([
@@ -642,7 +642,7 @@ class OrderPaymentController extends Controller
                     ]);
                 //////////////////////////هنا
                 $lockedOrder->update([
-                   // 'payment_method' => $paymentMethod,
+                    // 'payment_method' => $paymentMethod,
 
                     'payment_status' =>
                     'pending',
@@ -2262,6 +2262,12 @@ class OrderPaymentController extends Controller
 
         $order->refresh();
 
+        /*
+    |--------------------------------------------------------------------------
+    | Check order status
+    |--------------------------------------------------------------------------
+    */
+
         if ($order->status !== 'preparing') {
             return response()->json([
                 'status' => false,
@@ -2269,6 +2275,12 @@ class OrderPaymentController extends Controller
                 'order_status' => $order->status,
             ], 422);
         }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Check if already paid
+    |--------------------------------------------------------------------------
+    */
 
         if ($order->payment_status === 'paid') {
             return response()->json([
@@ -2278,11 +2290,15 @@ class OrderPaymentController extends Controller
             ], 422);
         }
 
+        /*
+    |--------------------------------------------------------------------------
+    | Check payment expiration
+    |--------------------------------------------------------------------------
+    */
+
         if (
             $order->payment_expires_at
-            && now()->greaterThanOrEqualTo(
-                $order->payment_expires_at
-            )
+            && now()->greaterThanOrEqualTo($order->payment_expires_at)
         ) {
             return response()->json([
                 'status' => false,
@@ -2291,73 +2307,225 @@ class OrderPaymentController extends Controller
             ], 422);
         }
 
+        /*
+    |--------------------------------------------------------------------------
+    | Remaining amount
+    |--------------------------------------------------------------------------
+    */
+
         $remainingAmount = round(
             max((float) $order->total, 0),
             2
         );
 
+        /*
+    |--------------------------------------------------------------------------
+    | Settings
+    |--------------------------------------------------------------------------
+    */
+
+        $settings = Setting::first();
+
+        /*
+    |--------------------------------------------------------------------------
+    | User Cash Limit
+    |--------------------------------------------------------------------------
+    |
+    | NULL = لا يوجد حد أقصى للدفع كاش.
+    | 0    = الكاش غير متاح نهائياً.
+    |
+    */
+
+        $cashLimit = $settings?->user_cash_limit !== null
+            ? round((float) $settings->user_cash_limit, 2)
+            : null;
+
+        $cashEnabled = true;
+
+        if ($cashLimit !== null) {
+            $cashEnabled = $remainingAmount <= $cashLimit;
+        }
+
+        $cashDisabledReason = null;
+
+        if (!$cashEnabled) {
+            $cashDisabledReason =
+                'Cash payment is only available for orders up to '
+                . number_format($cashLimit, 2, '.', '')
+                . ' EGP';
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | No payment required
+    |--------------------------------------------------------------------------
+    */
+
         if ($remainingAmount <= 0) {
             return response()->json([
                 'status' => true,
-                'message' => 'No online payment is required',
+                'message' => 'No payment is required',
                 'data' => [
                     'order_id' => $order->id,
+                    'order_number' => $order->number,
                     'remaining_amount' => 0,
                     'currency' => 'EGP',
+                    'cash_limit' => $cashLimit,
                     'methods' => [],
                 ],
             ]);
         }
 
+        /*
+    |--------------------------------------------------------------------------
+    | Payment Methods
+    |--------------------------------------------------------------------------
+    */
+
         return response()->json([
             'status' => true,
-            'message' => 'Kashier payment methods retrieved successfully',
+            'message' => 'Payment methods retrieved successfully',
+
             'data' => [
+
                 'order_id' => $order->id,
+
                 'order_number' => $order->number,
+
                 'remaining_amount' => $remainingAmount,
+
                 'currency' => 'EGP',
 
                 /*
-             * دي الطرق المرسلة إلى Payment Session.
-             */
+            |--------------------------------------------------------------------------
+            | Cash Settings
+            |--------------------------------------------------------------------------
+            */
+
+                'cash_limit' => $cashLimit,
+
+                'cash_available' => $cashEnabled,
+
+                /*
+            |--------------------------------------------------------------------------
+            | Kashier Methods
+            |--------------------------------------------------------------------------
+            |
+            | دول فقط اللي بيتبعتوا لـ Kashier Payment Session.
+            |
+            */
+
                 'allowed_methods' => [
                     'card',
                     'wallet',
                 ],
 
+                /*
+            |--------------------------------------------------------------------------
+            | All methods displayed in Flutter
+            |--------------------------------------------------------------------------
+            */
+
                 'methods' => [
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Cash
+                |--------------------------------------------------------------------------
+                */
+
+                    [
+                        'code' => 'cash',
+
+                        'name_ar' => 'الدفع عند الاستلام',
+
+                        'name_en' => 'Cash',
+
+                        'enabled' => $cashEnabled,
+
+                        'is_online' => false,
+
+                        'handled_by_backend' => true,
+
+                        'limit' => $cashLimit,
+
+                        'disabled_reason' => $cashDisabledReason,
+                    ],
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Card
+                |--------------------------------------------------------------------------
+                */
+
                     [
                         'code' => 'card',
+
                         'name_ar' => 'بطاقة بنكية',
+
                         'name_en' => 'Card',
+
                         'enabled' => true,
+
+                        'is_online' => true,
                     ],
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Wallet
+                |--------------------------------------------------------------------------
+                */
+
                     [
                         'code' => 'wallet',
+
                         'name_ar' => 'محفظة إلكترونية',
+
                         'name_en' => 'Mobile Wallet',
+
                         'enabled' => true,
+
+                        'is_online' => true,
                     ],
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Apple Pay
+                |--------------------------------------------------------------------------
+                */
+
                     [
                         'code' => 'apple_pay',
+
                         'name_ar' => 'Apple Pay',
+
                         'name_en' => 'Apple Pay',
+
+                        'enabled' => true,
+
+                        'is_online' => true,
 
                         /*
                      * التوفر الحقيقي يحدده Kashier SDK حسب:
-                     * iOS + الجهاز + إعداد Apple Merchant ID.
+                     * iOS + الجهاز + Apple Merchant ID.
                      */
-                        'enabled' => true,
+
                         'sdk_managed' => true,
+
                         'ios_only' => true,
                     ],
                 ],
 
                 /*
-             * Flutter لا يرسل الطريقة للباك إند.
-             * ينشئ Session ثم يترك SDK يعرض الطرق المتاحة.
-             */
+            |--------------------------------------------------------------------------
+            | SDK
+            |--------------------------------------------------------------------------
+            |
+            | الطرق الإلكترونية يختارها Kashier SDK.
+            | الكاش لا يدخل Kashier.
+            |
+            */
+
                 'selection_handled_by_sdk' => true,
             ],
         ]);

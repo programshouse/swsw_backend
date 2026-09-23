@@ -24,6 +24,7 @@ class Order extends Model
 
         'kitchen_service_fee' => 'decimal:2',
         'client_service_fee' => 'decimal:2',
+        
         'kitchen_net_amount' => 'decimal:2',
 
         'total_before_discount' => 'decimal:2',
@@ -35,6 +36,9 @@ class Order extends Model
 
         'paid_at' => 'datetime',
         'payment_expires_at' => 'datetime',
+
+        'kitchen_tax_deduction_percentage' => 'decimal:2',
+        'kitchen_tax_deduction_value' => 'decimal:2',
     ];
 
     public function deliveryOrders()
@@ -110,9 +114,9 @@ class Order extends Model
     }
 
     public function financialTransactions(): HasMany
-{
-    return $this->hasMany(
-        FinancialTransaction::class
-    );
-}
+    {
+        return $this->hasMany(
+            FinancialTransaction::class
+        );
+    }
 }

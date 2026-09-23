@@ -335,10 +335,16 @@ class OrdersController extends Controller
             $kitchen->user?->defaultAddress;
 
         /*
+                |--------------------------------------------------------------------------
+                | Calculate distance and delivery price
+                |--------------------------------------------------------------------------
+                */
+
+        /*
         |--------------------------------------------------------------------------
         | Calculate distance and delivery price
         |--------------------------------------------------------------------------
-        */
+           */
 
         $distanceKm = 0;
 
@@ -358,18 +364,43 @@ class OrdersController extends Controller
             );
         }
 
-        $deliveryMeterPrice = round(
+        $minDeliveryFee = round(
             (float) (
-                $settings?->delivery_meter_price
+                $settings?->min_delivery_fee
                 ?? 0
             ),
             2
         );
 
-        $deliveryPrice = round(
-            $distanceKm * $deliveryMeterPrice,
-            2
-        );
+        if ($distanceKm < 1) {
+            $deliveryMeterPrice = 0;
+            $deliveryPrice = $minDeliveryFee;
+        } else {
+            $distanceRule = \App\Models\DeliveryDistanceRule::query()
+                ->where('min_distance', '<=', $distanceKm)
+                ->where(function ($query) use ($distanceKm) {
+                    $query
+                        ->whereNull('max_distance')
+                        ->orWhere('max_distance', '>=', $distanceKm);
+                })
+                ->orderByDesc('min_distance')
+                ->first();
+
+            $deliveryMeterPrice = round(
+                (float) (
+                    $distanceRule?->price_per_km
+                    ?? 0
+                ),
+                2
+            );
+
+            $deliveryPrice = round(
+                $distanceKm * $deliveryMeterPrice,
+                2
+            );
+        }
+
+        $deliveryPrice = round($deliveryPrice, 2);
 
         /*
         |--------------------------------------------------------------------------
@@ -377,16 +408,18 @@ class OrdersController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $vatPercentage = round(
-            (float) (
-                $settings?->vat_percentage
-                ?? 0
-            ),
-            2
-        );
+        $vatPercentage = $settings?->client_vat_enabled
+            ? round(
+                (float) (
+                    $settings?->client_vat_percentage
+                    ?? 0
+                ),
+                2
+            )
+            : 0;
 
         $vatValue = round(
-            ($subtotal * $vatPercentage) / 100,
+            ($deliveryPrice * $vatPercentage) / 100,
             2
         );
 
@@ -439,13 +472,54 @@ class OrdersController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Kitchen tax deduction
+        |--------------------------------------------------------------------------
+        |
+        | خصم ضريبي منفصل عن kitchen_service_fee.
+        | يتم تطبيقه فقط لو المطبخ لديه سجل ضريبي.
+        |
+        */
+
+        $kitchenTaxDeductionPercentage = 0;
+        $kitchenTaxDeductionValue = 0;
+
+        if ((bool) $kitchen->has_tax_record) {
+
+            $kitchenTaxDeductionPercentage = round(
+                (float) (
+                    $settings?->kitchen_tax_deduction_percentage
+                    ?? 0
+                ),
+                2
+            );
+
+            $kitchenTaxDeductionValue = round(
+                (
+                    $subtotal
+                    * $kitchenTaxDeductionPercentage
+                ) / 100,
+                2
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Kitchen net amount
         |--------------------------------------------------------------------------
+        |
+        | صافي المطبخ =
+        | قيمة الأكل
+        | - خدمة المطبخ
+        | - الخصم الضريبي
+        |
         */
 
         $kitchenNetAmount = round(
             max(
-                $subtotal - $kitchenServiceFee,
+                $subtotal
+                    - $kitchenServiceFee
+                    - $kitchenTaxDeductionValue,
                 0
             ),
             2
@@ -484,9 +558,14 @@ class OrdersController extends Controller
             $feeRule,
             $clientServiceFee,
             $kitchenServiceFee,
+
+            $kitchenTaxDeductionPercentage,
+            $kitchenTaxDeductionValue,
+
             $kitchenNetAmount,
             $totalBeforeDiscount,
             $meals
+
         ) {
             $lastOrderId = Order::query()
                 ->max('id');
@@ -535,11 +614,21 @@ class OrdersController extends Controller
                 'order_fee_rule_id' =>
                 $feeRule?->id,
 
+
+
                 'client_service_fee' =>
                 $clientServiceFee,
 
                 'kitchen_service_fee' =>
                 $kitchenServiceFee,
+
+
+
+                'kitchen_tax_deduction_percentage' =>
+                $kitchenTaxDeductionPercentage,
+
+                'kitchen_tax_deduction_value' =>
+                $kitchenTaxDeductionValue,
 
                 'kitchen_net_amount' =>
                 $kitchenNetAmount,
@@ -1860,17 +1949,47 @@ class OrdersController extends Controller
                     // }
 
                     /*
-                |--------------------------------------------------------------------------
-                | Select cash
-                |--------------------------------------------------------------------------
-                */
+                /*
+|--------------------------------------------------------------------------
+| Select cash
+|--------------------------------------------------------------------------
+*/
 
-                    if (
-                        $validated['payment_method'] === 'cash'
-                    ) {
+                    if ($validated['payment_method'] === 'cash') {
 
-                        // Cancel existing Kashier pending session
-                        PaymentTransaction::where('order_id', $lockedOrder->id)
+                        /*
+    |--------------------------------------------------------------------------
+    | Validate Cash Limit
+    |--------------------------------------------------------------------------
+    */
+
+                        $settings = Setting::first();
+
+                        $cashLimit = $settings?->user_cash_limit !== null
+                            ? round((float) $settings->user_cash_limit, 2)
+                            : null;
+
+                        if (
+                            $cashLimit !== null
+                            && $remainingAmount > $cashLimit
+                        ) {
+                            throw new \RuntimeException(
+                                'Cash payment is only available for orders up to '
+                                    . number_format($cashLimit, 2, '.', '')
+                                    . ' EGP'
+                            );
+                        }
+
+                        /*
+    |--------------------------------------------------------------------------
+    | Cancel existing Kashier pending session
+    |--------------------------------------------------------------------------
+    */
+
+                        PaymentTransaction::where(
+                            'order_id',
+                            $lockedOrder->id
+                        )
                             ->where('provider', 'kashier')
                             ->where('status', 'pending')
                             ->update([
@@ -1878,22 +1997,22 @@ class OrdersController extends Controller
                                 'provider_status' => 'METHOD_CHANGED',
                             ]);
 
+                        /*
+    |--------------------------------------------------------------------------
+    | Change order payment method to cash
+    |--------------------------------------------------------------------------
+    */
 
-                        // Change order payment method to cash
                         $lockedOrder->update([
                             'payment_method' => 'cash',
 
-                            'payment_status' =>
-                            'cash_pending',
+                            'payment_status' => 'cash_pending',
 
-                            'payment_reference' =>
-                            null,
+                            'payment_reference' => null,
 
-                            'payment_expires_at' =>
-                            null,
+                            'payment_expires_at' => null,
 
-                            'paid_at' =>
-                            null,
+                            'paid_at' => null,
                         ]);
                     }
 

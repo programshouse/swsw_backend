@@ -37,6 +37,7 @@ class SettingsController extends Controller
             'facebook_link'   => 'nullable|url',
             'instgram_link'   => 'nullable|url',
             'tiktok_link'     => 'nullable|url',
+            'user_cash_limit' => 'nullable|numeric|min:0',
 
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
 
@@ -305,5 +306,4 @@ class SettingsController extends Controller
             "تم حذف المستخدم {$userName} صاحب البريد {$userEmail} بنجاح."
         );
     }
-
 }

@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Models\DeliveryDistanceRule;
 
 class OrderPricingController extends Controller
 {
@@ -20,73 +21,89 @@ class OrderPricingController extends Controller
             ->orderBy('min_order_amount')
             ->get();
 
+        $distanceRules = DeliveryDistanceRule::query()
+            ->orderBy('min_distance')
+            ->get();
+
         return view('admin.order-pricing.index', compact(
             'settings',
-            'rules'
+            'rules',
+            'distanceRules'
         ));
     }
 
     public function updateSettings(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'delivery_meter_price' => [
+            'min_delivery_fee' => [
                 'required',
                 'numeric',
                 'min:0',
                 'max:999999.99',
             ],
 
-            'vat_percentage' => [
+            'client_vat_percentage' => [
+                'required',
+                'numeric',
+                'min:0',
+                'max:100',
+            ],
+
+            'client_vat_enabled' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'kitchen_tax_deduction_percentage' => [
                 'required',
                 'numeric',
                 'min:0',
                 'max:100',
             ],
         ], [
-            'delivery_meter_price.required' =>
-            'سعر التوصيل لكل كيلومتر مطلوب.',
+            'min_delivery_fee.required' =>
+            'الحد الأدنى لسعر التوصيل مطلوب.',
 
-            'delivery_meter_price.numeric' =>
-            'سعر التوصيل يجب أن يكون رقمًا.',
+            'min_delivery_fee.numeric' =>
+            'الحد الأدنى لسعر التوصيل يجب أن يكون رقمًا.',
 
-            'delivery_meter_price.min' =>
-            'سعر التوصيل لا يمكن أن يكون أقل من صفر.',
+            'min_delivery_fee.min' =>
+            'الحد الأدنى لسعر التوصيل لا يمكن أن يكون أقل من صفر.',
 
-            'vat_percentage.required' =>
-            'نسبة القيمة المضافة مطلوبة.',
+            'client_vat_percentage.required' =>
+            'نسبة ضريبة القيمة المضافة على العميل مطلوبة.',
 
-            'vat_percentage.numeric' =>
-            'نسبة القيمة المضافة يجب أن تكون رقمًا.',
+            'client_vat_percentage.numeric' =>
+            'نسبة الضريبة يجب أن تكون رقمًا.',
 
-            'vat_percentage.max' =>
-            'نسبة القيمة المضافة لا يمكن أن تتجاوز 100%.',
+            'client_vat_percentage.max' =>
+            'نسبة الضريبة لا يمكن أن تتجاوز 100%.',
+
+            'kitchen_tax_deduction_percentage.required' =>
+            'نسبة الخصم الضريبي من المطبخ مطلوبة.',
+
+            'kitchen_tax_deduction_percentage.numeric' =>
+            'نسبة الخصم يجب أن تكون رقمًا.',
+
+            'kitchen_tax_deduction_percentage.max' =>
+            'نسبة الخصم لا يمكن أن تتجاوز 100%.',
         ]);
+
+        $validated['client_vat_enabled'] = $request->boolean('client_vat_enabled');
 
         $settings = Setting::query()->first();
 
         if (!$settings) {
-            $settings = Setting::create([
-                'delivery_meter_price' =>
-                $validated['delivery_meter_price'],
-
-                'vat_percentage' =>
-                $validated['vat_percentage'],
-            ]);
+            $settings = Setting::create($validated);
         } else {
-            $settings->update([
-                'delivery_meter_price' =>
-                $validated['delivery_meter_price'],
-
-                'vat_percentage' =>
-                $validated['vat_percentage'],
-            ]);
+            $settings->update($validated);
         }
 
         return redirect()
             ->route('admin.order-pricing.index')
             ->with(
                 'success',
-                'تم تحديث إعدادات التوصيل والقيمة المضافة بنجاح.'
+                'تم تحديث إعدادات التوصيل والضرائب بنجاح.'
             );
     }
 
@@ -297,6 +314,126 @@ class OrderPricingController extends Controller
                 'min_order_amount' => [
                     'هذه الشريحة تتداخل مع شريحة موجودة بالفعل.',
                 ],
+            ]);
+        }
+    }
+
+
+    public function storeDistanceRule(Request $request): RedirectResponse
+    {
+        $validated = $this->validateDistanceRule($request);
+
+        $this->ensureNoOverlappingDistanceRules(
+            (float) $validated['min_distance'],
+            $validated['max_distance'] !== null
+                ? (float) $validated['max_distance']
+                : null
+        );
+
+        DeliveryDistanceRule::create($validated);
+
+        return redirect()
+            ->route('admin.order-pricing.index')
+            ->with('success', 'تم إضافة شريحة المسافة بنجاح.');
+    }
+
+    public function updateDistanceRule(
+        Request $request,
+        DeliveryDistanceRule $distanceRule
+    ): RedirectResponse {
+        $validated = $this->validateDistanceRule($request);
+
+        $this->ensureNoOverlappingDistanceRules(
+            (float) $validated['min_distance'],
+            $validated['max_distance'] !== null
+                ? (float) $validated['max_distance']
+                : null,
+            $distanceRule->id
+        );
+
+        $distanceRule->update($validated);
+
+        return redirect()
+            ->route('admin.order-pricing.index')
+            ->with('success', 'تم تحديث شريحة المسافة بنجاح.');
+    }
+
+    public function destroyDistanceRule(
+        DeliveryDistanceRule $distanceRule
+    ): RedirectResponse {
+        $distanceRule->delete();
+
+        return redirect()
+            ->route('admin.order-pricing.index')
+            ->with('success', 'تم حذف شريحة المسافة بنجاح.');
+    }
+
+    private function validateDistanceRule(Request $request): array
+    {
+        return $request->validate([
+            'min_distance' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'max_distance' => [
+                'nullable',
+                'numeric',
+                'gt:min_distance',
+            ],
+
+            'price_per_km' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+        ], [
+            'min_distance.required' => 'بداية المسافة مطلوبة.',
+            'min_distance.numeric' => 'بداية المسافة يجب أن تكون رقمًا.',
+            'max_distance.numeric' => 'نهاية المسافة يجب أن تكون رقمًا.',
+            'max_distance.gt' => 'نهاية المسافة يجب أن تكون أكبر من بدايتها.',
+            'price_per_km.required' => 'سعر الكيلومتر مطلوب.',
+            'price_per_km.numeric' => 'سعر الكيلومتر يجب أن يكون رقمًا.',
+        ]);
+    }
+
+    private function ensureNoOverlappingDistanceRules(
+        float $min,
+        ?float $max,
+        ?int $ignoreId = null
+    ): void {
+        $query = DeliveryDistanceRule::query();
+
+        if ($ignoreId !== null) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        $hasOverlap = $query
+            ->where(function ($query) use ($min, $max) {
+                if ($max === null) {
+                    $query->where(function ($subQuery) use ($min) {
+                        $subQuery
+                            ->whereNull('max_distance')
+                            ->orWhere('max_distance', '>=', $min);
+                    });
+
+                    return;
+                }
+
+                $query
+                    ->where('min_distance', '<=', $max)
+                    ->where(function ($subQuery) use ($min) {
+                        $subQuery
+                            ->whereNull('max_distance')
+                            ->orWhere('max_distance', '>=', $min);
+                    });
+            })
+            ->exists();
+
+        if ($hasOverlap) {
+            throw ValidationException::withMessages([
+                'min_distance' => ['هذه الشريحة تتداخل مع شريحة مسافة موجودة بالفعل.'],
             ]);
         }
     }

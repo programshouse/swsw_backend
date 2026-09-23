@@ -27,7 +27,19 @@ class Setting extends Model
         'kitchen_contract',
         'user_contract',
         'delivery_meter_price',
-       
+
+        'min_delivery_fee',
+        'client_vat_percentage',
+        'client_vat_enabled',
+        'kitchen_tax_deduction_percentage',
+         'user_cash_limit'
+
+    ];
+
+
+    protected $casts = [
+        'client_vat_enabled' => 'boolean',
+         'user_cash_limit' => 'decimal:2',
     ];
 
 

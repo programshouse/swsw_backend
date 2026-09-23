@@ -123,6 +123,20 @@ class OrderResource extends JsonResource
                 2
             ),
 
+
+            'client_service_fee' => $clientServiceFee,
+
+            'kitchen_net_amount' => $this->kitchen_net_amount,
+
+
+            'kitchen_service_fee' => $this->kitchen_service_fee,
+
+
+
+
+            'has_kitchen_tax_deduction' =>
+            (float) ($this->kitchen_tax_deduction_value ?? 0) > 0,
+
             'total' => round(
                 $finalTotal,
                 2

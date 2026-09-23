@@ -17,6 +17,10 @@ use App\Models\DeliveryUser;
 use App\Helpers\FileHelper;
 use Illuminate\Http\JsonResponse;
 use App\services\KitchenPackageService;
+use App\Models\KitchenPackageSubscription;
+use App\Models\KitchenPackage;
+
+
 
 
 
@@ -47,7 +51,8 @@ class KitchenProfileController extends Controller
             'have_delivery' => 'required',
             'name' => 'required|string|max:255',
             'logo' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'cover' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
+            'cover' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'has_tax_record' => 'required|boolean',
         ]);
 
         $logo_path = FileHelper::uploadImage(
@@ -77,7 +82,8 @@ class KitchenProfileController extends Controller
             'logo' => $logo_path,
             'cover' => $cover_path,
             'government_id' =>  $user->government_id,
-            'area_id' =>  $user->area_id
+            'area_id' =>  $user->area_id,
+            'has_tax_record' => $validated['has_tax_record'],
         ]);
 
 
@@ -97,8 +103,29 @@ class KitchenProfileController extends Controller
 
     public function show(Request $request, User $profile)
     {
+        $kitchen = $profile->profile;
 
-        return new DashboardKitchenProfileResource($profile->profile);
+        if (!$kitchen) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Kitchen profile not found',
+            ], 404);
+        }
+
+        $kitchen->load([
+            'work_day',
+            'meals',
+            'government',
+            'area',
+            'user',
+            'orders',
+
+            'currentPackageSubscription.package',
+        ]);
+
+        return new DashboardKitchenProfileResource(
+            $kitchen
+        );
     }
 
     public function me(Request $request)
@@ -280,12 +307,137 @@ class KitchenProfileController extends Controller
 
     public function kitchens(Request $request)
     {
-        $kitchens = User::where('role', 'kitchen')
-           ->with([
-    'profile.government',
-    'profile.area',
-    'profile.packageSubscriptions'
-])
+        $governments = \App\Models\Government::query()
+            ->orderBy('name_ar')
+            ->get();
+
+        $areas = \App\Models\Area::query()
+            ->orderBy('name_ar')
+            ->get();
+
+        $packageNames = \App\Models\KitchenPackageSubscription::query()
+            ->select('package_name')
+            ->whereNotNull('package_name')
+            ->distinct()
+            ->orderBy('package_name')
+            ->pluck('package_name');
+
+        $query = User::where('role', 'kitchen')
+            ->with([
+                'profile.government',
+                'profile.area',
+                'profile.packageSubscriptions',
+            ]);
+
+        /*
+    |--------------------------------------------------------------------------
+    | Text search: name / email / phone / code
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Account status
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Kitchen status (profile->statue)
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('kitchen_status')) {
+            $query->whereHas('profile', function ($q) use ($request) {
+                $q->where('statue', $request->get('kitchen_status'));
+            });
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Tax record
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('has_tax_record')) {
+            $query->whereHas('profile', function ($q) use ($request) {
+                $q->where(
+                    'has_tax_record',
+                    $request->get('has_tax_record') === '1'
+                );
+            });
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Government
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('government_id')) {
+            $query->whereHas('profile', function ($q) use ($request) {
+                $q->where('government_id', $request->get('government_id'));
+            });
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Area
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('area_id')) {
+            $query->whereHas('profile', function ($q) use ($request) {
+                $q->where('area_id', $request->get('area_id'));
+            });
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Package
+    |--------------------------------------------------------------------------
+    */
+
+        if ($request->filled('package')) {
+            if ($request->get('package') === 'none') {
+                $query->whereDoesntHave(
+                    'profile.packageSubscriptions',
+                    function ($q) {
+                        $q->where('status', 'active')
+                            ->where('expires_at', '>=', now());
+                    }
+                );
+            } else {
+                $query->whereHas(
+                    'profile.packageSubscriptions',
+                    function ($q) use ($request) {
+                        $q->where('status', 'active')
+                            ->where('expires_at', '>=', now())
+                            ->where(
+                                'package_name',
+                                $request->get('package')
+                            );
+                    }
+                );
+            }
+        }
+
+        $kitchens = $query
             ->latest()
             ->get()
             ->map(function ($kitchen) {
@@ -308,7 +460,12 @@ class KitchenProfileController extends Controller
                 return $kitchen;
             });
 
-        return view('admin.kitchens.index', compact('kitchens'));
+        return view('admin.kitchens.index', compact(
+            'kitchens',
+            'governments',
+            'areas',
+            'packageNames'
+        ));
     }
 
     public function kitchen_show(Request $request, User $profile)
@@ -479,5 +636,226 @@ class KitchenProfileController extends Controller
                 ],
             ],
         ]);
+    }
+
+
+
+
+    public function updateTaxRecord(Request $request, $id)
+    {
+        $kitchen = KitchenProfile::findOrFail($id);
+
+        $kitchen->has_tax_record = $request->boolean('has_tax_record');
+        $kitchen->save();
+
+        return redirect()
+            ->back()
+            ->with('success', 'تم تحديث حالة السجل الضريبي بنجاح');
+    }
+
+
+
+
+
+    public function activatePackage(
+        Request $request,
+        $kitchenId
+    ) {
+        /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+        $validated = $request->validate([
+            'kitchen_package_id' => [
+                'required',
+                'integer',
+                'exists:kitchen_packages,id',
+            ],
+        ]);
+
+        /*
+    |--------------------------------------------------------------------------
+    | Kitchen
+    |--------------------------------------------------------------------------
+    */
+
+        $kitchen = KitchenProfile::findOrFail(
+            $kitchenId
+        );
+
+        /*
+    |--------------------------------------------------------------------------
+    | Package
+    |--------------------------------------------------------------------------
+    |
+    | لا نسمح بتفعيل باقة غير مفعلة من الإدارة.
+    |
+    */
+
+        $package = KitchenPackage::query()
+            ->where('id', $validated['kitchen_package_id'])
+            ->where('active', 1)
+            ->firstOrFail();
+
+        DB::transaction(function () use (
+            $kitchen,
+            $package
+        ) {
+
+            /*
+        |--------------------------------------------------------------------------
+        | Expire old active subscriptions
+        |--------------------------------------------------------------------------
+        */
+
+            KitchenPackageSubscription::query()
+                ->where('kitchen_id', $kitchen->id)
+                ->where('status', 'active')
+                ->update([
+                    'status' => 'expired',
+                    'expires_at' => now(),
+                    'expired_reason' =>
+                    'replaced_by_admin',
+                ]);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Calculate subscription dates
+        |--------------------------------------------------------------------------
+        */
+
+            $startsAt = now();
+
+            $expiresAt = match ($package->duration_unit) {
+                'day' => $startsAt
+                    ->copy()
+                    ->addDays(
+                        (int) $package->duration
+                    ),
+
+                'year' => $startsAt
+                    ->copy()
+                    ->addYears(
+                        (int) $package->duration
+                    ),
+
+                default => $startsAt
+                    ->copy()
+                    ->addMonths(
+                        (int) $package->duration
+                    ),
+            };
+
+            /*
+        |--------------------------------------------------------------------------
+        | Create subscription
+        |--------------------------------------------------------------------------
+        */
+
+            KitchenPackageSubscription::create([
+
+                'user_id' =>
+                $kitchen->user_id,
+
+                'kitchen_id' =>
+                $kitchen->id,
+
+                'kitchen_package_id' =>
+                $package->id,
+
+                /*
+             * Snapshot من بيانات الباقة وقت الاشتراك.
+             */
+
+                'package_name' =>
+                $package->name,
+
+                'package_price' =>
+                $package->price,
+
+                'package_duration' =>
+                $package->duration,
+
+                'duration_unit' =>
+                $package->duration_unit,
+
+                /*
+             * Subscription status
+             */
+
+                'status' => 'active',
+
+                'starts_at' =>
+                $startsAt,
+
+                'expires_at' =>
+                $expiresAt,
+
+                /*
+             * بما إن الأدمن هو اللي فعلها يدويًا
+             */
+
+                'paid_at' =>
+                now(),
+
+                'payment_reference' =>
+                'ADMIN-'
+                    . $kitchen->id
+                    . '-'
+                    . now()->format('YmdHis'),
+
+                'expired_reason' =>
+                null,
+            ]);
+        });
+
+        return back()->with(
+            'success',
+            'تم تفعيل الباقة للمطبخ بنجاح'
+        );
+    }
+
+
+
+
+
+    public function expirePackage(
+        Request $request,
+        $kitchenId
+    ) {
+        $kitchen = KitchenProfile::findOrFail(
+            $kitchenId
+        );
+
+        $subscription =
+            KitchenPackageSubscription::query()
+            ->where('kitchen_id', $kitchen->id)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+        if (!$subscription) {
+            return back()->with(
+                'error',
+                'لا توجد باقة فعالة لهذا المطبخ'
+            );
+        }
+
+        $subscription->update([
+
+            'status' => 'expired',
+
+            'expires_at' => now(),
+
+            'expired_reason' =>
+            'expired_by_admin',
+        ]);
+
+        return back()->with(
+            'success',
+            'تم إنهاء باقة المطبخ بنجاح'
+        );
     }
 }
